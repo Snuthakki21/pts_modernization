@@ -1,0 +1,63 @@
+{
+  "context": "{\n  \"jobs\": [\n    {\n      \"name\": \"REFJOB\",\n      \"order\": 1,\n      \"steps\": [\n        {\n          \"condition\": \"Always\",\n          \"inputs\": [\n            \"CUSTOMER\",\n            \"REFERRAL\"\n          ],\n          \"name\": \"CHECK\",\n          \"order\": 1,\n          \"outputs\": [\n            \"RESULT\"\n          ],\n          \"program\": \"ELIGIBLE\"\n        }\n      ]\n    }\n  ],\n  \"knowledge_input\": null,\n  \"layouts\": {\n    \"ELIGIBLE\": {\n      \"ACTIVE\": {\n        \"default\": \" \",\n        \"group\": \"CUSTOMER-RECORD\",\n        \"source_ref\": \"LAYOUT.cpy:4\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"string\",\n        \"width\": 1\n      },\n      \"AGE\": {\n        \"default\": 0,\n        \"group\": \"CUSTOMER-RECORD\",\n        \"max\": 999,\n        \"min\": 0,\n        \"source_ref\": \"LAYOUT.cpy:3\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"integer\",\n        \"width\": 3\n      },\n      \"AMOUNT\": {\n        \"default\": 0,\n        \"group\": \"REFERRAL-RECORD\",\n        \"max\": 99999,\n        \"min\": 0,\n        \"source_ref\": \"LAYOUT.cpy:7\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"integer\",\n        \"width\": 5\n      },\n      \"CUSTOMER-ID\": {\n        \"default\": 0,\n        \"group\": \"CUSTOMER-RECORD\",\n        \"max\": 9999,\n        \"min\": 0,\n        \"source_ref\": \"LAYOUT.cpy:2\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"integer\",\n        \"width\": 4\n      },\n      \"DECISION\": {\n        \"default\": \" \",\n        \"group\": \"REFERRAL-RECORD\",\n        \"source_ref\": \"LAYOUT.cpy:8\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"string\",\n        \"width\": 1\n      },\n      \"REF-CUSTOMER-ID\": {\n        \"default\": 0,\n        \"group\": \"REFERRAL-RECORD\",\n        \"max\": 9999,\n        \"min\": 0,\n        \"source_ref\": \"LAYOUT.cpy:6\",\n        \"storage_section\": \"LINKAGE\",\n        \"type\": \"integer\",\n        \"width\": 4\n      }\n    }\n  },\n  \"relationships\": []\n}",
+  "items": [
+    {
+      "evidence": "ELIGIBLE.cbl:7-11",
+      "id": "ELIGIBLE_R001",
+      "kind": "business_rule",
+      "question": "If AGE >= 18, set DECISION to 'Y'. Otherwise set DECISION to 'N'."
+    },
+    {
+      "evidence": "ELIGIBLE.cbl:12-16",
+      "id": "ELIGIBLE_R002",
+      "kind": "business_rule",
+      "question": "If ACTIVE = \"N\", set DECISION to 'N'. Otherwise keep the current values."
+    },
+    {
+      "evidence": "ELIGIBLE.cbl:17-21",
+      "id": "ELIGIBLE_R003",
+      "kind": "business_rule",
+      "question": "If CUSTOMER-ID <> REF-CUSTOMER-ID, set DECISION to 'N'. Otherwise keep the current values."
+    },
+    {
+      "evidence": "ELIGIBLE.cbl:22-26",
+      "id": "ELIGIBLE_R004",
+      "kind": "business_rule",
+      "question": "If AMOUNT > 50000, set DECISION to 'R'. Otherwise keep the current values."
+    },
+    {
+      "evidence": "See process inventory/layout/relationship context",
+      "id": "G_SCOPE",
+      "kind": "process_assumption",
+      "question": "Does the listed program/job/step inventory cover this process?"
+    },
+    {
+      "evidence": "See process inventory/layout/relationship context",
+      "id": "G_LAYOUT",
+      "kind": "process_assumption",
+      "question": "Are the listed field names, lengths, numeric limits and record groups correct?"
+    },
+    {
+      "evidence": "See process inventory/layout/relationship context",
+      "id": "G_ORDER",
+      "kind": "process_assumption",
+      "question": "Are the listed job/step sequence, conditions, and input/output links correct?"
+    },
+    {
+      "evidence": "See process inventory/layout/relationship context",
+      "id": "G_MATCH",
+      "kind": "process_assumption",
+      "question": "Are the listed matching relationships and intentional missing-match cases interpreted correctly?"
+    },
+    {
+      "evidence": "See process inventory/layout/relationship context",
+      "id": "G_TARGET",
+      "kind": "process_assumption",
+      "question": "Is Python with SQLite/JSON files acceptable for this non-production POC?"
+    }
+  ],
+  "packet_hash": "83ef49196630ac07cc7d189032cd744c278b5a1c9250d4add375b9ba896b9268",
+  "process_id": "example-reuse",
+  "source_snapshot": "e79165daf78f7f3d2921a70049ff208e0fb2c6b8f57c436cfbfa93a1513b23e8",
+  "version": 1
+}

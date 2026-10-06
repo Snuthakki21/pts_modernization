@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "6 editable slides",
+    "full source accountability in JSON/CSV/XLSX/HTML",
+    "all shapes within canvas",
+    "source program metric present"
+  ],
+  "powerpoint_render_checked": false,
+  "sha256": {
+    "coverage.csv": "89f41c043aeddec7e224ced1f84d8d44226fbb76968a18d76d48ebe57b048e08",
+    "coverage.html": "dbeaa4d989aa7c3183e6d390ffa9b57597dd3d2538b0d39e7c1c4f21f26e50b9",
+    "coverage.json": "b4a5cf0582d45ddfe4214ca9c43287a43402fa1e56242395b8b1154c32555957",
+    "coverage.xlsx": "3353eab160633bb7aa731e92a5b7e4109aa898fc090901df87fda3ea9c0f6306",
+    "management.pptx": "8a10c056d781b3dc3eb28c2cbcd3dc0357a8712683ed01ad7e3576447730a5fe",
+    "metrics.csv": "6a74de6c46809a6e49a31d99849e51aced3b725636f0f8c40399f2ff23047317",
+    "metrics.json": "152a6abf6a7717cdb749a47ae11b958ccd092af59ffb90073217c6f1a30b5f31",
+    "metrics.xlsx": "466b746a653ad19b5f40debff224c9570103a8c9b81dd7b133267c5d347db1c4"
+  },
+  "verified": true
+}

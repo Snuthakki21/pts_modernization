@@ -1,0 +1,27 @@
+{
+  "inputs": [
+    {
+      "id": "workbenchPython",
+      "type": "promptString",
+      "description": "Python interpreter with the workbench dependencies installed",
+      "default": "python"
+    },
+    {
+      "id": "workbenchOrigin",
+      "type": "promptString",
+      "description": "Already running local workbench UI origin (explicit loopback address and port)",
+      "default": "http://127.0.0.1:8765"
+    }
+  ],
+  "servers": {
+    "workbench": {
+      "type": "stdio",
+      "command": "${input:workbenchPython}",
+      "args": [
+        "${workspaceFolder}/tools/workbench_mcp.py",
+        "--origin",
+        "${input:workbenchOrigin}"
+      ]
+    }
+  }
+}

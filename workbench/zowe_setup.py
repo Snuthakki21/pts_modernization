@@ -1,0 +1,185 @@
+"""Prepare nonsecret project Zowe profiles; credentials remain interactive in Zowe."""
+import argparse
+import copy
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+from .domain import ValidationError, atomic_json, decode, require, safe_path, write_new
+from .layout import require_layout
+
+
+def _profile(value):
+    require(isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9_-]{1,80}', value),
+            'Use a Zowe profile alias containing letters, digits, underscores or hyphens')
+    return value
+
+
+def _host(value):
+    require(isinstance(value, str) and 0 < len(value) <= 253 and not value.startswith('-'),
+            'Supply the actual z/OSMF host name without URL, credentials or whitespace')
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        require(all(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', label)
+                    for label in value.rstrip('.').split('.')),
+                'Supply the actual z/OSMF host name without URL, credentials or whitespace')
+    return value
+
+
+def _merge_profile(profiles, name, kind):
+    if name not in profiles: profiles[name] = {'type': kind, 'properties': {}}
+    value = profiles[name]
+    require(isinstance(value, dict) and value.get('type') == kind,
+            'Existing selected profile has a different type; choose a new alias')
+    value.setdefault('properties', {})
+    require(isinstance(value['properties'], dict), 'Selected profile properties must be an object')
+    # Never print, copy to a new field, delete, or silently bless inline credentials.
+    require(not any(key in value['properties'] for key in ('user', 'password', 'tokenValue', 'certKeyFile')),
+            'Selected profile contains inline credentials; secure them locally with Zowe before using this helper')
+    return value
+
+
+def initialize_profile(workspace, profile='workbench_base', host=None, port=None,
+                       zosmf_profile=None, user_config=False):
+    """Merge only a caller-selected project's config. Does not read home or run Zowe.
+
+    A missing host intentionally stays absent. `zowe config secure` requires
+    field names in each profile's `secure` array, not property paths or values.
+    """
+    profile = _profile(profile)
+    zosmf_profile = _profile(zosmf_profile or profile[:73] + '_zosmf')
+    require(profile != zosmf_profile, 'Base and z/OSMF profiles need distinct aliases')
+    if host is not None: host = _host(host)
+    require(port is None or type(port) is int and 1 <= port <= 65535, 'Port must be 1..65535')
+    require(type(user_config) is bool, 'User-config selection must be a boolean')
+    workspace = Path(workspace).absolute()
+    require_layout(workspace)
+    config_name = 'zowe.config.user.json' if user_config else 'zowe.config.json'
+    path = safe_path(workspace, config_name)
+    require(not path.exists() or path.is_file(), 'Selected Zowe config must be a regular file')
+    require(not path.exists() or path.stat().st_size<=1024*1024,'Selected Zowe config exceeds its byte bound')
+    config = decode(path.read_bytes(), 1024 * 1024) if path.exists() else {}
+    require(isinstance(config, dict), 'Zowe config must be a JSON object')
+    config = copy.deepcopy(config)
+    config.setdefault('profiles', {})
+    config.setdefault('defaults', {})
+    require(isinstance(config['profiles'], dict) and isinstance(config['defaults'], dict),
+            'Zowe profiles and defaults must be JSON objects')
+    base = _merge_profile(config['profiles'], profile, 'base')
+    service = _merge_profile(config['profiles'], zosmf_profile, 'zosmf')
+    base.setdefault('secure', [])
+    require(isinstance(base['secure'], list) and all(isinstance(item, str) for item in base['secure']),
+            'Selected base profile secure declarations must be a list of field names')
+    for name in ('user', 'password'):
+        if name not in base['secure']: base['secure'].append(name)
+    if host is not None: base['properties']['host'] = host
+    if port is not None: base['properties']['port'] = port
+    # New profiles use certificate validation; existing explicit settings are preserved.
+    service['properties'].setdefault('rejectUnauthorized', True)
+    service['properties'].setdefault('protocol', 'https')
+    config['defaults'].setdefault('base', profile)
+    config['defaults'].setdefault('zosmf', zosmf_profile)
+    config.setdefault('autoStore', True)
+    effective_host = service['properties'].get('host') or base['properties'].get('host')
+    if effective_host is not None: _host(effective_host)
+    atomic_json(path, config)
+    require_layout(workspace)
+    command = ['zowe', 'config', 'secure'] + (['--user-config'] if user_config else [])
+    return {'status': 'READY_FOR_SECURE_INPUT' if effective_host else 'NEEDS_HOST',
+            'config_file': str(path), 'profile': profile, 'zosmf_profile': zosmf_profile,
+            'secure_fields': ['user', 'password'], 'secure_command': command,
+            'run_from': str(workspace), 'credentials': 'UNVERIFIED', 'connectivity': 'UNVERIFIED',
+            'environment': {'WB_ZOWE_PROFILE': profile, 'WB_ZOWE_ZOSMF_PROFILE': zosmf_profile},
+            'guidance': 'From this workspace, run the secure command interactively in your local terminal. '
+                        'Enter credentials only at Zowe prompts. Supply your actual z/OSMF host and port '
+                        'if absent. Profile declarations do not establish authentication or read access.'}
+
+
+def import_project_config(workspace, config_file, schema_file=None, user_config=False):
+    """Import exactly selected nonsecret files without rewriting their contents."""
+    require(type(user_config)is bool,'User-config selection must be a boolean')
+    workspace=Path(workspace).absolute();require_layout(workspace)
+    selections=[(config_file,'zowe.config.user.json' if user_config else 'zowe.config.json')]
+    if schema_file is not None:selections.append((schema_file,'zowe.schema.json'))
+    prepared=[]
+    for supplied,filename in selections:
+        source=Path(supplied).absolute()
+        require(not source.is_symlink() and not any(parent.is_symlink() for parent in source.parents)
+                and source.is_file() and source.stat().st_size<=1024*1024,'Select a regular bounded project JSON file')
+        content=source.read_bytes();document=decode(content,1024*1024)
+        require(isinstance(document,dict),'Selected project JSON must be an object')
+        if filename!='zowe.schema.json':
+            pending=[document]
+            while pending:
+                node=pending.pop()
+                if isinstance(node,dict):
+                    require(not any(key in node and node[key] not in (None,'') for key in ('user','password','tokenValue','certKeyFile')),
+                            'Import only nonsecret project configuration; keep credentials in the local Zowe secure store')
+                    pending.extend(node.values())
+                elif isinstance(node,list):pending.extend(node)
+        destination=safe_path(workspace,filename)
+        require(not destination.exists() or destination.is_file() and destination.read_bytes()==content,
+                'An existing different project file is preserved; choose a separate workspace or merge it locally')
+        prepared.append((destination,content))
+    for destination,content in prepared:
+        if not destination.exists():write_new(destination,content)
+    return {'status':'IMPORTED','files':[str(path) for path,_ in prepared],
+            'credentials':'UNVERIFIED','connectivity':'UNVERIFIED','content_preserved':True}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--workspace', default=str(Path.cwd()))
+    parser.add_argument('--profile', default='workbench_base', help='Base profile alias')
+    parser.add_argument('--zosmf-profile', help='Paired z/OSMF service alias')
+    parser.add_argument('--host', help='Actual z/OSMF host; omit to prepare a hostless template')
+    parser.add_argument('--port', type=int, help='Actual z/OSMF port')
+    parser.add_argument('--user-config', action='store_true')
+    parser.add_argument('--import-config', help='Exact selected nonsecret Zowe config file')
+    parser.add_argument('--import-schema', help='Exact selected Zowe schema file')
+    parser.add_argument('--interactive',action='store_true',help='Ask for nonsecret profile, host and port in a local terminal')
+    parser.add_argument('--secure',action='store_true',help='Run Zowe secure prompts locally after preparing declarations; requires a terminal')
+    args = parser.parse_args(argv)
+    try:
+        require(not(args.interactive and args.import_config),'Import selected files first, then run guided profile setup')
+        require(not(args.secure and args.import_config),'Import selected files first, then initialize the selected secure profile')
+        if args.interactive or args.secure:
+            if not sys.stdin.isatty():
+                print(json.dumps({'status':'BLOCKED','message':'Guided or secure input requires your local interactive terminal.',
+                                  'credentials':'UNVERIFIED','connectivity':'UNVERIFIED'}));return 2
+        if args.interactive:
+            args.profile=input('Base profile alias ['+args.profile+']: ').strip() or args.profile
+            args.zosmf_profile=input('z/OSMF service alias [paired service]: ').strip() or args.zosmf_profile
+            args.host=input('Actual z/OSMF host [leave blank to preserve/unset]: ').strip() or args.host
+            selected_port=input('Actual z/OSMF port [leave blank to preserve/default]: ').strip()
+            if selected_port:
+                require(selected_port.isdigit(),'Port must be a positive integer');args.port=int(selected_port)
+        require(args.import_config or not args.import_schema,'Schema import requires a selected config file')
+        result = import_project_config(args.workspace,args.import_config,args.import_schema,args.user_config) if args.import_config else \
+                 initialize_profile(args.workspace, args.profile, args.host, args.port,args.zosmf_profile,args.user_config)
+        if args.secure:
+            allowed=['PATH','HOME','USERPROFILE','APPDATA','SystemRoot','ZOWE_CLI_HOME','NODE_EXTRA_CA_CERTS']
+            environment={key:os.environ[key] for key in allowed if key in os.environ}
+            code=subprocess.call(result['secure_command'],cwd=result['run_from'],env=environment,shell=False,stderr=subprocess.DEVNULL)
+            result['secure_input']='COMPLETED' if code==0 else 'FAILED'
+            # A successful credential-store command is still not a live connection.
+            if code!=0:
+                result['guidance']='Local secure input failed; run the listed Zowe secure command directly to inspect private credential-store settings.'
+                print(json.dumps(result,indent=2));return 2
+    except (EOFError,KeyboardInterrupt):
+        print(json.dumps({'status':'CANCELLED','credentials':'UNVERIFIED','connectivity':'UNVERIFIED'}));return 2
+    except (ValidationError, OSError):
+        # Config content, paths and native credential-manager diagnostics stay private.
+        print(json.dumps({'status': 'BLOCKED', 'message': 'Project profile setup failed. Check workspace layout, '
+                          'selected profile types, host/port and existing secure declarations locally.'}))
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == '__main__': raise SystemExit(main())

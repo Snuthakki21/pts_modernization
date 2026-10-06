@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "application": "User-reported mainframe application estate",
+  "status": "USER_REPORTED_UNVERIFIED",
+  "provenance": "User-provided inventory; not verified against source or live catalogs",
+  "declared_total": 1829,
+  "categories": [
+    {
+      "key": "batch_cobol",
+      "label": "Batch COBOL programs",
+      "count": 166
+    },
+    {
+      "key": "jcl_jobs",
+      "label": "JCL jobs",
+      "count": 599
+    },
+    {
+      "key": "jcl_procs",
+      "label": "JCL procedures",
+      "count": 174
+    },
+    {
+      "key": "copybooks",
+      "label": "Copybooks",
+      "count": 245
+    },
+    {
+      "key": "cics_screens",
+      "label": "CICS/BMS screens",
+      "count": 80
+    },
+    {
+      "key": "db2_tables",
+      "label": "DB2 tables",
+      "count": 108
+    },
+    {
+      "key": "ca7_schedules",
+      "label": "CA7 schedules",
+      "count": 450
+    },
+    {
+      "key": "mq",
+      "label": "MQ objects",
+      "count": 4
+    }
+  ],
+  "application_locations": [
+    {
+      "name": "WEDLX",
+      "role": "application staging / availability location",
+      "status": "USER_REPORTED_UNVERIFIED"
+    },
+    {
+      "name": "TranRepository",
+      "role": "application staging / availability location",
+      "status": "USER_REPORTED_UNVERIFIED"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# Frozen fictional evidence must retain exactly the bytes in its hash receipts.
+examples/** -text
+*.csv whitespace=cr-at-eol

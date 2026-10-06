@@ -1,0 +1,50 @@
+Metric,Value
+process_id,example-reuse
+demo,False
+report_final_status,COMPLETED
+portfolio_completed_processes,2
+portfolio_basis,Includes current report outcome upon atomic artifact acceptance; excludes demonstrations
+source_programs,1
+source_copybooks,1
+source_bms_screens,0
+source_cics_transactions,Unknown
+source_db2_table_references,0
+source_vsam_files,Unknown
+inbound_interfaces,Unknown
+outbound_interfaces,Unknown
+target_python_programs,1
+target_react_business_screens,0
+target_business_rest_apis,0
+source_code_loc,37
+source_physical_loc,39
+target_program_code_loc,25
+rules_documented,4
+rules_verified,4
+known_rule_verification_percent,100.0
+synthetic_cases,256
+matching_cases,256
+matching_cases_basis,"Matching cases credited only for intact, SME-confirmed whole-program evidence"
+unresolved_blockers,0
+unsupported_source_lines,0
+source_inventory_files,3
+source_accounted_lines,39
+source_in_scope_lines,39
+source_out_of_scope_lines,0
+source_applicable_lines,30
+source_verified_applicable_lines,30
+source_applicable_line_verification_percent,100.0
+source_semantic_units,23
+source_applicable_semantic_units,14
+source_verified_semantic_units,14
+source_semantic_unit_verification_percent,100.0
+source_blocked_lines,0
+source_non_executable_lines,9
+source_unverified_mapped_lines,0
+source_platform_replaced_verified_lines,2
+source_full_accounting,True
+source_completion_eligible,True
+source_integrity_errors,0
+observed_mainframe_parity,False
+evidence_basis,SOURCE_DERIVED_EXPECTED
+verification_percent_denominator,Extracted known rules only; unsupported and unknown rules are not silently excluded from completion gates.
+target_environment,Non-production Python / SQLite; JSON record adapter

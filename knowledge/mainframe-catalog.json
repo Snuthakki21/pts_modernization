@@ -1,0 +1,618 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-03",
+  "categories": [
+    {
+      "kind": "cobol_program",
+      "description": "COBOL compilation unit identified by PROGRAM-ID; batch/online role needs invocation evidence.",
+      "required_evidence": [
+        "Compiler dialect and options; complete source and COPY/REPLACE closure",
+        "Procedure entry, file/Db2/CICS calls, return codes and all branches"
+      ]
+    },
+    {
+      "kind": "copybook",
+      "description": "Reusable COBOL declarations or source fragments; COPY can insert executable source as well as layouts.",
+      "required_evidence": [
+        "Each including program and replacement parameters",
+        "Full declaration/layout including REDEFINES, OCCURS, level 88 and encoding"
+      ]
+    },
+    {
+      "kind": "jcl_job",
+      "description": "JCL job stream; an inventory of steps is not its full execution semantics.",
+      "required_evidence": [
+        "JOB, EXEC, DD, PROC/INCLUDE and symbol expansion",
+        "Step order, conditional skips, return codes, dataset lifecycle and restart"
+      ]
+    },
+    {
+      "kind": "jcl_proc",
+      "description": "Cataloged/in-stream procedure; resolve call-site overrides before explaining execution.",
+      "required_evidence": [
+        "All procedure invocations and nested procedure dependencies",
+        "Symbol values and EXEC/DD overrides"
+      ]
+    },
+    {
+      "kind": "jcl_fragment",
+      "description": "JCL include or partial stream; cannot be treated as a complete job.",
+      "required_evidence": [
+        "Containing jobs and exact insertion location",
+        "Missing JOB/PROC context and substitution values"
+      ]
+    },
+    {
+      "kind": "bms_map",
+      "description": "CICS BMS physical map macros; screen behavior also resides in transactions and programs.",
+      "required_evidence": [
+        "Mapset/map/field definitions plus symbolic map copybooks",
+        "CICS transaction-to-program bindings, SEND/RECEIVE behavior, validation and navigation"
+      ]
+    },
+    {
+      "kind": "sql",
+      "description": "SQL/DDL statements or Db2 definitions; source presence does not prove runtime database semantics.",
+      "required_evidence": [
+        "Db2 subsystem/version, current schema, bind/package options and authorization",
+        "Tables/views/keys/types/NULLs/triggers/procedures and transaction boundaries"
+      ]
+    },
+    {
+      "kind": "dclgen",
+      "description": "Db2 table descriptor / host-variable declaration; not a business program by itself.",
+      "required_evidence": [
+        "Base table DDL and generated host-variable structure",
+        "Nullable indicator variables and CCSID/type conversion rules"
+      ]
+    },
+    {
+      "kind": "utility_control",
+      "description": "Control statements consumed by a specific utility, not standalone executable source.",
+      "required_evidence": [
+        "Invoking utility and exact product/version/options",
+        "DD bindings, control members, exits, record layouts and installation defaults"
+      ]
+    },
+    {
+      "kind": "rexx",
+      "description": "REXX script; host commands and ADDRESS environments can perform external work.",
+      "required_evidence": [
+        "TSO/ISPF/USS/host environment and invoked routines",
+        "Host command side effects, return codes and datasets"
+      ]
+    },
+    {
+      "kind": "clist",
+      "description": "TSO CLIST command procedure.",
+      "required_evidence": [
+        "Invoking TSO context and positional/keyword parameters",
+        "Nested CLISTs, commands, allocation and error handling"
+      ]
+    },
+    {
+      "kind": "pli",
+      "description": "PL/I source unit; requires its own language adapter.",
+      "required_evidence": [
+        "Compiler dialect/options and include dependencies",
+        "Data representation, condition handling and external interfaces"
+      ]
+    },
+    {
+      "kind": "assembler",
+      "description": "Assembler source or macros; requires machine and macro semantics.",
+      "required_evidence": [
+        "Architecture, macro libraries and linkage conventions",
+        "Data representation, registers, system services and side effects"
+      ]
+    },
+    {
+      "kind": "cics_definition",
+      "description": "CICS resource definitions, including transaction/program/file/map bindings.",
+      "required_evidence": [
+        "CSD export/version and resource group/list membership",
+        "Transactions, programs, security, file modes and startup overrides"
+      ]
+    },
+    {
+      "kind": "scheduler_definition",
+      "description": "Scheduler commands or definitions; product/version and application conventions must be resolved.",
+      "required_evidence": [
+        "CA7 or other product/version, calendars, predecessors, event conditions",
+        "Business dates, restart/rerun, late handling and external schedules"
+      ]
+    },
+    {
+      "kind": "unknown",
+      "description": "No reliable structural match; do not silently discard or infer conversion from the filename.",
+      "required_evidence": [
+        "Source type/export encoding and owner",
+        "How the member is invoked or consumed and complete dependencies"
+      ]
+    },
+    {
+      "kind": "ambiguous",
+      "description": "Conflicting content signatures or filename/content mismatch; automated translation is blocked.",
+      "required_evidence": [
+        "Resolve the actual content type and authoritative source member",
+        "Explain mixed exports or naming mistakes before retrying as a new process"
+      ]
+    }
+  ],
+  "utilities": [
+    {
+      "id": "DFSORT",
+      "name": "ICEMAN",
+      "aliases": [
+        "SORT",
+        "DFSORT"
+      ],
+      "category": "sort_transform",
+      "behavior": "Sorts, merges, selects, joins, reformats and splits records according to control statements. SORT is a site-resolved alias: confirm that the installed product is IBM DFSORT.",
+      "required_evidence": [
+        "Product/version and installation defaults; SORTIN/SORTOUT/SORTWK DDs",
+        "SYSIN/SORTCNTL/INCLUDE/OMIT/INREC/OUTREC/OUTFIL/JOINKEYS statements and symbols",
+        "Record formats, offsets/types, E15/E35 exits and tie-breaking requirements"
+      ],
+      "risks": [
+        "EBCDIC collation, packed/zoned decimals and duplicate ordering differ from ordinary Python sorting",
+        "Filtering or reformatting can encode business rules; do not reduce the step to a generic sort",
+        "Alternative sort vendors and exits can alter behavior"
+      ],
+      "references": [
+        "https://www.ibm.com/support/pages/dfsort",
+        "https://www.ibm.com/docs/en/zos/2.5.0?topic=dfsort-installation-defaults"
+      ]
+    },
+    {
+      "id": "ICETOOL",
+      "name": "ICETOOL",
+      "aliases": [],
+      "category": "sort_analysis",
+      "behavior": "Runs dataset analysis, selection, reporting and multiple DFSORT operations within one step.",
+      "required_evidence": [
+        "TOOLIN, TOOLMSG, DFSMSG and all referenced xxxCNTL members",
+        "All operator inputs/outputs, counts and return-code requirements"
+      ],
+      "risks": [
+        "A single step can contain multiple dependent operations and reports",
+        "Exact operators, options and record types require dedicated tests"
+      ],
+      "references": [
+        "https://www.ibm.com/support/pages/icetool-paper-sorttool",
+        "https://www.ibm.com/support/pages/dfsort",
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=icetool-select-operator"
+      ]
+    },
+    {
+      "id": "IDCAMS",
+      "name": "IDCAMS",
+      "aliases": [],
+      "category": "access_method_services",
+      "behavior": "Processes catalog/access-method commands such as DEFINE, DELETE, LISTCAT and REPRO; actual effects depend on the complete command stream.",
+      "required_evidence": [
+        "SYSIN commands, IF/THEN conditions and SET MAXCC/LASTCC changes",
+        "VSAM organization, key length/offset, alternate indexes, catalog aliases and dataset attributes",
+        "Input/output DD bindings and reset/reuse behavior"
+      ],
+      "risks": [
+        "REPRO is not always equivalent to copying a flat text file",
+        "DELETE/DEFINE can change persistent catalog state; read-only discovery must never execute these commands",
+        "Return-code rewriting and error tolerance can be business-significant"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-idcams-use-access-method-services-catalogs"
+      ]
+    },
+    {
+      "id": "IEFBR14",
+      "name": "IEFBR14",
+      "aliases": [],
+      "category": "allocation_disposition",
+      "behavior": "The program returns zero, but surrounding JCL invokes allocation and disposition processing that can create or delete datasets.",
+      "required_evidence": [
+        "Every DD and DISP normal/abnormal disposition",
+        "Dataset allocation attributes and downstream dependencies"
+      ],
+      "risks": [
+        "Dropping a no-op program may drop required JCL side effects",
+        "A zero program return code does not prove dataset creation, deletion or initialization parity"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-iefbr14-utility-do-almost-nothing"
+      ]
+    },
+    {
+      "id": "IEBGENER",
+      "name": "IEBGENER",
+      "aliases": [],
+      "category": "sequential_copy",
+      "behavior": "Copies/generates records and can edit data or change record layout using control statements.",
+      "required_evidence": [
+        "SYSUT1/SYSUT2/SYSIN/SYSPRINT and all GENERATE/RECORD/MEMBER statements",
+        "Concatenation order, record lengths, encoding and output allocation"
+      ],
+      "risks": [
+        "Not every invocation is a byte-for-byte copy",
+        "Truncation, padding, generated records and member output need explicit behavior"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-iebgener-utility-generate-copy-sequential-data-set"
+      ]
+    },
+    {
+      "id": "ICEGENER",
+      "name": "ICEGENER",
+      "aliases": [],
+      "category": "sequential_copy",
+      "behavior": "DFSORT facility for qualifying IEBGENER operations; execution can use the DFSORT copy function or transfer to IEBGENER.",
+      "required_evidence": [
+        "All IEBGENER evidence plus installed ICEGENER defaults and fallback behavior",
+        "LRECL padding/truncation and return codes"
+      ],
+      "risks": [
+        "Assuming ICEGENER and IEBGENER behave identically under every option can hide data changes"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=considerations-using-icegener-as-replacement-iebgener",
+        "https://www.ibm.com/docs/en/zos/2.5.0?topic=dfsort-installation-defaults"
+      ]
+    },
+    {
+      "id": "IEBCOPY",
+      "name": "IEBCOPY",
+      "aliases": [],
+      "category": "library_copy",
+      "behavior": "Copies/merges selected PDS/PDSE members and can unload, reload or compress libraries.",
+      "required_evidence": [
+        "Input/output libraries, member selection/rename/replace and aliases",
+        "PDS versus PDSE details and whether load modules or source are involved"
+      ],
+      "risks": [
+        "An unloaded library is not an ordinary CSV/text dataset",
+        "Directory/member identity and replacement semantics matter"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-iebcopy-utility-copy-libraries-partitioned-data-sets"
+      ]
+    },
+    {
+      "id": "IEBUPDTE",
+      "name": "IEBUPDTE",
+      "aliases": [],
+      "category": "source_library_update",
+      "behavior": "Updates fixed-length records or library members from control statements.",
+      "required_evidence": [
+        "Control cards, member identities, sequence conventions and full before/after inputs"
+      ],
+      "risks": [
+        "Do not execute updates against the mainframe",
+        "Treat source-changing utility steps as behavior requiring explicit local replacement"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=programs-guide-zos-utility-program-functions"
+      ]
+    },
+    {
+      "id": "IEBCOMPR",
+      "name": "IEBCOMPR",
+      "aliases": [],
+      "category": "dataset_compare",
+      "behavior": "Compares datasets according to utility controls and returns comparison results.",
+      "required_evidence": [
+        "Exact utility release, SYSUT inputs, control statements and expected messages/return codes"
+      ],
+      "risks": [
+        "A replacement comparison must preserve comparison granularity, ignored data and failure semantics"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=programs-guide-zos-utility-program-functions"
+      ]
+    },
+    {
+      "id": "IEBDG",
+      "name": "IEBDG",
+      "aliases": [],
+      "category": "test_data_generator",
+      "behavior": "Generates test data using utility control statements.",
+      "required_evidence": [
+        "Field/record generation controls, seeds, counts and dependencies"
+      ],
+      "risks": [
+        "Generated data does not establish that business-rule branches were tested",
+        "Do not run on mainframe; use evidence-grounded local synthetic generation"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=programs-guide-zos-utility-program-functions"
+      ]
+    },
+    {
+      "id": "TSO_BATCH",
+      "name": "IKJEFT01",
+      "aliases": [
+        "IKJEFT1A",
+        "IKJEFT1B"
+      ],
+      "category": "command_driver",
+      "behavior": "Hosts TSO batch commands; the invoked commands and their environment determine actual application behavior.",
+      "required_evidence": [
+        "SYSTSIN/SYSTSPRT, PARM, STEPLIB and nested command/REXX/CLIST members",
+        "Db2 DSN subsystem, RUN PROGRAM/PLAN and parameters when present",
+        "Exact terminal-monitor variant and return-code/abend propagation"
+      ],
+      "risks": [
+        "The driver name does not identify the business program",
+        "Driver variants and nested commands must not be assumed equivalent"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=dpasp-dsntiaul-sample-program",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=do-jcl-exec-statements-positional-frequently-used-parameters"
+      ]
+    },
+    {
+      "id": "DSNUTILB",
+      "name": "DSNUTILB",
+      "aliases": [],
+      "category": "db2_utility_driver",
+      "behavior": "Invokes Db2 utilities described by SYSIN and subsystem/utility parameters.",
+      "required_evidence": [
+        "Subsystem, utility ID, SYSIN commands, templates and DDs",
+        "LOAD/UNLOAD/REORG/RUNSTATS/COPY or other exact utility semantics, options and restart context"
+      ],
+      "risks": [
+        "Utilities may modify database state and must never be run by read-only discovery",
+        "SQLite is a POC target and cannot imply Db2 utility/transaction equivalence"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/db2-for-zos/12.0.0?topic=idou-invoking-db2-online-utility-by-creating-jcl-data-set-yourself"
+      ]
+    },
+    {
+      "id": "DSNTIAUL",
+      "name": "DSNTIAUL",
+      "aliases": [],
+      "category": "db2_unload",
+      "behavior": "IBM sample program that unloads Db2 table/query results to sequential datasets.",
+      "required_evidence": [
+        "SQL, program/plan version, parameters, SYSREC and SYSPUNCH output definitions",
+        "Column types, null indicators, encoding and load-control output"
+      ],
+      "risks": [
+        "A sequential unload contains format conventions not represented by plain CSV alone",
+        "Sample programs may be locally modified; collect the actual version"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=dpasp-dsntiaul-sample-program"
+      ]
+    },
+    {
+      "id": "DSNTEP2",
+      "name": "DSNTEP2",
+      "aliases": [
+        "DSNTEP4",
+        "DSNTIAD"
+      ],
+      "category": "db2_sql_driver",
+      "behavior": "IBM productivity-aid sample programs execute supplied SQL; individual programs have distinct features and output formats.",
+      "required_evidence": [
+        "Actual sample program/version, plan/bind settings and SQL input",
+        "Commit/rollback boundaries, SQLCODE handling, report formatting and effects"
+      ],
+      "risks": [
+        "Do not equate different drivers or treat SQL input as read-only merely because it is inside a utility",
+        "All updates, DDL and procedure calls remain prohibited during discovery"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=sdasdz-db2-productivity-aid-sample-programs"
+      ]
+    },
+    {
+      "id": "BPXBATCH",
+      "name": "BPXBATCH",
+      "aliases": [
+        "BPXBATSL"
+      ],
+      "category": "unix_command_driver",
+      "behavior": "Starts z/OS UNIX commands, shell scripts or programs; exact invocation and environment define its behavior.",
+      "required_evidence": [
+        "SH/PGM/SHRC/PGMRC mode, PARM/STDPARM, STDIN/OUT/ERR/ENV",
+        "Referenced script/program, profiles, working directory, permissions and code page",
+        "Exact BPXBATCH/BPXBATSL variant semantics"
+      ],
+      "risks": [
+        "Shell commands can perform arbitrary side effects; never execute collected source or command text",
+        "Parent/environment/return-code behavior differs by mode and variant"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos/3.2.0?topic=tc-bpxbatch-run-shell-commands-shell-scripts-executable-files"
+      ]
+    },
+    {
+      "id": "DFSRRC00",
+      "name": "DFSRRC00",
+      "aliases": [],
+      "category": "ims_driver",
+      "behavior": "IMS batch region/controller invocation; PARM and the called program identify the requested IMS processing.",
+      "required_evidence": [
+        "Region type, called program, PSB/DBD/ACB and IMS subsystem configuration",
+        "DL/I operations, checkpoints/restart, database allocation and return codes"
+      ],
+      "risks": [
+        "Driver recognition is not an IMS adapter",
+        "IMS transactional and hierarchical data semantics require dedicated evidence"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/ims/15.5.0?topic=dfsurgp0-examples-utility"
+      ]
+    },
+    {
+      "id": "DFHCSDUP",
+      "name": "DFHCSDUP",
+      "aliases": [],
+      "category": "cics_resource_utility",
+      "behavior": "Reads and changes CICS system definition resource data using batch commands.",
+      "required_evidence": [
+        "SYSIN commands, CSD version, groups/lists, parameters and exits",
+        "Resource definitions and the active runtime overrides used by the application"
+      ],
+      "risks": [
+        "Never run resource modification commands during discovery",
+        "Definitions alone do not implement transaction behavior or screens"
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/cics-ts/5.5.0?topic=resources-resource-definition-batch-utility-dfhcsdup"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "SOURCE_PROVENANCE",
+      "title": "Authoritative source and dependency closure",
+      "checks": [
+        "Record Endevor environment/system/subsystem/type/stage, member/version and export time when available. Do not assume an exported member matches the deployed load module.",
+        "Collect COPY/REPLACE, SQL INCLUDE/DCLGEN, PROC/INCLUDE, control cards, macros and dynamic CALL targets. Duplicate names across libraries require resolution.",
+        "Preserve original bytes/hash and record export encoding and line-ending conversion. The current intake requires UTF-8 text exports; binary/native records need a reviewed adapter."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=structure-reference-format",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=do-jcl-exec-statements-positional-frequently-used-parameters"
+      ]
+    },
+    {
+      "id": "RECORD_FORMATS",
+      "title": "Dataset structure and character encoding",
+      "checks": [
+        "Record RECFM, LRECL, BLKSIZE, DSORG, CCSID/code page and transfer mode before interpreting offsets. FB/VB/U data is not automatically newline-delimited text.",
+        "For variable records, distinguish payload from record/block descriptors. Packed decimals, signed/zoned values and binary fields must not pass through text transcoding.",
+        "Preserve significant spaces, low/high values, record padding, alternate encodings and invalid-data behavior."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=set-data-record-formats",
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=load-conversion-input-data"
+      ]
+    },
+    {
+      "id": "COBOL_SEMANTICS",
+      "title": "COBOL representation and execution semantics",
+      "checks": [
+        "Resolve compiler dialect/options, fixed format/continuations/debug lines, truncation/rounding/size errors and collating sequence.",
+        "Account for every branch and statement, level-88 values, REDEFINES, OCCURS DEPENDING ON, reference modification, edited pictures and decimal scale.",
+        "Resolve PERFORM fall-through, INITIAL/CANCEL, working-storage lifetime, dynamic CALL, file status, SORT exits and exception handling; unsupported features remain blocked."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/cobol-zos/6.5.0?topic=structure-reference-format",
+        "https://www.ibm.com/docs/en/cobol-zos/6.4.0?topic=b-comment-lines"
+      ]
+    },
+    {
+      "id": "JCL_ORCHESTRATION",
+      "title": "Job, step and scheduler execution",
+      "checks": [
+        "Expand PROC/INCLUDE, symbolic parameters and DD overrides with provenance; retain execution order and each call site.",
+        "COND tests specify bypass conditions. IF/THEN/ELSE, abends, EVEN/ONLY and skipped-step return codes require explicit modeling; never translate COND by intuition.",
+        "Capture calendar/business-date, predecessors, triggers, reruns, restart points and external scheduler events. CA7 or other vendor definitions need application documentation.",
+        "Identify DD * and DD DATA boundaries and any DLM setting; JCL-looking text inside in-stream data is not automatically an executing step. Preserve the consuming program and possible downstream effects as separate evidence."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=statement-cond-parameter",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=do-jcl-exec-statements-positional-frequently-used-parameters",
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=statement-data-parameter",
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=statement-parameter"
+      ]
+    },
+    {
+      "id": "DATASET_LIFECYCLE",
+      "title": "Dataset allocation, ownership and generations",
+      "checks": [
+        "Capture DISP normal/abnormal actions, temporary && datasets, PASS, concatenation, GDG generations and catalog aliases.",
+        "Capture VSAM organization, primary/alternate keys, duplicate policy, empty-file/EOF behavior, locking, file status and restart positioning.",
+        "Platform-specific allocation may be replaced, but its business-visible existence/content/lifecycle must be verified before exemption."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-iefbr14-utility-do-almost-nothing",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-idcams-use-access-method-services-catalogs",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=set-data-record-formats"
+      ]
+    },
+    {
+      "id": "UTILITY_SEMANTICS",
+      "title": "Control cards and application utilities",
+      "checks": [
+        "A utility invocation is not a business program and not an automatic exemption. Read every control card and nested command and record its effects.",
+        "Resolve product/version, installation defaults, exits and site aliases such as SORT; collect outputs, error handling and return-code changes.",
+        "Add local wrapper details in application-knowledge.json. Its text supplies hypotheses/evidence, never an executable adapter or a conversion approval."
+      ],
+      "references": [
+        "https://www.ibm.com/support/pages/dfsort",
+        "https://www.ibm.com/docs/en/zos/2.5.0?topic=dfsort-installation-defaults",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=programs-guide-zos-utility-program-functions"
+      ]
+    },
+    {
+      "id": "DB2_BOUNDARIES",
+      "title": "Db2 to SQLite boundaries",
+      "checks": [
+        "Capture schema/owner, views, keys, constraints, indexes, triggers, routines, CCSIDs, NULL indicators and exact decimal types; catalog visibility is limited by account permissions.",
+        "Capture SQLCODE/SQLSTATE, cursors, ordering, isolation/commit/rollback and package/bind options. No explicit ORDER BY means row order is not guaranteed.",
+        "SQLite target tests cannot prove Db2 locking, utility, encoding, concurrency or stored-procedure equivalence. Catalog descriptions and sample rows do not prove all runtime constraints."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=load-conversion-input-data",
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=panel-bif-compatibility-field-bif-compatibility-subsystem-parameter",
+        "https://www.ibm.com/docs/en/db2-for-zos/12.0.0?topic=idou-invoking-db2-online-utility-by-creating-jcl-data-set-yourself"
+      ]
+    },
+    {
+      "id": "ONLINE_CICS",
+      "title": "CICS/BMS interaction and transaction boundaries",
+      "checks": [
+        "Map transaction ID to programs/mapsets, screen fields, validation, navigation/PF keys and SEND/RECEIVE flow.",
+        "Capture pseudo-conversation, COMMAREA/channels/containers, queues, syncpoints, security and asynchronous work.",
+        "Count legacy screens, new React screens and REST endpoints independently with lineage; a generated form does not establish CICS parity."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/cics-ts/5.5.0?topic=resources-resource-definition-batch-utility-dfhcsdup"
+      ]
+    },
+    {
+      "id": "INBOUND_OUTBOUND",
+      "title": "Interfaces and observable effects",
+      "checks": [
+        "Inventory files, Db2, MQ, IMS, CICS, network/FTP, emails, reports and other external boundaries with direction, schedule, format and acknowledgement/error semantics.",
+        "Resolve all nested TSO/REXX/CLIST/USS command chains without executing them.",
+        "Model retry, deduplication, ordering, partial failure and restart where relevant; side effects unsupported by the target remain unresolved."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos/3.2.0?topic=tc-bpxbatch-run-shell-commands-shell-scripts-executable-files",
+        "https://www.ibm.com/docs/en/ims/15.5.0?topic=dfsurgp0-examples-utility",
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=dpasp-dsntiaul-sample-program"
+      ]
+    },
+    {
+      "id": "SYNTHETIC_DATA",
+      "title": "Rule-driven synthetic evidence",
+      "checks": [
+        "Derive records and relational constraints from legacy source and approved SME interpretation, independently of generated Python.",
+        "Include boundary/equality/NULL/blank/invalid/duplicate/missing-match/empty-file cases, interactions and cross-file keys only where those semantics are evidenced.",
+        "Identify unreachable or contradictory conditions and budget-limited combinations explicitly; no finite suite demonstrates every possible input. Four seed records are not proof of 85 rules."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=set-data-record-formats",
+        "https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=load-conversion-input-data"
+      ]
+    },
+    {
+      "id": "ASSURANCE",
+      "title": "What evidence can and cannot establish",
+      "checks": [
+        "Track source-line accounting, semantic-unit coverage, extracted-rule tests and business requirements as separate denominators; do not convert an exclusion into a passing test.",
+        "An omitted platform operation needs documented rationale, target responsibility and verification. Unsupported or unknown semantics block completion.",
+        "Source-derived expected output is an analysis oracle, not observed legacy execution. Mainframe execution and writes are prohibited; do not report measured mainframe parity."
+      ],
+      "references": [
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=utilities-iefbr14-utility-do-almost-nothing",
+        "https://www.ibm.com/docs/en/zos/3.1.0?topic=statement-cond-parameter"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1091 @@
+{
+  "assets": [
+    {
+      "blockers": [],
+      "copybooks": [
+        "LAYOUT"
+      ],
+      "coverage": [
+        {
+          "disposition": "structure",
+          "line": 1,
+          "original": "IDENTIFICATION DIVISION.",
+          "source": "IDENTIFICATION DIVISION."
+        },
+        {
+          "disposition": "structure",
+          "line": 2,
+          "original": "PROGRAM-ID. ELIGIBLE.",
+          "source": "PROGRAM-ID. ELIGIBLE."
+        },
+        {
+          "disposition": "structure",
+          "line": 3,
+          "original": "DATA DIVISION.",
+          "source": "DATA DIVISION."
+        },
+        {
+          "disposition": "structure",
+          "line": 4,
+          "original": "LINKAGE SECTION.",
+          "source": "LINKAGE SECTION."
+        },
+        {
+          "disposition": "copybook",
+          "line": 5,
+          "original": "COPY LAYOUT.",
+          "source": "COPY LAYOUT."
+        },
+        {
+          "disposition": "structure",
+          "line": 6,
+          "original": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD.",
+          "source": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD."
+        },
+        {
+          "disposition": "modeled",
+          "line": 7,
+          "original": "  IF AGE >= 18",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "IF AGE >= 18"
+        },
+        {
+          "disposition": "modeled",
+          "line": 8,
+          "original": "    MOVE \"Y\" TO DECISION",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "MOVE \"Y\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 9,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 10,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 11,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 12,
+          "original": "  IF ACTIVE = \"N\"",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "IF ACTIVE = \"N\""
+        },
+        {
+          "disposition": "modeled",
+          "line": 13,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 14,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 15,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 16,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 17,
+          "original": "  IF CUSTOMER-ID <> REF-CUSTOMER-ID",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "IF CUSTOMER-ID <> REF-CUSTOMER-ID"
+        },
+        {
+          "disposition": "modeled",
+          "line": 18,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 19,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 20,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 21,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 22,
+          "original": "  IF AMOUNT > 50000",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "IF AMOUNT > 50000"
+        },
+        {
+          "disposition": "modeled",
+          "line": 23,
+          "original": "    MOVE \"R\" TO DECISION",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "MOVE \"R\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 24,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 25,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 26,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "terminal",
+          "line": 27,
+          "original": "  GOBACK.",
+          "source": "GOBACK."
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "LAYOUT",
+          "path": "LAYOUT.cpy",
+          "source_hash": "497529e46b4badc8d0ef30a1dfafa467105a9ceb6d946f08543a90c5717bd3e6"
+        }
+      ],
+      "dependency_hash": "0c933c0be4dacd22ed5bb94d3c5b8358ec99acca10b485a45fe8841dbc629c88",
+      "fields": {
+        "ACTIVE": {
+          "default": " ",
+          "group": "CUSTOMER-RECORD",
+          "source_ref": "LAYOUT.cpy:4",
+          "storage_section": "LINKAGE",
+          "type": "string",
+          "width": 1
+        },
+        "AGE": {
+          "default": 0,
+          "group": "CUSTOMER-RECORD",
+          "max": 999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:3",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 3
+        },
+        "AMOUNT": {
+          "default": 0,
+          "group": "REFERRAL-RECORD",
+          "max": 99999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:7",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 5
+        },
+        "CUSTOMER-ID": {
+          "default": 0,
+          "group": "CUSTOMER-RECORD",
+          "max": 9999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:2",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 4
+        },
+        "DECISION": {
+          "default": " ",
+          "group": "REFERRAL-RECORD",
+          "source_ref": "LAYOUT.cpy:8",
+          "storage_section": "LINKAGE",
+          "type": "string",
+          "width": 1
+        },
+        "REF-CUSTOMER-ID": {
+          "default": 0,
+          "group": "REFERRAL-RECORD",
+          "max": 9999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:6",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 4
+        }
+      },
+      "id": "46968137a8ecb13e4a1de94115baeabd475a85131c8defb4afa1d0d3606a65c7",
+      "kind": "cobol_program",
+      "loc": {
+        "blank": 0,
+        "code": 27,
+        "comment": 0,
+        "physical": 27
+      },
+      "name": "ELIGIBLE",
+      "path": "ELIGIBLE.cbl",
+      "relationships": [],
+      "rules": [
+        {
+          "else": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ],
+          "id": "ELIGIBLE_R001",
+          "plain": "If AGE >= 18, set DECISION to 'Y'. Otherwise set DECISION to 'N'.",
+          "predicate": {
+            "left": {
+              "field": "AGE"
+            },
+            "op": ">=",
+            "right": 18
+          },
+          "source_end": 11,
+          "source_refs": [
+            "ELIGIBLE.cbl:7-11"
+          ],
+          "source_start": 7,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "Y"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R002",
+          "plain": "If ACTIVE = \"N\", set DECISION to 'N'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "ACTIVE"
+            },
+            "op": "=",
+            "right": "N"
+          },
+          "source_end": 16,
+          "source_refs": [
+            "ELIGIBLE.cbl:12-16"
+          ],
+          "source_start": 12,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R003",
+          "plain": "If CUSTOMER-ID <> REF-CUSTOMER-ID, set DECISION to 'N'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "CUSTOMER-ID"
+            },
+            "op": "<>",
+            "right": {
+              "field": "REF-CUSTOMER-ID"
+            }
+          },
+          "source_end": 21,
+          "source_refs": [
+            "ELIGIBLE.cbl:17-21"
+          ],
+          "source_start": 17,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R004",
+          "plain": "If AMOUNT > 50000, set DECISION to 'R'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "AMOUNT"
+            },
+            "op": ">",
+            "right": 50000
+          },
+          "source_end": 26,
+          "source_refs": [
+            "ELIGIBLE.cbl:22-26"
+          ],
+          "source_start": 22,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "R"
+            }
+          ]
+        }
+      ],
+      "scope_disposition": "selected",
+      "scope_reason": "Selected manifest program, resolved dependency, or additional process export requiring accountability",
+      "selected": true,
+      "semantic_hash": "f50ed334f61057aadb73aaa1d81dac109c03526f9e6b5001fb886150d98ed27f",
+      "source_hash": "1b86b3b54531ecac8dcf7d8357d39532ec2bb02af7cb3b24dc9b6871b343899a",
+      "source_text": "IDENTIFICATION DIVISION.\nPROGRAM-ID. ELIGIBLE.\nDATA DIVISION.\nLINKAGE SECTION.\nCOPY LAYOUT.\nPROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD.\n  IF AGE >= 18\n    MOVE \"Y\" TO DECISION\n  ELSE\n    MOVE \"N\" TO DECISION\n  END-IF.\n  IF ACTIVE = \"N\"\n    MOVE \"N\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  IF CUSTOMER-ID <> REF-CUSTOMER-ID\n    MOVE \"N\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  IF AMOUNT > 50000\n    MOVE \"R\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  GOBACK.\n"
+    },
+    {
+      "id": "d1c7ca6daa8c0c6787bb26ebc24ff837d9960fd24115a86e0430a834f3a3a74e",
+      "kind": "copybook",
+      "loc": {
+        "code": 8,
+        "physical": 8
+      },
+      "name": "LAYOUT",
+      "path": "LAYOUT.cpy",
+      "scope_disposition": "selected",
+      "scope_reason": "Selected manifest program, resolved dependency, or additional process export requiring accountability",
+      "selected": true,
+      "source_hash": "497529e46b4badc8d0ef30a1dfafa467105a9ceb6d946f08543a90c5717bd3e6",
+      "source_text": "01 CUSTOMER-RECORD.\n  05 CUSTOMER-ID PIC 9(4).\n  05 AGE PIC 9(3).\n  05 ACTIVE PIC X.\n01 REFERRAL-RECORD.\n  05 REF-CUSTOMER-ID PIC 9(4).\n  05 AMOUNT PIC 9(5).\n  05 DECISION PIC X.\n"
+    },
+    {
+      "id": "d6ee56b3815d6930b562695596eb07f3a8e9f359352666a91e84700c276ff837",
+      "kind": "jcl_job",
+      "loc": {
+        "code": 2,
+        "physical": 4
+      },
+      "name": "REFJOB",
+      "path": "REFJOB.jcl",
+      "scope_disposition": "selected",
+      "scope_reason": "Selected manifest program, resolved dependency, or additional process export requiring accountability",
+      "selected": true,
+      "source_hash": "e41cfef80e3ced4344667ff15cbeb27dedc3621d2973a23868a473379c6bbb3a",
+      "source_text": "//REFJOB JOB (TEST),'FICTIONAL'\n//CHECK EXEC PGM=ELIGIBLE\n//* RECORD-ADAPTER DEMO: INPUT GROUPS ARE PROVIDED LOCALLY.\n//* NATIVE DD/DATASET IO IS TESTED AS A BLOCKED CASE IN THE SUITE.\n"
+    }
+  ],
+  "blockers": [],
+  "evidence_basis": "SOURCE_DERIVED_EXPECTED",
+  "graph": [
+    {
+      "from": "REFJOB.CHECK",
+      "inputs": [
+        "CUSTOMER",
+        "REFERRAL"
+      ],
+      "kind": "calls",
+      "outputs": [
+        "RESULT"
+      ],
+      "to": "ELIGIBLE"
+    },
+    {
+      "from": "ELIGIBLE",
+      "kind": "copybook",
+      "to": "LAYOUT"
+    }
+  ],
+  "programs": {
+    "ELIGIBLE": {
+      "blockers": [],
+      "copybooks": [
+        "LAYOUT"
+      ],
+      "coverage": [
+        {
+          "disposition": "structure",
+          "line": 1,
+          "original": "IDENTIFICATION DIVISION.",
+          "source": "IDENTIFICATION DIVISION."
+        },
+        {
+          "disposition": "structure",
+          "line": 2,
+          "original": "PROGRAM-ID. ELIGIBLE.",
+          "source": "PROGRAM-ID. ELIGIBLE."
+        },
+        {
+          "disposition": "structure",
+          "line": 3,
+          "original": "DATA DIVISION.",
+          "source": "DATA DIVISION."
+        },
+        {
+          "disposition": "structure",
+          "line": 4,
+          "original": "LINKAGE SECTION.",
+          "source": "LINKAGE SECTION."
+        },
+        {
+          "disposition": "copybook",
+          "line": 5,
+          "original": "COPY LAYOUT.",
+          "source": "COPY LAYOUT."
+        },
+        {
+          "disposition": "structure",
+          "line": 6,
+          "original": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD.",
+          "source": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD."
+        },
+        {
+          "disposition": "modeled",
+          "line": 7,
+          "original": "  IF AGE >= 18",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "IF AGE >= 18"
+        },
+        {
+          "disposition": "modeled",
+          "line": 8,
+          "original": "    MOVE \"Y\" TO DECISION",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "MOVE \"Y\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 9,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 10,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 11,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R001",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 12,
+          "original": "  IF ACTIVE = \"N\"",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "IF ACTIVE = \"N\""
+        },
+        {
+          "disposition": "modeled",
+          "line": 13,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 14,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 15,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 16,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R002",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 17,
+          "original": "  IF CUSTOMER-ID <> REF-CUSTOMER-ID",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "IF CUSTOMER-ID <> REF-CUSTOMER-ID"
+        },
+        {
+          "disposition": "modeled",
+          "line": 18,
+          "original": "    MOVE \"N\" TO DECISION",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "MOVE \"N\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 19,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 20,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 21,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R003",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "modeled",
+          "line": 22,
+          "original": "  IF AMOUNT > 50000",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "IF AMOUNT > 50000"
+        },
+        {
+          "disposition": "modeled",
+          "line": 23,
+          "original": "    MOVE \"R\" TO DECISION",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "MOVE \"R\" TO DECISION"
+        },
+        {
+          "disposition": "modeled",
+          "line": 24,
+          "original": "  ELSE",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "ELSE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 25,
+          "original": "    CONTINUE",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "CONTINUE"
+        },
+        {
+          "disposition": "modeled",
+          "line": 26,
+          "original": "  END-IF.",
+          "rule_id": "ELIGIBLE_R004",
+          "source": "END-IF."
+        },
+        {
+          "disposition": "terminal",
+          "line": 27,
+          "original": "  GOBACK.",
+          "source": "GOBACK."
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "LAYOUT",
+          "path": "LAYOUT.cpy",
+          "source_hash": "497529e46b4badc8d0ef30a1dfafa467105a9ceb6d946f08543a90c5717bd3e6"
+        }
+      ],
+      "dependency_hash": "0c933c0be4dacd22ed5bb94d3c5b8358ec99acca10b485a45fe8841dbc629c88",
+      "fields": {
+        "ACTIVE": {
+          "default": " ",
+          "group": "CUSTOMER-RECORD",
+          "source_ref": "LAYOUT.cpy:4",
+          "storage_section": "LINKAGE",
+          "type": "string",
+          "width": 1
+        },
+        "AGE": {
+          "default": 0,
+          "group": "CUSTOMER-RECORD",
+          "max": 999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:3",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 3
+        },
+        "AMOUNT": {
+          "default": 0,
+          "group": "REFERRAL-RECORD",
+          "max": 99999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:7",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 5
+        },
+        "CUSTOMER-ID": {
+          "default": 0,
+          "group": "CUSTOMER-RECORD",
+          "max": 9999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:2",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 4
+        },
+        "DECISION": {
+          "default": " ",
+          "group": "REFERRAL-RECORD",
+          "source_ref": "LAYOUT.cpy:8",
+          "storage_section": "LINKAGE",
+          "type": "string",
+          "width": 1
+        },
+        "REF-CUSTOMER-ID": {
+          "default": 0,
+          "group": "REFERRAL-RECORD",
+          "max": 9999,
+          "min": 0,
+          "source_ref": "LAYOUT.cpy:6",
+          "storage_section": "LINKAGE",
+          "type": "integer",
+          "width": 4
+        }
+      },
+      "id": "46968137a8ecb13e4a1de94115baeabd475a85131c8defb4afa1d0d3606a65c7",
+      "kind": "cobol_program",
+      "loc": {
+        "blank": 0,
+        "code": 27,
+        "comment": 0,
+        "physical": 27
+      },
+      "name": "ELIGIBLE",
+      "path": "ELIGIBLE.cbl",
+      "relationships": [],
+      "rules": [
+        {
+          "else": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ],
+          "id": "ELIGIBLE_R001",
+          "plain": "If AGE >= 18, set DECISION to 'Y'. Otherwise set DECISION to 'N'.",
+          "predicate": {
+            "left": {
+              "field": "AGE"
+            },
+            "op": ">=",
+            "right": 18
+          },
+          "source_end": 11,
+          "source_refs": [
+            "ELIGIBLE.cbl:7-11"
+          ],
+          "source_start": 7,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "Y"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R002",
+          "plain": "If ACTIVE = \"N\", set DECISION to 'N'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "ACTIVE"
+            },
+            "op": "=",
+            "right": "N"
+          },
+          "source_end": 16,
+          "source_refs": [
+            "ELIGIBLE.cbl:12-16"
+          ],
+          "source_start": 12,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R003",
+          "plain": "If CUSTOMER-ID <> REF-CUSTOMER-ID, set DECISION to 'N'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "CUSTOMER-ID"
+            },
+            "op": "<>",
+            "right": {
+              "field": "REF-CUSTOMER-ID"
+            }
+          },
+          "source_end": 21,
+          "source_refs": [
+            "ELIGIBLE.cbl:17-21"
+          ],
+          "source_start": 17,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "N"
+            }
+          ]
+        },
+        {
+          "else": [],
+          "id": "ELIGIBLE_R004",
+          "plain": "If AMOUNT > 50000, set DECISION to 'R'. Otherwise keep the current values.",
+          "predicate": {
+            "left": {
+              "field": "AMOUNT"
+            },
+            "op": ">",
+            "right": 50000
+          },
+          "source_end": 26,
+          "source_refs": [
+            "ELIGIBLE.cbl:22-26"
+          ],
+          "source_start": 22,
+          "then": [
+            {
+              "field": "DECISION",
+              "value": "R"
+            }
+          ]
+        }
+      ],
+      "semantic_hash": "f50ed334f61057aadb73aaa1d81dac109c03526f9e6b5001fb886150d98ed27f",
+      "source_hash": "1b86b3b54531ecac8dcf7d8357d39532ec2bb02af7cb3b24dc9b6871b343899a",
+      "source_text": "IDENTIFICATION DIVISION.\nPROGRAM-ID. ELIGIBLE.\nDATA DIVISION.\nLINKAGE SECTION.\nCOPY LAYOUT.\nPROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD.\n  IF AGE >= 18\n    MOVE \"Y\" TO DECISION\n  ELSE\n    MOVE \"N\" TO DECISION\n  END-IF.\n  IF ACTIVE = \"N\"\n    MOVE \"N\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  IF CUSTOMER-ID <> REF-CUSTOMER-ID\n    MOVE \"N\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  IF AMOUNT > 50000\n    MOVE \"R\" TO DECISION\n  ELSE\n    CONTINUE\n  END-IF.\n  GOBACK.\n"
+    }
+  },
+  "relationships": [],
+  "rules": [
+    {
+      "else": [
+        {
+          "field": "DECISION",
+          "value": "N"
+        }
+      ],
+      "id": "ELIGIBLE_R001",
+      "plain": "If AGE >= 18, set DECISION to 'Y'. Otherwise set DECISION to 'N'.",
+      "predicate": {
+        "left": {
+          "field": "AGE"
+        },
+        "op": ">=",
+        "right": 18
+      },
+      "source_end": 11,
+      "source_refs": [
+        "ELIGIBLE.cbl:7-11"
+      ],
+      "source_start": 7,
+      "then": [
+        {
+          "field": "DECISION",
+          "value": "Y"
+        }
+      ]
+    },
+    {
+      "else": [],
+      "id": "ELIGIBLE_R002",
+      "plain": "If ACTIVE = \"N\", set DECISION to 'N'. Otherwise keep the current values.",
+      "predicate": {
+        "left": {
+          "field": "ACTIVE"
+        },
+        "op": "=",
+        "right": "N"
+      },
+      "source_end": 16,
+      "source_refs": [
+        "ELIGIBLE.cbl:12-16"
+      ],
+      "source_start": 12,
+      "then": [
+        {
+          "field": "DECISION",
+          "value": "N"
+        }
+      ]
+    },
+    {
+      "else": [],
+      "id": "ELIGIBLE_R003",
+      "plain": "If CUSTOMER-ID <> REF-CUSTOMER-ID, set DECISION to 'N'. Otherwise keep the current values.",
+      "predicate": {
+        "left": {
+          "field": "CUSTOMER-ID"
+        },
+        "op": "<>",
+        "right": {
+          "field": "REF-CUSTOMER-ID"
+        }
+      },
+      "source_end": 21,
+      "source_refs": [
+        "ELIGIBLE.cbl:17-21"
+      ],
+      "source_start": 17,
+      "then": [
+        {
+          "field": "DECISION",
+          "value": "N"
+        }
+      ]
+    },
+    {
+      "else": [],
+      "id": "ELIGIBLE_R004",
+      "plain": "If AMOUNT > 50000, set DECISION to 'R'. Otherwise keep the current values.",
+      "predicate": {
+        "left": {
+          "field": "AMOUNT"
+        },
+        "op": ">",
+        "right": 50000
+      },
+      "source_end": 26,
+      "source_refs": [
+        "ELIGIBLE.cbl:22-26"
+      ],
+      "source_start": 22,
+      "then": [
+        {
+          "field": "DECISION",
+          "value": "R"
+        }
+      ]
+    }
+  ],
+  "source_accounting": {
+    "ELIGIBLE": [
+      {
+        "disposition": "structure",
+        "line": 1,
+        "original": "IDENTIFICATION DIVISION.",
+        "source": "IDENTIFICATION DIVISION."
+      },
+      {
+        "disposition": "structure",
+        "line": 2,
+        "original": "PROGRAM-ID. ELIGIBLE.",
+        "source": "PROGRAM-ID. ELIGIBLE."
+      },
+      {
+        "disposition": "structure",
+        "line": 3,
+        "original": "DATA DIVISION.",
+        "source": "DATA DIVISION."
+      },
+      {
+        "disposition": "structure",
+        "line": 4,
+        "original": "LINKAGE SECTION.",
+        "source": "LINKAGE SECTION."
+      },
+      {
+        "disposition": "copybook",
+        "line": 5,
+        "original": "COPY LAYOUT.",
+        "source": "COPY LAYOUT."
+      },
+      {
+        "disposition": "structure",
+        "line": 6,
+        "original": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD.",
+        "source": "PROCEDURE DIVISION USING CUSTOMER-RECORD REFERRAL-RECORD."
+      },
+      {
+        "disposition": "modeled",
+        "line": 7,
+        "original": "  IF AGE >= 18",
+        "rule_id": "ELIGIBLE_R001",
+        "source": "IF AGE >= 18"
+      },
+      {
+        "disposition": "modeled",
+        "line": 8,
+        "original": "    MOVE \"Y\" TO DECISION",
+        "rule_id": "ELIGIBLE_R001",
+        "source": "MOVE \"Y\" TO DECISION"
+      },
+      {
+        "disposition": "modeled",
+        "line": 9,
+        "original": "  ELSE",
+        "rule_id": "ELIGIBLE_R001",
+        "source": "ELSE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 10,
+        "original": "    MOVE \"N\" TO DECISION",
+        "rule_id": "ELIGIBLE_R001",
+        "source": "MOVE \"N\" TO DECISION"
+      },
+      {
+        "disposition": "modeled",
+        "line": 11,
+        "original": "  END-IF.",
+        "rule_id": "ELIGIBLE_R001",
+        "source": "END-IF."
+      },
+      {
+        "disposition": "modeled",
+        "line": 12,
+        "original": "  IF ACTIVE = \"N\"",
+        "rule_id": "ELIGIBLE_R002",
+        "source": "IF ACTIVE = \"N\""
+      },
+      {
+        "disposition": "modeled",
+        "line": 13,
+        "original": "    MOVE \"N\" TO DECISION",
+        "rule_id": "ELIGIBLE_R002",
+        "source": "MOVE \"N\" TO DECISION"
+      },
+      {
+        "disposition": "modeled",
+        "line": 14,
+        "original": "  ELSE",
+        "rule_id": "ELIGIBLE_R002",
+        "source": "ELSE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 15,
+        "original": "    CONTINUE",
+        "rule_id": "ELIGIBLE_R002",
+        "source": "CONTINUE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 16,
+        "original": "  END-IF.",
+        "rule_id": "ELIGIBLE_R002",
+        "source": "END-IF."
+      },
+      {
+        "disposition": "modeled",
+        "line": 17,
+        "original": "  IF CUSTOMER-ID <> REF-CUSTOMER-ID",
+        "rule_id": "ELIGIBLE_R003",
+        "source": "IF CUSTOMER-ID <> REF-CUSTOMER-ID"
+      },
+      {
+        "disposition": "modeled",
+        "line": 18,
+        "original": "    MOVE \"N\" TO DECISION",
+        "rule_id": "ELIGIBLE_R003",
+        "source": "MOVE \"N\" TO DECISION"
+      },
+      {
+        "disposition": "modeled",
+        "line": 19,
+        "original": "  ELSE",
+        "rule_id": "ELIGIBLE_R003",
+        "source": "ELSE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 20,
+        "original": "    CONTINUE",
+        "rule_id": "ELIGIBLE_R003",
+        "source": "CONTINUE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 21,
+        "original": "  END-IF.",
+        "rule_id": "ELIGIBLE_R003",
+        "source": "END-IF."
+      },
+      {
+        "disposition": "modeled",
+        "line": 22,
+        "original": "  IF AMOUNT > 50000",
+        "rule_id": "ELIGIBLE_R004",
+        "source": "IF AMOUNT > 50000"
+      },
+      {
+        "disposition": "modeled",
+        "line": 23,
+        "original": "    MOVE \"R\" TO DECISION",
+        "rule_id": "ELIGIBLE_R004",
+        "source": "MOVE \"R\" TO DECISION"
+      },
+      {
+        "disposition": "modeled",
+        "line": 24,
+        "original": "  ELSE",
+        "rule_id": "ELIGIBLE_R004",
+        "source": "ELSE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 25,
+        "original": "    CONTINUE",
+        "rule_id": "ELIGIBLE_R004",
+        "source": "CONTINUE"
+      },
+      {
+        "disposition": "modeled",
+        "line": 26,
+        "original": "  END-IF.",
+        "rule_id": "ELIGIBLE_R004",
+        "source": "END-IF."
+      },
+      {
+        "disposition": "terminal",
+        "line": 27,
+        "original": "  GOBACK.",
+        "source": "GOBACK."
+      }
+    ]
+  },
+  "source_snapshot": "e79165daf78f7f3d2921a70049ff208e0fb2c6b8f57c436cfbfa93a1513b23e8"
+}

@@ -1,0 +1,104 @@
+{
+  "actual": {
+    "REFJOB": [
+      {
+        "input_status": "ACCEPT_INPUT",
+        "record": {
+          "ACTIVE": " ",
+          "AGE": 0,
+          "AMOUNT": 0,
+          "CUSTOMER-ID": 0,
+          "DECISION": "N",
+          "REF-CUSTOMER-ID": 0
+        },
+        "return_code": 0,
+        "step": "CHECK",
+        "trace": [
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R001",
+            "source_refs": [
+              "ELIGIBLE.cbl:7-11"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R002",
+            "source_refs": [
+              "ELIGIBLE.cbl:12-16"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R003",
+            "source_refs": [
+              "ELIGIBLE.cbl:17-21"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R004",
+            "source_refs": [
+              "ELIGIBLE.cbl:22-26"
+            ]
+          }
+        ],
+        "version": "d3ee5b44a3fa4e38821cffd8fccd948b80f52e392c69a61c108792206ce67f1f"
+      }
+    ]
+  },
+  "dataset_io_verified": false,
+  "expected": {
+    "REFJOB": [
+      {
+        "input_status": "ACCEPT_INPUT",
+        "record": {
+          "ACTIVE": " ",
+          "AGE": 0,
+          "AMOUNT": 0,
+          "CUSTOMER-ID": 0,
+          "DECISION": "N",
+          "REF-CUSTOMER-ID": 0
+        },
+        "return_code": 0,
+        "step": "CHECK",
+        "trace": [
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R001",
+            "source_refs": [
+              "ELIGIBLE.cbl:7-11"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R002",
+            "source_refs": [
+              "ELIGIBLE.cbl:12-16"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R003",
+            "source_refs": [
+              "ELIGIBLE.cbl:17-21"
+            ]
+          },
+          {
+            "branch": false,
+            "rule_id": "ELIGIBLE_R004",
+            "source_refs": [
+              "ELIGIBLE.cbl:22-26"
+            ]
+          }
+        ],
+        "version": "d3ee5b44a3fa4e38821cffd8fccd948b80f52e392c69a61c108792206ce67f1f"
+      }
+    ]
+  },
+  "integration_cases": 1,
+  "io_adapter": "in_memory_record_only",
+  "matched": true,
+  "observed_mainframe_parity": false,
+  "reason": "Ordered record-adapter job comparison; DSN I/O and external scheduling are outside this profile"
+}

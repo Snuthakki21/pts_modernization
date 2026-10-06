@@ -1,0 +1,85 @@
+<!doctype html><meta charset="utf-8"><title>SME checklist</title><h1>Fictional referral eligibility</h1><p>Return the Excel workbook. One review round. No mainframe execution.</p><pre>{
+  &quot;jobs&quot;: [
+    {
+      &quot;name&quot;: &quot;REFJOB&quot;,
+      &quot;order&quot;: 1,
+      &quot;steps&quot;: [
+        {
+          &quot;condition&quot;: &quot;Always&quot;,
+          &quot;inputs&quot;: [
+            &quot;CUSTOMER&quot;,
+            &quot;REFERRAL&quot;
+          ],
+          &quot;name&quot;: &quot;CHECK&quot;,
+          &quot;order&quot;: 1,
+          &quot;outputs&quot;: [
+            &quot;RESULT&quot;
+          ],
+          &quot;program&quot;: &quot;ELIGIBLE&quot;
+        }
+      ]
+    }
+  ],
+  &quot;knowledge_input&quot;: null,
+  &quot;layouts&quot;: {
+    &quot;ELIGIBLE&quot;: {
+      &quot;ACTIVE&quot;: {
+        &quot;default&quot;: &quot; &quot;,
+        &quot;group&quot;: &quot;CUSTOMER-RECORD&quot;,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:4&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;width&quot;: 1
+      },
+      &quot;AGE&quot;: {
+        &quot;default&quot;: 0,
+        &quot;group&quot;: &quot;CUSTOMER-RECORD&quot;,
+        &quot;max&quot;: 999,
+        &quot;min&quot;: 0,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:3&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;integer&quot;,
+        &quot;width&quot;: 3
+      },
+      &quot;AMOUNT&quot;: {
+        &quot;default&quot;: 0,
+        &quot;group&quot;: &quot;REFERRAL-RECORD&quot;,
+        &quot;max&quot;: 99999,
+        &quot;min&quot;: 0,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:7&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;integer&quot;,
+        &quot;width&quot;: 5
+      },
+      &quot;CUSTOMER-ID&quot;: {
+        &quot;default&quot;: 0,
+        &quot;group&quot;: &quot;CUSTOMER-RECORD&quot;,
+        &quot;max&quot;: 9999,
+        &quot;min&quot;: 0,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:2&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;integer&quot;,
+        &quot;width&quot;: 4
+      },
+      &quot;DECISION&quot;: {
+        &quot;default&quot;: &quot; &quot;,
+        &quot;group&quot;: &quot;REFERRAL-RECORD&quot;,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:8&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;width&quot;: 1
+      },
+      &quot;REF-CUSTOMER-ID&quot;: {
+        &quot;default&quot;: 0,
+        &quot;group&quot;: &quot;REFERRAL-RECORD&quot;,
+        &quot;max&quot;: 9999,
+        &quot;min&quot;: 0,
+        &quot;source_ref&quot;: &quot;LAYOUT.cpy:6&quot;,
+        &quot;storage_section&quot;: &quot;LINKAGE&quot;,
+        &quot;type&quot;: &quot;integer&quot;,
+        &quot;width&quot;: 4
+      }
+    }
+  },
+  &quot;relationships&quot;: []
+}</pre><section><h2>ELIGIBLE_R001</h2><p>If AGE &gt;= 18, set DECISION to &#x27;Y&#x27;. Otherwise set DECISION to &#x27;N&#x27;.</p><small>ELIGIBLE.cbl:7-11</small></section><section><h2>ELIGIBLE_R002</h2><p>If ACTIVE = &quot;N&quot;, set DECISION to &#x27;N&#x27;. Otherwise keep the current values.</p><small>ELIGIBLE.cbl:12-16</small></section><section><h2>ELIGIBLE_R003</h2><p>If CUSTOMER-ID &lt;&gt; REF-CUSTOMER-ID, set DECISION to &#x27;N&#x27;. Otherwise keep the current values.</p><small>ELIGIBLE.cbl:17-21</small></section><section><h2>ELIGIBLE_R004</h2><p>If AMOUNT &gt; 50000, set DECISION to &#x27;R&#x27;. Otherwise keep the current values.</p><small>ELIGIBLE.cbl:22-26</small></section><section><h2>G_SCOPE</h2><p>Does the listed program/job/step inventory cover this process?</p><small>See process inventory/layout/relationship context</small></section><section><h2>G_LAYOUT</h2><p>Are the listed field names, lengths, numeric limits and record groups correct?</p><small>See process inventory/layout/relationship context</small></section><section><h2>G_ORDER</h2><p>Are the listed job/step sequence, conditions, and input/output links correct?</p><small>See process inventory/layout/relationship context</small></section><section><h2>G_MATCH</h2><p>Are the listed matching relationships and intentional missing-match cases interpreted correctly?</p><small>See process inventory/layout/relationship context</small></section><section><h2>G_TARGET</h2><p>Is Python with SQLite/JSON files acceptable for this non-production POC?</p><small>See process inventory/layout/relationship context</small></section>
