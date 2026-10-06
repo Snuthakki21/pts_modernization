@@ -118,11 +118,20 @@ investigating utilities whose normal purpose is to change data.
 
 ## Application routing and source-derived fixtures
 
-WEDLX is a local/mounted input-availability location. Source-system files arrive
-at Tran Repository for WEDLX/downstream steps. Put exact folder/file bindings in
+WEDELX is a local/mounted input-availability location. Source-system files arrive
+at Tran Repository for WEDELX/downstream steps. Put exact folder/file bindings in
 `knowledge/input-locations.json` using [the template](../examples/input-locations.json).
 Do not invent datasets from location names. Availability does not establish
 layout, cutoff, completeness or business readiness.
+`WEDLX` is a legacy alias of the same `WEDELX` location. New lineage uses WEDELX;
+old frozen artifacts are not renamed. Do not configure duplicate aliases.
+
+Technical SME questions use the visible 19-family `CONSTRUCT_ASSUMPTIONS`
+catalog in `workbench/review.py`. These statements describe obligations, not
+approved application facts or implemented semantics. Add custom utilities and
+corrections to the application catalog above with source evidence. Raw gaps stay
+in the frozen source analysis; repeated gaps are grouped across programs while
+every business rule remains a separate review item.
 
 Terminal routing hints supplied by the user are `TS0 DB2 2` for copybook/Db2
 access, `SCHEDD` for development CA7 and UAT for CICS (exact location unconfirmed).

@@ -13,6 +13,7 @@ ROOT_FILES = frozenset({
     'pyproject.toml', 'process-input.md', 'intake-template.xlsx',
     'mcp.json', '.mcp.json', 'zowe.config.json', 'zowe.config.user.json',
     'zowe.schema.json', 'zowe.config.schema.json', 'zowe.config.user.schema.json',
+    'extenders.json', '.npmrc', 'pip.conf', 'pip.ini', 'NuGet.Config',
 })
 ROOT_DIRS = frozenset({
     'Endeavor', 'processes', 'shared', 'knowledge', '.migration',
@@ -20,9 +21,10 @@ ROOT_DIRS = frozenset({
     'node_modules', 'workbench', 'tests', 'tools', 'scripts', 'frontend',
     'docs', 'prompts', 'examples', '__pycache__', '.github',
     '.vscode', 'Visio', 'certificates',
+    '.events', '.gradle', 'logs', 'plugins', 'settings',
 })
 PROCESS_DIRS = frozenset({'input', 'analysis', 'review', 'synthetic', 'target', 'reports', 'tests'})
-PRIVATE_DIRS = frozenset({'.migration', '.implementation', '.superpowers', 'release-private', '.git', '.venv', 'node_modules', '__pycache__'})
+PRIVATE_DIRS = frozenset({'.migration', '.implementation', '.superpowers', 'release-private', '.git', '.venv', 'node_modules', '__pycache__', '.events', '.gradle', 'logs', 'plugins', 'settings'})
 
 
 def output_path(root, process_id, relative):

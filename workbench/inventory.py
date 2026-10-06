@@ -210,5 +210,5 @@ def report_inventory(process, portfolio_documents=(), coverage=None):
             'reconciliation':'Declared total and category sum are preserved separately; unreconciled items have no invented category or conversion credit',
             'rows':rows,'verified_version_ids':{key:sorted(value) for key,value in verified.items()},
             'application_locations':deepcopy(baseline['application_locations']),
-            'availability_basis':'WEDLX and TranRepository are application staging/availability locations; they provide no source-program or conversion credit',
+            'availability_basis':'WEDELX and TranRepository are application staging/availability locations; they provide no source-program or conversion credit',
             'scope_boundary':'CICS/BMS screen definitions are separate from CICS transactions. Observed DB2 counts are distinct source references; observed MQ counts are referenced interfaces, not verified catalog objects. Workbench UI and control APIs are excluded. Demonstrations are excluded from cumulative progress.'}

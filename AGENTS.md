@@ -21,6 +21,9 @@ output at the repository root. Source exports and issued evidence are immutable.
 Credentials, local state, source exports and private diagnostics remain ignored.
 Keep transient repository scratch under `.implementation/tmp/`; root directories
 are explicitly allowlisted and a `tmp` prefix does not grant an exception.
+Clean up temporary workspaces only after their workers/tests have stopped and
+database handles are closed. Moving an active SQLite workspace invalidates its
+open database paths and can cause a readonly-write error.
 
 Mainframe access is always read-only. Never submit jobs, execute legacy programs,
 write source/Db2 datasets or turn off safety gates. Source-derived expectations
@@ -61,8 +64,17 @@ second writer. Implement/test semantic adapters, then call
 Never rewrite content-addressed evidence or clear a gap with a plan/flag. New
 fixtures require 10–20 distinct valid source logic states, linked-file witnesses,
 actual target comparisons and adversarial checks. Unsupported logic stays a
-named unverified obligation. Use exact WEDLX/Tran Repository folder bindings and
+named unverified obligation. Use exact WEDELX/Tran Repository folder bindings and
 supplied Zowe config/schema; TPX session names are not physical/API locations.
+Accept WEDLX as a legacy alias for WEDELX; never rename frozen evidence or
+configure both as separate locations. New SME packets use v3 construct-family
+assumptions across programs. Preserve every raw blocker and individual business
+rule; Yes confirms a description, never grants conversion credit. Existing v1/v2
+packets must retain their original bytes/hashes. Local logs/plugins/settings,
+events and private package-manager configuration remain ignored and untouched.
+Future changes to checklist wording, construct classification or grouping need a
+new packet version for new intakes and retained historical version behavior.
+Never change the meaning or regeneration hash of an already issued packet.
 
 Documentation stays compact: START_HERE.md is the operator guide,
 docs/TECHNICAL_REFERENCE.md is the single technical contract,
@@ -74,7 +86,8 @@ logs private under .implementation/tmp/. Preserve immutable process evidence.
 Run tools/review500.py for R001–R500 and tools/review_expanded.py for R501–R1000.
 Each ID must execute once with no skips; new IDs need distinct failure concerns
 and assertions, not renamed duplicates. tools/scenario_campaign.py executes the
-separate seeded 200,000-scenario campaign. Failed checks require a correction or
+separate seeded campaign; use `--total-scenarios 600000` for the full requested
+600,000-scenario run. Failed checks require a correction or
 an explicit unresolved gate; do not inflate bug counts with new-feature tests.
 
 Before publishing changes, run `python tools/check_handoff.py`. It enforces the

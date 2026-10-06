@@ -361,7 +361,7 @@ def analyze_sources(files, manifest):
         for step in job['steps']:
             name=step['program'].upper();used.add(name)
             graph.append({'from':job['name']+'.'+step['name'],'to':name,'kind':'calls','inputs':step['inputs'],'outputs':step['outputs']})
-            if name not in programs:blockers.append({'kind':'missing_source','message':'Program/utility source or supported adapter missing: '+name})
+            if name not in programs:blockers.append({'kind':'missing_source','program':name,'message':'Program/utility source or supported adapter missing: '+name})
             if step['condition'].upper() not in ('ALWAYS','') and not re.fullmatch(r'RC\s*(?:<=|>=|=|<|>)\s*\d{1,5}',step['condition'],re.I):blockers.append({'kind':'unresolved_condition','message':'Unknown step condition: '+step['condition']})
     for p in programs.values():
         for book in p['copybooks']:graph.append({'from':p['name'],'to':book,'kind':'copybook'})
@@ -373,7 +373,7 @@ def analyze_sources(files, manifest):
             if classifications[path]['kind']!='jcl_job':continue
         elif not path.lower().endswith('.jcl'):continue
         current=None;source_jobs={}
-        for raw in text.splitlines():
+        for line_number,raw in enumerate(text.splitlines(),1):
             if not raw.strip() or raw.startswith('//*'):continue
             card=raw.rstrip()
             job=re.fullmatch(r"//([A-Z][A-Z0-9]{0,7})\s+JOB(?:\s+\([^)]*\)(?:,'[^']*')?)?",card,re.I)
@@ -381,11 +381,11 @@ def analyze_sources(files, manifest):
             dd=re.fullmatch(r'//([A-Z][A-Z0-9]{0,7})\s+DD\s+DSN=[A-Z0-9@$#.-]+(?:,DISP=SHR)?',card,re.I)
             if job:
                 current=job[1].upper()
-                if current in jcl_job_origins:blockers.append({'kind':'unsupported_jcl','path':path,'message':'Repeated JCL JOB declaration requires explicit identity/scope resolution: '+current})
+                if current in jcl_job_origins:blockers.append({'kind':'unsupported_jcl','path':path,'lines':[line_number],'message':'Repeated JCL JOB declaration requires explicit identity/scope resolution: '+current})
                 jcl_job_origins[current]=path;source_jobs.setdefault(current,[])
             elif execute and current:source_jobs[current].append((execute[1].upper(),execute[2].upper()))
-            elif dd and current and source_jobs[current]:blockers.append({'kind':'unsupported_jcl','path':path,'message':'DD dataset allocation/read/write semantics need an explicit I/O adapter: '+card[:100]})
-            else:blockers.append({'kind':'unsupported_jcl','path':path,'message':'Unsupported complete JCL card or trailing clause: '+card[:100]})
+            elif dd and current and source_jobs[current]:blockers.append({'kind':'unsupported_jcl','path':path,'lines':[line_number],'message':'DD dataset allocation/read/write semantics need an explicit I/O adapter: '+card[:100]})
+            else:blockers.append({'kind':'unsupported_jcl','path':path,'lines':[line_number],'message':'Unsupported complete JCL card or trailing clause: '+card[:100]})
         manifest_jobs={j['name'].upper():j for j in manifest['jobs']}
         for name,steps in source_jobs.items():
             job=manifest_jobs.get(name)

@@ -62,10 +62,12 @@ and **2 million physical lines**. Browser uploads permit 32 MiB combined; larger
 repositories use local Endeavor. The 822-file/700,570-byte regression is verified;
 full ceilings are protective limits, not memory or analysis certification.
 
-For WEDLX/Tran Repository, copy [examples/input-locations.json](examples/input-locations.json)
+For WEDELX/Tran Repository, copy [examples/input-locations.json](examples/input-locations.json)
 to `knowledge/input-locations.json`. Set the actual mounted folders and exact
 `{"logical_id":"REFERRAL","file":"referral.dat"}` bindings. These are application
 staging locations. File availability is distinct from business readiness.
+`WEDLX` is accepted as a legacy alias for `WEDELX`; configure one spelling per
+location. Existing frozen process evidence is preserved.
 
 Put background/Devin articles in **`knowledge/inbox/context.md`** (up to 16 KB).
 Add custom utility facts to **`knowledge/application-knowledge.json`**, created
@@ -82,6 +84,9 @@ are missing/ambiguous. Correct the named configuration/evidence and retry.
 Copilot reads evidence, implements/tests needed adapters, and returns structured
 analysis through MCP. Plans cannot clear blockers. The coordinator then emits
 supported targets and one SME checklist.
+New checklists group technical assumptions by construct across programs. Every
+business-rule question remains individual; the complete source evidence stays
+linked in Context. A Yes answer confirms the description, not conversion success.
 The screen shows the current stage and next action. Pause, Resume and Cancel
 retain evidence. Mainframe connections remain read-only; no jobs or synthetic
 records are run or uploaded there.

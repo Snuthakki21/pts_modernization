@@ -31,6 +31,41 @@ class LayoutTests(unittest.TestCase):
         (self.root / 'unexpected.md').write_text('wrong location')
         self.assertTrue(validate_workspace(self.root))
 
+    def test_screenshot_local_environment_entries_pass_without_reading_private_contents(self):
+        for name in ('.events','.gradle','logs','plugins','settings'):
+            (self.root/name).mkdir();(self.root/name/'private-config').write_text('LOCAL_ONLY')
+        for name in ('extenders.json','.npmrc','pip.conf','pip.ini','NuGet.Config'):
+            (self.root/name).write_text('LOCAL_ONLY')
+        from unittest.mock import patch
+        with patch.object(Path,'read_text',side_effect=AssertionError('No private content reads')), patch.object(Path,'read_bytes',side_effect=AssertionError('No private content reads')):
+            self.assertEqual(validate_workspace(self.root),[])
+
+    def test_operational_roots_are_accepted_by_real_coordinator_and_preserved(self):
+        from workbench.coordinator import Coordinator
+        from test_source import COBOL
+        from test_workflow import MANIFEST
+        for name in ('logs','plugins','settings','.events'):(self.root/name).mkdir()
+        config=self.root/'extenders.json';config.write_bytes(b'LOCAL_ONLY_CONFIGURATION')
+        c=Coordinator(self.root);self.addCleanup(c.close)
+        c.create(MANIFEST,{'ELIGIBLE.cbl':COBOL});c.start('process-a');c.advance('process-a')
+        self.assertEqual(c.ledger.get('process-a')['status'],'WAITING_SME')
+        self.assertEqual(config.read_bytes(),b'LOCAL_ONLY_CONFIGURATION')
+
+    def test_new_private_roots_do_not_allow_symlinks_or_arbitrary_outputs(self):
+        (self.root/'logs').symlink_to(self.root/'outside',target_is_directory=True)
+        self.assertTrue(any('logs: symlinks' in issue for issue in validate_workspace(self.root)))
+        (self.root/'logs').unlink();(self.root/'unregistered-output').mkdir()
+        self.assertTrue(any('not allowlisted' in issue for issue in validate_workspace(self.root)))
+
+    def test_sensitive_build_and_local_configuration_paths_are_git_ignored(self):
+        import subprocess
+        repo=Path(__file__).resolve().parents[1]
+        paths=['.gradle/config','.npmrc','pip.conf','pip.ini','NuGet.Config','tools/dq3g_mcp/.env',
+               'logs/local.dat','plugins/local.json','settings/local.json','.events/trace','extenders.json']
+        result=subprocess.run(['git','check-ignore','--no-index','--stdin'],input='\n'.join(paths)+'\n',
+                              cwd=repo,text=True,capture_output=True,check=True)
+        self.assertEqual(result.stdout.splitlines(),paths)
+
     def test_symlink_parent_workspace_is_rejected(self):
         from workbench.layout import require_layout
         actual = self.root / 'real'; actual.mkdir()

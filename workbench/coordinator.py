@@ -113,7 +113,7 @@ class Coordinator:
                 hashes={}
                 for path,raw in encoded_sources.items():hashes[path]=write_new(output_path(self.root,doc['id'],'input/sources/'+path),raw)
                 doc['source_files']=hashes;doc['manifest_hash']=sha(encoded_manifest);doc['prompt']=prompt[:16000]
-                doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=2
+                doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=3
                 doc['logic_validation_min_records']=10 if assistant_mode=='copilot_chat' else 0
                 from .inventory import snapshot_inventory
                 doc['inventory_baseline']=snapshot_inventory(self.root)

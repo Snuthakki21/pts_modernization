@@ -48,7 +48,7 @@
   ],
   "application_locations": [
     {
-      "name": "WEDLX",
+      "name": "WEDELX",
       "role": "application staging / availability location",
       "status": "USER_REPORTED_UNVERIFIED"
     },

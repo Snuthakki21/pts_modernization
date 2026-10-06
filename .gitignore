@@ -27,6 +27,17 @@ frontend/dist/
 certificates/*.cert
 knowledge/inventory-baseline.json
 knowledge/input-locations.json
+/logs/
+/settings/
+/plugins/
+/.events/
+/extenders.json
+.gradle/
+.npmrc
+pip.conf
+pip.ini
+NuGet.Config
+tools/dq3g_mcp/.env
 !examples/Endeavor/
 !examples/Endeavor/**
 

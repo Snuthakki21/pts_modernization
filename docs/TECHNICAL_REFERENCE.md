@@ -86,10 +86,13 @@ hint, `SCHEDD` is the development CA7 hint, CICS is in UAT with the exact locati
 unconfirmed, and `SYSPL` is a JCL search hint. These facts do not establish an
 API endpoint, dataset library, permission, CICS map or CA7 export facility.
 Provide actual Zowe-visible libraries/services or original exported definitions.
-WEDLX receives available files from Tran Repository/source systems; configure
+WEDELX receives available files from Tran Repository/source systems; configure
 exact local/mounted folder bindings in `knowledge/input-locations.json` using
 `examples/input-locations.json`. Only an observed exact file binding resolves
 availability. Layout, cutoff/completeness and business readiness remain unknown.
+New configuration uses `WEDELX`; `WEDLX` remains an accepted legacy alias.
+Both spellings resolve to one lineage node. Do not configure both as separate
+locations. Historical frozen manifests, packets and receipts retain their bytes.
 
 ### Runtime and recovery
 
@@ -115,9 +118,28 @@ workbooks 8 MiB. These are protective ceilings, not memory/stress certification;
 per-line analysis/model expansion can reach the state or memory bound earlier.
 The 822-file export and 700,570-byte source regression retain every input byte.
 No dependent file is removed to fit the old POC limit.
-SME v2 compacts technical blockers by program/type while preserving all raw gaps
-in Context/coverage; business rules remain individual. At most 2,000 mandatory
-review items; no silent truncation. Historical packet v1 is replayed unchanged.
+New SME v3 packets compact technical blockers across programs by construct
+family, even for small inventories. The 19-family `CONSTRUCT_ASSUMPTIONS` catalog
+in `workbench/review.py` covers loops, SQL, CICS, file/VSAM I/O, sort/merge,
+arithmetic, decisions, assignments, calls, control flow, layouts, text, tables,
+JCL execution/data, scheduling, MQ, unclassified source and missing evidence.
+Classification uses source tokens outside comments/literals and exact physical
+references. Multiple operations on one physical line retain each detected
+family. Multiline SQL/CICS bodies stay with their enclosing construct; SQL line
+and block comments and continued quoted literals cannot open or close a block.
+Each family lists its own object references and spans. These lexical labels help
+the reviewer navigate evidence; they do not enumerate or prove all semantics.
+Whole-file gaps without precise references remain unclassified unless an
+evidenced source type identifies the family. Recognition is not conversion.
+Each question starts `ASSUMPTION - family`, lists whole program names with a
+bounded `+N more` summary, and explicitly describes an unverified obligation.
+Context retains every object, source span, blocker index and digest against the
+frozen complete source analysis. A blocker containing several constructs appears
+in each relevant family; unique totals come from `source_analysis`, not the sum
+of group memberships. Confirming the statement never clears its adapter gap.
+Business rules and other human questions remain individual. At most 2,000
+mandatory review items; no silent truncation. Historical v1 and v2 packets replay
+unchanged, including the old v2 program/type compaction and original hashes.
 Copilot-mode fixtures default to 4,096 cases/program, support budgets to 10,000,
 and require 10 distinct source-predicate input states per supported logic item
 (configurable 10–20). Legacy fixtures retain 256. There are 192 atomic condition
@@ -182,6 +204,8 @@ The UI/CLI use one Coordinator with durable controls, at most three transient st
 |---|---|
 | `Endeavor/` | Selected read-only local mainframe text export. Never execute or overwrite it. |
 | `process-input.md`, `intake-template.xlsx` | Optional root intake inputs. `--manifest` may explicitly select a Markdown manifest elsewhere. |
+| `logs/`, `plugins/`, `settings/`, `.events/`, `.gradle/`, `extenders.json` | Private existing workstation content is accepted by layout, ignored for publication and left untouched. Layout acceptance does not load plugins or execute configuration. |
+| `.npmrc`, `pip.conf`, `pip.ini`, `NuGet.Config`, `tools/dq3g_mcp/.env` | Local package/server configuration may contain credentials; ignored for git, never gathered as modernization source. |
 | `processes/PROCESS_ID/input/process-input.md` | Immutable manifest snapshot; supplied and snapshot bytes must match the ledger's creation-time manifest SHA-256. |
 | `processes/PROCESS_ID/input/sources/` | Immutable source snapshot with recorded file hashes. Preserve original relative names. |
 | `processes/PROCESS_ID/input/sme-return-inbox.xlsx` | The single designated automatic return inbox. Requires explicit actual `--reviewer` attribution. |

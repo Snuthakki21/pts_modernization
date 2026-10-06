@@ -58,7 +58,7 @@ substitute agent reasoning for reviewer approval.
    transitive evidence. Resolve locally first, then use configured typed
    read-only Zowe/Db2 lookup. `WAITING_DISCOVERY` means a missing, ambiguous or
    dynamic binding must be resolved before conversion or questions. Never invent
-   dataset names or turn an unknown count into zero. WEDLX/Tran Repository folder
+   dataset names or turn an unknown count into zero. WEDELX/Tran Repository folder
    bindings belong in `knowledge/input-locations.json`. TPX session names are
    routing hints and require actual service/profile mappings.
    With the UI running, use the workspace MCP bridge rather than a second writer.
@@ -73,7 +73,12 @@ substitute agent reasoning for reviewer approval.
    The single packet is then issued at `WAITING_SME`. Deliver its paths, including
    `sme-checklist.xlsx`, to the user. Explain any source blockers and the
    source-derived evidence boundary. Preserve the packet's Context, IDs,
-   questions and fingerprint. Ask the human to complete that one workbook and
+   questions, version and hash. New v3 packets group technical assumptions by construct
+   across programs, retaining exact raw gaps and individual business rules.
+   A Yes answer confirms the description only. Retain historical v1/v2 packet
+   hashes; never rebuild an issued packet using a newer format. WEDELX and its
+   legacy alias WEDLX identify one location; preserve frozen original spellings.
+   Ask the human to complete that one workbook and
    provide the actual reviewer name. Then wait. Do not edit any answers yourself.
 4. The returned workbook goes in exactly:
 

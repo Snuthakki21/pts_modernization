@@ -2,6 +2,13 @@
 from pathlib import Path
 from .domain import decode, require, safe_path, sha
 
+LOCATION_ALIASES = {'wedelx':'WEDELX', 'wedlx':'WEDELX', 'tranrepository':'Tran Repository'}
+
+
+def canonical_location(name):
+    return LOCATION_ALIASES.get(name.casefold().replace(' ', '')) if isinstance(name,str) else None
+
+
 def input_locations(workspace):
     config=safe_path(workspace,'knowledge/input-locations.json')
     if not config.exists():return {}
@@ -9,11 +16,13 @@ def input_locations(workspace):
     with config.open('rb') as handle:raw=handle.read(65537)
     document=decode(raw,65536)
     require(isinstance(document,dict) and set(document)=={'schema_version','locations'} and document['schema_version']==1,'Invalid input location configuration')
-    locations=document['locations'];require(isinstance(locations,list) and len(locations)<=2,'Configure WEDLX and TranRepository explicitly')
+    locations=document['locations'];require(isinstance(locations,list) and len(locations)<=2,'Configure WEDELX and TranRepository explicitly; WEDLX remains a legacy alias')
     result={}
     for item in locations:
         require(isinstance(item,dict) and set(item)=={'name','path','bindings'},'Location requires name, path and bindings')
-        name=item['name'];require(name in ('WEDLX','TranRepository') and name not in result,'Unknown or duplicate input location')
+        canonical=canonical_location(item['name'])
+        name='TranRepository' if canonical=='Tran Repository' else canonical
+        require(name is not None and name not in result,'Unknown or duplicate input location; aliases identify the same location')
         require(isinstance(item['path'],str) and item['path'],'Provide the actual mounted folder path')
         folder=Path(item['path']).absolute()
         require(not any(p.is_symlink() for p in (folder,*folder.parents)),'Input locations must not use symlinks')

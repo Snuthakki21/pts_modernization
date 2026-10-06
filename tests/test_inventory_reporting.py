@@ -33,7 +33,7 @@ class InventoryReportingTests(unittest.TestCase):
         self.assertEqual(model['unreconciled_count'],3)
         self.assertEqual([row['baseline_count'] for row in model['rows']],[166,599,174,245,80,108,450,4])
         self.assertTrue(all(row['baseline_status']=='USER_REPORTED_UNVERIFIED' for row in model['rows']))
-        self.assertEqual({location['name'] for location in model['application_locations']},{'WEDLX','TranRepository'})
+        self.assertEqual({location['name'] for location in model['application_locations']},{'WEDELX','TranRepository'})
         self.assertEqual(sum(row['process_converted_count'] for row in model['rows']),0)
 
     def test_missing_evidence_remains_unknown_instead_of_baseline_count(self):
@@ -180,7 +180,7 @@ class InventoryArtifactTests(unittest.TestCase):
         finally:book.close()
         text=self.c.artifact('process-a','reports/report-0001/executive-report.html').read_text()
         self.assertIn('1,829',text);self.assertIn('1,826',text);self.assertIn('3 unreconciled',text)
-        self.assertIn('WEDLX and TranRepository',text)
+        self.assertIn('WEDELX and TranRepository',text)
 
     def test_changed_frozen_baseline_revokes_coverage_credit_without_target_replay(self):
         from workbench.coverage import build_coverage

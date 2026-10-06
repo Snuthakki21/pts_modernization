@@ -252,7 +252,7 @@ class LineageDiscoveryTests(unittest.TestCase):
     def test_user_supplied_staging_locations_are_not_business_programs_or_dsns(self):
         manifest = self.manifest(); manifest['jobs'][0]['steps'][0]['inputs'] = ['WEDLX', 'Tran Repository', 'A file not yet identified']
         result = map_lineage(self.basic(), manifest)
-        self.assertEqual({n['name'] for n in self.selected(result, 'input_location')}, {'WEDLX', 'Tran Repository'})
+        self.assertEqual({n['name'] for n in self.selected(result, 'input_location')}, {'WEDELX', 'Tran Repository'})
         self.assertEqual({n['name'] for n in self.selected(result, 'program')}, {'MAIN'})
         self.assertTrue(all(n['dataset_name'] == 'Unknown' and n['readiness'] == 'Unknown' for n in self.selected(result, 'input_location')))
         self.assertEqual(result['application_input_locations'][0]['basis'], 'user_supplied_application_context')
@@ -270,6 +270,20 @@ class LineageDiscoveryTests(unittest.TestCase):
         result = map_lineage(self.basic(), manifest)
         self.assertEqual(result['application_input_locations'][0]['availability'], 'Available')
         self.assertEqual(result['application_input_locations'][0]['readiness'], 'Unknown')
+
+    def test_location_aliases_create_one_node_and_preserve_old_context(self):
+        manifest=self.manifest();manifest['jobs'][0]['steps'][0]['inputs']=['WEDELX','WEDLX']
+        manifest['application_input_locations']={'WEDLX':{'path':'/mounted/legacy', 'evidence':[{'files':[]}]}}
+        result=map_lineage(self.basic(),manifest)
+        self.assertEqual(len(self.selected(result,'input_location')),1)
+        self.assertEqual(self.selected(result,'input_location')[0]['name'],'WEDELX')
+        self.assertEqual(result['application_input_locations'][0]['physical_path'],'/mounted/legacy')
+        self.assertFalse(any(n['kind']=='input_data' and n['name']=='WEDLX' for n in result['nodes']))
+
+    def test_duplicate_location_alias_context_is_rejected(self):
+        manifest=self.manifest();manifest['application_input_locations']={'WEDELX':{},'WEDLX':{}}
+        with self.assertRaisesRegex(ValidationError,'Duplicate application input location'):
+            map_lineage(self.basic(),manifest)
 
     def test_exact_file_share_binding_resolves_data_without_program_lookup(self):
         files = self.basic(); files['jobs/NIGHT'] += '\n//IN DD DSN=APP.INPUT,DISP=SHR'
