@@ -6,6 +6,7 @@ import json
 import sqlite3
 import time
 import uuid
+from contextlib import closing
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse
@@ -19,8 +20,11 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
     database.parent.mkdir(parents=True,exist_ok=True)
     def connect():
         db=sqlite3.connect(database,timeout=5);db.row_factory=sqlite3.Row
-        db.execute('PRAGMA foreign_keys=ON');return db
-    with connect() as db:
+        try:
+            db.execute('PRAGMA foreign_keys=ON');return db
+        except BaseException:
+            db.close();raise
+    with closing(connect()) as db, db:
         db.executescript('CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, transaction_id TEXT NOT NULL, expires REAL NOT NULL, revision INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS requests(session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, key TEXT NOT NULL, request_hash TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(session_id,key));')
     app=FastAPI(title='Modernized business capabilities',version='1.0',docs_url=None,redoc_url=None)
     def authorize(request):
@@ -65,7 +69,7 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
     @app.delete('/api/sessions/{sid}')
     def close_session(sid:str,request:Request):
         authorize(request)
-        with connect() as db:db.execute('DELETE FROM sessions WHERE id=?',(sid,))
+        with closing(connect()) as db, db:db.execute('DELETE FROM sessions WHERE id=?',(sid,))
         return {'closed':True}
     @app.post('/api/transactions/{transaction}')
     async def execute(transaction:str,request:Request):

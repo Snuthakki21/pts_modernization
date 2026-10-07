@@ -213,3 +213,89 @@ class FactoryTests(unittest.TestCase):
                     self.assertEqual(client.get('/api/process/online-pilot/factory?after=-1').status_code,400)
                 finally:client.close()
             finally:c.close()
+
+    def test_online_startup_closes_the_real_sqlite_connection(self):
+        import sqlite3
+        from unittest.mock import patch
+        from workbench.online_runtime import create_app
+        original=sqlite3.connect;connections=[]
+        def tracked(*args,**kwargs):
+            db=original(*args,**kwargs);connections.append(db);return db
+        with tempfile.TemporaryDirectory() as temp:
+            try:
+                with patch('workbench.online_runtime.sqlite3.connect',side_effect=tracked):
+                    create_app({}, {}, Path(temp)/'state.sqlite','x'*32)
+                self.assertEqual(len(connections),1)
+                with self.assertRaisesRegex(sqlite3.ProgrammingError,'closed'):
+                    connections[0].execute('SELECT 1')
+            finally:
+                for db in connections:db.close()
+
+    def test_online_startup_failures_close_connections_and_preserve_the_error(self):
+        import sqlite3
+        from unittest.mock import patch
+        from workbench.online_runtime import create_app
+        original=sqlite3.connect
+        for stage in ('pragma','schema'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                connections=[]
+                class FailingConnection(sqlite3.Connection):
+                    def execute(self,sql,*args):
+                        if stage=='pragma' and sql=='PRAGMA foreign_keys=ON':
+                            raise sqlite3.OperationalError('fixture pragma failure')
+                        return super().execute(sql,*args)
+                    def executescript(self,sql):
+                        raise sqlite3.OperationalError('fixture schema failure')
+                def tracked(*args,**kwargs):
+                    db=original(*args,**kwargs,factory=FailingConnection);connections.append(db);return db
+                try:
+                    with patch('workbench.online_runtime.sqlite3.connect',side_effect=tracked):
+                        with self.assertRaisesRegex(sqlite3.OperationalError,'fixture '+stage+' failure'):
+                            create_app({}, {}, Path(temp)/'state.sqlite','x'*32)
+                    self.assertEqual(len(connections),1)
+                    with self.assertRaisesRegex(sqlite3.ProgrammingError,'closed'):
+                        connections[0].execute('SELECT 1')
+                finally:
+                    for db in connections:db.close()
+
+    def test_online_session_delete_closes_and_commits_the_cascade(self):
+        self._assert_online_delete_connection_lifecycle(False)
+
+    def test_online_session_delete_failure_closes_and_rolls_back(self):
+        self._assert_online_delete_connection_lifecycle(True)
+
+    def _assert_online_delete_connection_lifecycle(self, fail):
+        import sqlite3
+        from contextlib import closing
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from workbench.online_runtime import create_app
+        original=sqlite3.connect;connections=[]
+        def tracked(*args,**kwargs):
+            db=original(*args,**kwargs);connections.append(db);return db
+        with tempfile.TemporaryDirectory() as temp:
+            database=Path(temp)/'state.sqlite'
+            app=create_app({}, {}, database,'x'*32)
+            with closing(original(database)) as oracle, oracle:
+                oracle.execute("INSERT INTO sessions VALUES ('session','TEST',900,0)")
+                oracle.execute("INSERT INTO requests VALUES ('session','key','hash','{}')")
+                if fail:
+                    oracle.executescript("CREATE TRIGGER deny_delete BEFORE DELETE ON sessions BEGIN SELECT RAISE(ABORT,'protected session'); END;")
+            endpoint=next(r.endpoint for r in app.routes if r.path=='/api/sessions/{sid}')
+            request=SimpleNamespace(headers={'authorization':'Bearer '+'x'*32},base_url='http://testserver/')
+            try:
+                with patch('workbench.online_runtime.sqlite3.connect',side_effect=tracked):
+                    if fail:
+                        with self.assertRaisesRegex(sqlite3.IntegrityError,'protected session'):
+                            endpoint('session',request)
+                    else:
+                        self.assertEqual(endpoint('session',request),{'closed':True})
+                self.assertEqual(len(connections),1)
+                with self.assertRaisesRegex(sqlite3.ProgrammingError,'closed'):
+                    connections[0].execute('SELECT 1')
+                with closing(original(database)) as oracle:
+                    expected=1 if fail else 0
+                    self.assertEqual(oracle.execute('SELECT COUNT(*) FROM sessions').fetchone()[0],expected)
+                    self.assertEqual(oracle.execute('SELECT COUNT(*) FROM requests').fetchone()[0],expected)
+            finally:
+                for db in connections:db.close()

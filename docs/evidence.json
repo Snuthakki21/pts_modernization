@@ -168022,66 +168022,66 @@
   },
   "current_revision": {
     "date": "2026-10-07",
-    "base_commit": "9bf97385fd3f625129af606ec0a5977776112a79",
-    "scope": "One-screen approved Db2 MCP gateway and Zowe CLI preparation, native Windows runtime fixture correction and repository consistency",
-    "functional_source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+    "base_commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
+    "scope": "Approved Db2 MCP/Zowe CLI setup, native Windows compatibility and deterministic SQLite connection cleanup in shared/packaged online runtime",
+    "functional_source_fingerprint": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
     "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
     "full_suite": {
-      "tests": 1849,
+      "tests": 1853,
       "failures": 0,
       "errors": 0,
       "skips": 0,
-      "elapsed_seconds": 175.266,
-      "source_before": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
-      "source_after": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "elapsed_seconds": 175.293,
+      "source_before": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
+      "source_after": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
       "source_unchanged": true,
       "passed": true,
-      "log_sha256": "cd13b25ba44b314677be10800876ca87d2b92501ffc050ffc954ad10fa71e507",
+      "log_sha256": "5e42894c0aaed2449b8b4809ebfe5f4f387145914b097a9dd07578c343d39d0c",
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-release-suite-receipt.json",
-        "sha256": "731d3ee060a9aec19ac6daa49b9459cd2251841bb79c34cd7d0b9a9d57668972"
+        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-release-suite-receipt.json",
+        "sha256": "f79b264ce0ec418ac537646dd323e8f98b6e77eac2ad1a9157ebf08c425da782"
       }
     },
     "original_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T13:50:31.942225+00:00",
+      "created": "2026-10-07T14:09:44.419180+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_fingerprint": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "975bf35926164b8526172e16fad87585a3c7c097dcbab831556d7bdac7b9c03e",
+      "execution_log_sha256": "5d8fc289c6336ba95ad4808b531966d8cb16e087f4eac82a356ba198a0a74ba7",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-review500/receipt.json",
-        "sha256": "9d3d6c931ba7549f5ae2813c8bbfc0d7dfb19d0c187cb24f1434ab1b0bdae7f0"
+        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-review500/receipt.json",
+        "sha256": "a849971655b7f5a892426c45420b353fb25cf2b4540160f0adee661e9de98e1b"
       }
     },
     "expanded_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T13:50:36.723548+00:00",
+      "created": "2026-10-07T14:09:49.317887+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_fingerprint": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "ccec48253c2512fd64cd53ae1778c3795221f8b1fe073404bb2437fe6308f59c",
+      "execution_log_sha256": "4d62b0a356374367b167e5ba58931c114a68c41cb73fa60c7230c1291eb5a023",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-expanded/receipt.json",
-        "sha256": "aa5a123ba3dd73019da72404756489947c8b0d6e25dd087585890148945aa331"
+        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-expanded/receipt.json",
+        "sha256": "6e394e35765ddb60a10a9260af61355e6ece0436ad2a71e39149d526f850a837"
       }
     },
     "named_check_ids": {
@@ -168105,9 +168105,10 @@
       "divergence_count": 0,
       "branch_targets": 520,
       "branches_observed": 512,
-      "elapsed_seconds": 2.340046,
+      "elapsed_seconds": 2.267976,
       "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
       "source_unchanged_during_campaign": true,
+      "compiled_programs": 200,
       "limitations": [
         "Finite generated combinations, not 200000 independent reviews or exhaustive proof.",
         "Only flat caller-owned LINKAGE JSON semantics; no native storage, files, decimal encoding, collation ordering, CICS, SQL, scheduler or mainframe execution.",
@@ -168115,10 +168116,9 @@
         "Decision outcomes include provably unreachable boundaries; missing outcomes remain explicit.",
         "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
       ],
-      "compiled_programs": 200,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-campaign.json",
-        "sha256": "5ddb03062639eaa0b5538529e8061e89450aae9e9be3adf26220e33d727bb30c"
+        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-campaign.json",
+        "sha256": "8a70869248fbb6a6a67583b9ba11ad1f0dffad9c33f2a6571f2be3da7a8601d3"
       }
     },
     "frontend": {
@@ -168628,6 +168628,121 @@
           "No mainframe/MCP/source-host calls, private business exports, process starts or reviewer answers.",
           "Full repository suite, named IDs, scenario campaign and publication gates belong to parent. Finite scoped checks do not prove every scenario."
         ]
+      },
+      "native_sqlite_lifecycle_followup": {
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-handle-review.json",
+          "sha256": "086c47dd0693c6ccbec8169d521d1c730b175604d728991a119dbe1575555fc8"
+        },
+        "review": {
+          "finding_counts": {
+            "Critical": 0,
+            "Important_fixed": 1,
+            "Minor": 0,
+            "native_error_cases": 4,
+            "shared_runtime_cause_count": 1,
+            "unresolved": 0
+          },
+          "findings": [
+            {
+              "correction": "Use contextlib.closing around the existing SQLite transaction context for initialization/delete, so commit/rollback precedes close. Close and rethrow setup/PRAGMA exceptions before returning the handle. Explicit session-create/transaction closure remains unchanged.",
+              "id": "ONLINE-SQLITE-DETERMINISTIC-CLOSE",
+              "independent_green": {
+                "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-handle-green.json",
+                "sha256": "ae4b88c4fe8c6729108c65ca49b7438867153c6c147c2ee10fc7de63d699a288"
+              },
+              "independent_red": {
+                "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-handle-red.json",
+                "sha256": "420ae482c8cfd7299b768851c8787f91aa5a9511b1b600c1761d530712ef9f4b"
+              },
+              "locations": [
+                "workbench/online_runtime.py:create_app schema initialization",
+                "workbench/online_runtime.py:close_session"
+              ],
+              "native_reproduction": {
+                "commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
+                "errors": 4,
+                "factory_tests_run": 13,
+                "failure_files": [
+                  "state.sqlite",
+                  "sessions.sqlite",
+                  "test.sqlite",
+                  "CRLF.sqlite"
+                ],
+                "log": ".implementation/tmp/setup-ui-audit/native-db2-windows-third.log",
+                "log_sha256": "4ffce1a1a017b4c7dcc8d4324a4149b56f9e38d9776641d6a89caf0b05845a38",
+                "run_id": 37633581857
+              },
+              "primary_reference": {
+                "title": "Python 3.12 sqlite3 connection context manager",
+                "url": "https://docs.python.org/3.12/library/sqlite3.html#how-to-use-the-connection-context-manager",
+                "verified_contract": "Connection context commits/rolls back but does not close; documentation recommends contextlib.closing for deterministic closure."
+              },
+              "regression_oracles": "Four new tests hold real SQLite connections strongly and assert actual closed-connection errors; schema/PRAGMA failures preserve their errors; DELETE cascade commit and DELETE-trigger rollback are checked against separately opened real database oracles. Existing 13 factory checks remain unmodified.",
+              "severity": "Important",
+              "status": "FIXED_VERIFIED",
+              "trigger": "Creating an online app or deleting a session leaves the sqlite3 transaction context without deterministic connection closure. Windows then refuses temp/database cleanup. The self-contained runtime embeds the same code."
+            }
+          ],
+          "remaining_actionable_findings": [],
+          "status": "SCOPED_REVIEW_COMPLETE",
+          "tests": {
+            "adversarial_sqlite_errors": {
+              "case_groups": 3,
+              "passed": true,
+              "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-errors.json",
+              "sha256": "8a13b7aa19e8198605b7b4fd6cf0a9b8e2ad940626131fb90e54440855926ba5"
+            },
+            "descriptor_green": {
+              "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-handle-green.json",
+              "sha256": "ae4b88c4fe8c6729108c65ca49b7438867153c6c147c2ee10fc7de63d699a288"
+            },
+            "descriptor_probe": {
+              "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-descriptor-probe.py",
+              "sha256": "a4b1d2f0da6aacd6ff1ea516087bce73fb2e49fdfb592da38b32180cb8caaef1"
+            },
+            "descriptor_red": {
+              "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-handle-red.json",
+              "sha256": "420ae482c8cfd7299b768851c8787f91aa5a9511b1b600c1761d530712ef9f4b"
+            },
+            "focused": {
+              "errors": 0,
+              "failures": 0,
+              "modules": {
+                "test_factory": 17,
+                "test_review_integrity": 18,
+                "test_runtime_validation": 3
+              },
+              "path": ".implementation/tmp/setup-backend-independent-review/native-sqlite-focused.json",
+              "seconds": 6.485,
+              "sha256": "e2eac638a2959b932bc835d3717fa199ebfc6eb507db3fdbbea308aa146f2384",
+              "skips": 0,
+              "source_stable": true,
+              "tests_run": 38
+            },
+            "layout_before_after": "Actual workbench.layout returned valid:true with no issues before and after this scoped review."
+          },
+          "tradeoffs_and_limits": [
+            "The new context manager order retains existing transaction semantics; closing occurs after SQLite commits or rolls back. Schema executescript atomicity was not changed or newly claimed.",
+            "Real local descriptor/cascade/rollback results substantiate deterministic resource closure; confirmation of corrected Windows file cleanup requires the author-owned next native CI run.",
+            "Previously issued content-addressed artifacts remain intact. Future packaged runtime bytes change through the existing verified delivery path; no historical package/report or source export was rewritten.",
+            "Finite local tests do not establish CICS/Db2/distributed transaction parity. Online SQLite remains the existing source-derived local target candidate with explicit native limitations."
+          ],
+          "verdict": "Accepted within the two-file SQLite lifecycle scope after the native runtime handle leak was corrected; no remaining actionable scoped findings."
+        },
+        "parent_red": {
+          "path": ".implementation/tmp/setup-ui-audit/online-sqlite-lifecycle-red.json",
+          "sha256": "173bdbba9ff2c2a9b80bf426907402234600e7f6c681400fa34746b952fdfadd"
+        },
+        "regression_red_log": {
+          "path": ".implementation/tmp/setup-ui-audit/online-sqlite-regressions-red.log",
+          "sha256": "56a8d619e361e883428b43a3a4243d37d5a658b1ebd78461c94c3cebad7a9d27"
+        },
+        "focused_green_log": {
+          "path": ".implementation/tmp/setup-ui-audit/online-sqlite-focused-green.log",
+          "sha256": "e8df8cd78df1d19813327b4b4d7bf5d0ec2fe813423a7d91fc363b221d954e7b"
+        },
+        "scope_note": "Shared runtime and packaged runtime cleanup only; retained original Db2/frontend reviews bind unchanged source/assets. No business adapter or immutable source/issued package was rewritten."
       }
     },
     "browser": {
@@ -168723,17 +168838,18 @@
         "Portable report artifact/hash keys for both final and interrupted report registration; original safe-path validation retained",
         "Native Node fixture uses the production Windows runtime environment without weakening the argument/result oracle",
         "Current GitHub Actions Node24 handlers on compatible hosted runners",
-        "Existing Db2 MCP interactive startup with platform-native command quoting and private terminal entry"
+        "Existing Db2 MCP interactive startup with platform-native command quoting and private terminal entry",
+        "Explicit SQLite close after startup/session deletion and pre-return setup failures, preserving commit/rollback and standalone package behavior"
       ],
       "native_ci": {
-        "status": "AWAITING_INTEGRATED_NATIVE_RUN",
+        "status": "AWAITING_SQLITE_CORRECTED_NATIVE_RUN",
         "workflow": ".github/workflows/platform-smoke.yml",
         "matrix": [
           "windows-latest",
           "ubuntu-latest"
         ],
         "expected_test_groups_per_os": 20,
-        "expected_tests_per_os": 309,
+        "expected_tests_per_os": 313,
         "prior_failed_valid_runs": [
           {
             "run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37626304190",
@@ -168746,10 +168862,33 @@
             "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
             "linux_tests_passed": 293,
             "windows": "Locked setup, layout12, runner8 and Zowe14 passed. Native Node fixture lacked Windows runtime environment; one test error, not a production connector defect."
+          },
+          {
+            "run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37633581857",
+            "commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
+            "linux_tests_passed": 309,
+            "linux_test_groups": 20,
+            "unit_skips": 0,
+            "windows_tests_executed": 128,
+            "windows_test_groups": 10,
+            "windows_errors": 4,
+            "failure_concern": "One inherited online SQLite resource-lifecycle defect affected4 factory cases; native Node fixture correction passed.",
+            "run_receipt": {
+              "path": ".implementation/tmp/setup-ui-audit/native-db2-run-final.json",
+              "sha256": "b60b4b23ff2bc1b05dc0be9a751aeceaae7846b0d9d8a9e6e57219f77c5e38ac"
+            },
+            "windows_log": {
+              "path": ".implementation/tmp/setup-ui-audit/native-db2-windows-third.log",
+              "sha256": "4ffce1a1a017b4c7dcc8d4324a4149b56f9e38d9776641d6a89caf0b05845a38"
+            },
+            "linux_log": {
+              "path": ".implementation/tmp/setup-ui-audit/native-db2-linux-third.log",
+              "sha256": "bcf56ae3b45b7f56b89a32eb933daca01acd2a6e25840313b33469f8620328d6"
+            }
           }
         ],
         "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604",
-        "scope": "Current source still requires its actual Windows Server/Linux matrix. Windows 11 desktop and live acceptance are distinct."
+        "scope": "Three actual matrices retained; current SQLite correction still requires native Windows Server/Linux confirmation. Windows 11 desktop/live acceptance are distinct."
       },
       "windows_11_desktop_verified": false,
       "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."
@@ -168842,5 +168981,27 @@
       }
     },
     "note": "Prior setup/reporting receipts remain historical evidence for their original source snapshots. Current Db2 gateway and Node fixture changes have fresh source-bound receipts below."
+  },
+  "previous_revision_2026_10_07_before_native_sqlite_lifecycle_fix": {
+    "commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/d44b02b1a5b61bcca3d6637e884d1a90f0216f8a/docs/evidence.json",
+    "functional_source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+    "full_suite": {
+      "tests": 1849,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 175.266,
+      "source_before": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_after": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "cd13b25ba44b314677be10800876ca87d2b92501ffc050ffc954ad10fa71e507",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-release-suite-receipt.json",
+        "sha256": "731d3ee060a9aec19ac6daa49b9459cd2251841bb79c34cd7d0b9a9d57668972"
+      }
+    },
+    "note": "1849 local tests and independent Db2/UI checks passed. Native run37633581857 passed309 Linux checks and exposed the inherited online SQLite handle leak on Windows; its separate reproduction/correction follows."
   }
 }
