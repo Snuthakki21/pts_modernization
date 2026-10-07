@@ -136,4 +136,67 @@ class PlatformPathTests(unittest.TestCase):
         self.assertEqual(list(sibling.iterdir()), [])
 
 
+
+class ReportPathSerializationTests(unittest.TestCase):
+    """Fictional process reports keep portable ledger keys on every native OS."""
+    def setUp(self):
+        from workbench.coordinator import Coordinator
+        self.tmp=tempfile.TemporaryDirectory(prefix='portable report paths ')
+        self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name)
+        self.c=Coordinator(self.root)
+        self.addCleanup(self.c.close)
+
+    def ready_for_report(self):
+        from test_source import COBOL
+        from test_workflow import MANIFEST, WorkflowTests
+        self.c.create(MANIFEST,{'ELIGIBLE.cbl':COBOL})
+        self.c.start('process-a');self.c.advance('process-a')
+        # This is the existing explicitly fictional regression workbook only.
+        returned=WorkflowTests.answer(self)
+        self.c.import_answers('process-a',returned,'Example reviewer')
+        self.c.advance('process-a')
+        self.assertEqual(self.c.ledger.get('process-a')['status'],'QUEUED_REPORT')
+
+    def windows_relative_paths(self):
+        from pathlib import PureWindowsPath
+        original=Path.relative_to
+        def native_relative(path,*args,**kwargs):
+            return PureWindowsPath(original(path,*args,**kwargs).as_posix())
+        return patch.object(Path,'relative_to',native_relative)
+
+    def test_completed_reports_use_portable_registered_paths_and_exact_hashes(self):
+        self.ready_for_report()
+        with self.windows_relative_paths():self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a')
+        self.assertEqual(doc['status'],'COMPLETED',doc['blockers'])
+        self.assertTrue(doc['report_verified'])
+        self.assertTrue(doc['report_hashes'])
+        for relative,digest in doc['report_hashes'].items():
+            with self.subTest(relative=relative):
+                self.assertNotIn('\\',relative)
+                self.assertTrue(relative.startswith('reports/report-0001/'))
+                self.assertIn(relative,doc['artifacts'])
+                self.assertEqual(sha(self.c.artifact('process-a',relative).read_bytes()),digest)
+
+    def test_interrupted_report_keeps_partial_bytes_and_original_failure(self):
+        self.ready_for_report()
+        raw=b'{"fictional":"interrupted report evidence"}'
+        def interrupted(_ledger,_doc,output,**_kwargs):
+            write_new(output/'partial.json',raw)
+            raise OSError('Fictional report writer interruption')
+        with self.windows_relative_paths(),patch('workbench.reports.generate_reports',side_effect=interrupted):
+            with self.assertRaisesRegex(OSError,'Fictional report writer interruption'):
+                self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a')
+        self.assertFalse(doc.get('report_verified',False))
+        failure=next(item for item in doc['blockers'] if item['kind']=='stage_failure')
+        self.assertEqual(failure['failure']['type'],'OSError')
+        self.assertEqual(failure['failure']['message'],'Fictional report writer interruption')
+        relative='reports/report-0001/partial.json'
+        self.assertIn(relative,doc['artifacts'])
+        self.assertEqual(self.c.artifact('process-a',relative).read_bytes(),raw)
+        self.assertEqual(doc['artifact_hashes'][relative],sha(raw))
+
+
 if __name__ == '__main__': unittest.main()

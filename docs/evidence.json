@@ -167958,12 +167958,9 @@
       ".venv/bin/python tools/check_factory.py"
     ]
   },
-  "current_revision": {
-    "date": "2026-10-07",
-    "base_commit": "e896e5f73d7c4d553bfbd3fd867b374de8958760",
-    "scope": "Windows compatibility, repository consistency and one-screen approved Copilot MCP/Zowe configuration preparation",
+  "previous_revision_2026_10_07_before_native_reporting_fix": {
+    "commit": "43e8f05170f03f2c38ce9628ab84d0a4ad520299",
     "functional_source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
-    "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
     "full_suite": {
       "tests": 1831,
       "failures": 0,
@@ -167980,46 +167977,111 @@
         "sha256": "dd67b6418fef1e50559439281d4468ef3a81323fc92d38d4cdac343bcf760a0a"
       }
     },
+    "original_named_checks_receipt": {
+      "path": ".implementation/tmp/setup-ui-audit/release-review500/receipt.json",
+      "sha256": "e8edc38e37f77fcac37d29a1001d6c336ad5b7c2b40ed69daba081d63f1354c8"
+    },
+    "expanded_named_checks_receipt": {
+      "path": ".implementation/tmp/setup-ui-audit/release-expanded/receipt.json",
+      "sha256": "75d0d6d7f9db5208c278dd6bb8beecf930951e618eacbac15ecde4219509d681"
+    },
+    "scenario_campaign_receipt": {
+      "path": ".implementation/tmp/setup-ui-audit/release-campaign.json",
+      "sha256": "6ac397574782093f83736d4d50c7d30684910fe07af02f99d1dc221a8eacec4e"
+    },
+    "frontend_tests": 96,
+    "detail": "Full prior setup review and source manifests remain in this immutable public commit and the private hash-bound receipts.",
+    "public_evidence": "https://github.com/Snuthakki21/pts_modernization/blob/43e8f05170f03f2c38ce9628ab84d0a4ad520299/docs/evidence.json",
+    "native_ci_first_run": {
+      "url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37626304190",
+      "linux": {
+        "result": "PASS",
+        "unit_tests": 291
+      },
+      "windows": {
+        "os": "Microsoft Windows Server 2025",
+        "setup": "PASS",
+        "executed_unit_tests": 20,
+        "runner_assertion_failures": 3,
+        "result": "FAIL"
+      },
+      "cause": "Two internal report path serializers used native backslashes; safe_path correctly rejected them. Three runner failures shared this one inherited compatibility defect.",
+      "run_receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/native-first-run.json",
+        "sha256": "210e54e27db57dcab0eb72cc589a900b16285dbb701dd64e0b36ae33b352d87b"
+      },
+      "windows_log": {
+        "path": ".implementation/tmp/setup-ui-audit/native-windows-first.log",
+        "sha256": "bb867238b387fa92c92251f8366ab8ec82070384c12ba21e71d20ea1c7b97926"
+      },
+      "linux_log": {
+        "path": ".implementation/tmp/setup-ui-audit/native-linux-first.log",
+        "sha256": "935b15af524218f042742a01ed6ef0fd2ab6660f47c2b398cab90f19bd2e4572"
+      }
+    }
+  },
+  "current_revision": {
+    "date": "2026-10-07",
+    "base_commit": "e896e5f73d7c4d553bfbd3fd867b374de8958760",
+    "scope": "Windows compatibility, repository consistency and one-screen approved Copilot MCP/Zowe configuration preparation",
+    "functional_source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+    "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
+    "full_suite": {
+      "tests": 1833,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 182.638,
+      "source_before": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_after": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "74e65672dc91dd5b26f600dc53d7a6749d07867ecdf427f8bf91b5235d946579",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-suite-receipt.json",
+        "sha256": "3841c43c9cb4943c1c8c85b3caa706b0931c279c572c98f19d91bb695dc99a91"
+      }
+    },
     "original_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T12:56:52.074586+00:00",
+      "created": "2026-10-07T13:16:30.120485+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "ee74adec8a79ade66d8326dd9b5f61f1979e39e2eb48396985b74708d70fb786",
+      "execution_log_sha256": "3bc34f9cce8dc954977939372092f4731a17b672c61e6f3e5a577770a4fb79f1",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/release-review500/receipt.json",
-        "sha256": "e8edc38e37f77fcac37d29a1001d6c336ad5b7c2b40ed69daba081d63f1354c8"
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-review500/receipt.json",
+        "sha256": "a1b5dda4ad7075d5b3892164f8d65c83ec7a44393e2b8749870e2e543a5d74ef"
       }
     },
     "expanded_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T12:56:56.864545+00:00",
+      "created": "2026-10-07T13:16:34.655009+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "c11822738787857e5eacbb30180496986be5dd55e388dfa51d05d0f94abf1a10",
+      "execution_log_sha256": "770e6b9eeb7e3b9518367cb44925756732d2ba0b7a46f057773d5396c83651f8",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/release-expanded/receipt.json",
-        "sha256": "75d0d6d7f9db5208c278dd6bb8beecf930951e618eacbac15ecde4219509d681"
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-expanded/receipt.json",
+        "sha256": "c2852e64482bd800cbd6a9ea8fb5e0190bff1a2e7a5edadf6a765082264b2d29"
       }
     },
     "named_check_ids": {
@@ -168043,7 +168105,7 @@
       "divergence_count": 0,
       "branch_targets": 520,
       "branches_observed": 512,
-      "elapsed_seconds": 2.309958,
+      "elapsed_seconds": 2.321682,
       "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
       "source_unchanged_during_campaign": true,
       "limitations": [
@@ -168054,8 +168116,8 @@
         "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
       ],
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/release-campaign.json",
-        "sha256": "6ac397574782093f83736d4d50c7d30684910fe07af02f99d1dc221a8eacec4e"
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-campaign.json",
+        "sha256": "e955ac7e15fb4ac028bab95575a38f0862a4ae7d61982ab2ce7e358fe918dc2f"
       }
     },
     "frontend": {
@@ -168203,9 +168265,63 @@
           "CLI installation/runtime qualification, credentials, VS Code MCP trust/start and Db2 authentication/read reachability remain unverified client actions, explicitly shown by Setup.",
           "No MCP/mainframe/source-host call or private business/source export access.",
           "Parent owns the complete suite, named IDs, campaign and publication gates. Bounded finite checks do not prove every scenario."
-        ]
+        ],
+        "subsequent_backend_scope_note": "The 31 frontend source/build/static entries are unchanged. Coordinator.report serialization changed after this UI review; the independent native reporting follow-up binds that new backend blob. Its workstation API and setup methods are unchanged."
       },
-      "scope_limit": "Scoped review and finite verification do not certify absence of all defects, real enterprise host integration or Windows 11 desktop behavior."
+      "scope_limit": "Scoped review and finite verification do not certify absence of all defects, real enterprise host integration or Windows 11 desktop behavior.",
+      "native_reporting_followup": {
+        "status": "PASS",
+        "focused_modules": 8,
+        "tests": 242,
+        "skips": 0,
+        "sources_stable": true,
+        "red_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-red.json",
+          "sha256": "2792541e52ec54cbeff7c09335e2cb0261c64fa5ac628d921770daa67986b8a9"
+        },
+        "green_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-green.json",
+          "sha256": "7982623ced47ec2721ddfed048afec6c0da616aed40e0b22874ceb3302e6e052"
+        },
+        "focused_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-focused.json",
+          "sha256": "360aebacbc737c774dc02e7fae17a35350a081127bdb6a8851612eee4561fa0a"
+        },
+        "asserted_behaviors": [
+          "Partial report bytes and original failure retained",
+          "Resume creates a new report version without repinning earlier artifacts or changing SME quota",
+          "Bundle includes exact partial/final bytes and is reused",
+          "Untrusted unsafe paths still rejected",
+          "Native report paths produce canonical ledger/hash keys"
+        ],
+        "source_hashes": {
+          "tests/test_expanded_reporting.py": "bc97944232b48a6b3ccd07f243a68965262cc5bd6f8081d8d984d02d26521f7f",
+          "tests/test_inventory_reporting.py": "607807b9a0a2f0b708b16411de68c7c32ad14e7b989c7ac6106c35e9607f9478",
+          "tests/test_platform_paths.py": "a4febbacd69f48882ab30b8f2fe330c8cd2171388b768ffcfc8080b3ad81bfb1",
+          "tests/test_reports.py": "95d6843e8167951f97d1ae8d4f254ec8a14d3380a8503f48d97396e1e861084a",
+          "tests/test_review500_reporting.py": "6edd2ecb4de4c131765c7a3d307143cdfba6c74c15fa63b8c8a844f91879e8f0",
+          "tests/test_review_integrity.py": "e0887eff52704b7b770af5359c94086cb1bad02038af7bd4220f4106de73bc48",
+          "tests/test_runner.py": "4425c46d16002b8f49e3d30a7a072ec3e4f34628cb127294d557f868860d8818",
+          "tests/test_workflow.py": "be48e0464de0d1c93aba17146586bd58b5e3fb877d430cd20f48894ff1dffe10",
+          "workbench/coordinator.py": "1a367986fe475723da065e9e5fd8e465d9fd2f9415de516b4a91ad3807b3eb03",
+          "workbench/coverage.py": "f49367739d38ab4f7916730d35f5245cf6bdcf46fc999623a426fe43df7339bb",
+          "workbench/domain.py": "c9a529a06099d2f538bcb7812e0f9dce9758c022d01f07386b75e089d607521b",
+          "workbench/executive.py": "8839043c00479abd36a52afdfec19adf4acaf42b540675dc9fbe943bb3073d84",
+          "workbench/layout.py": "5cbbfe57de741bbd16c7f4900769ba56e528fca327bf0898a8f141dcd9bfa3f0",
+          "workbench/reports.py": "9dd7e6ea3a986ca61c20b9965c51af7e2292d37142e8e9ad4d9ddc68290ca940",
+          "workbench/runner.py": "1be26ec708ca03708b7f43d804183e2e64a72297ab869781b76df5a72f9e5f52"
+        },
+        "scope_note": "Subsequent change touches only Coordinator.report serialization and its platform tests. Native CI confirmation is recorded separately.",
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-review.json",
+          "sha256": "621e548f408f8a1cca5ccedad06c787a046c59c571f7104f60b4a7b6ed4e97a2"
+        },
+        "current_combined_source_manifest": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-source-manifest.json",
+          "sha256": "1a215013a7ea1d35536914cda2be89f2eda0a4cf3d52409a03569e545dcd0199",
+          "files": 53
+        }
+      }
     },
     "browser": {
       "author_actual_ui": {
@@ -168283,16 +168399,19 @@
         "Explicit UTF-8 engineering reads/writes; raw source LF/CRLF/mixed bytes preserved",
         "Self-contained online runtime and Windows checkout-newline normalization for implementation files only",
         "Direct standalone CLI imports and mixed-case copybook discovery",
-        "Native Windows installation and secure-entry command quoting"
+        "Native Windows installation and secure-entry command quoting",
+        "Portable report artifact/hash keys for both final and interrupted report registration; original safe-path validation retained"
       ],
       "native_ci": {
-        "status": "AWAITING_PUSH_OF_REVIEWED_REVISION",
+        "status": "AWAITING_CORRECTED_NATIVE_RUN",
         "workflow": ".github/workflows/platform-smoke.yml",
         "matrix": [
           "windows-latest",
           "ubuntu-latest"
         ],
-        "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604"
+        "prior_failed_valid_run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37626304190",
+        "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604",
+        "scope": "PowerShell dependency setup passed on Windows Server 2025 and the original Linux matrix passed; the report-path correction still needs native confirmation."
       },
       "windows_11_desktop_verified": false,
       "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."

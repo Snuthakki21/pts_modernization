@@ -1120,14 +1120,14 @@ class Coordinator:
             # Even an interrupted writer's partial files remain reviewable evidence.
             if output.exists():
                 for partial in output.rglob('*'):
-                    if partial.is_file() and not path_is_link(partial):self.register(doc,str(partial.relative_to(root)))
+                    if partial.is_file() and not path_is_link(partial):self.register(doc,partial.relative_to(root).as_posix())
         self.checkpoint(doc)
         required={'economics.json','economics.html','economics.csv','metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json','coverage.json','coverage.csv','coverage.xlsx','coverage.html','executive-report.html','rules.html','rules.json','rules.csv'}
         if doc.get('factory_contract_version'):required.update({'factory.json','factory.html','program-insights.json','program-insights.html'})
         require(required.issubset({Path(p).name for p in paths}),'Mandatory report or source coverage outputs missing')
         hashes={}
         for path in paths:
-            path=Path(path);relative=str(path.relative_to(root));safe_path(root,relative)
+            path=Path(path);relative=path.relative_to(root).as_posix();safe_path(root,relative)
             require(path.is_file() and path.stat().st_size>0,'Generated report artifact missing or empty')
             self.register(doc,relative);hashes[relative]=sha(path.read_bytes())
         inspection=decode((output/'inspection.json').read_bytes());require(inspection.get('verified') is True,'Report inspection did not pass')
