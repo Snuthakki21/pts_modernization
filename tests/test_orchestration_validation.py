@@ -20,7 +20,7 @@ class JobValidationTests(unittest.TestCase):
         self.pin(emit_program(self.program))
 
     def pin(self,code):
-        version=sha(code);path=self.root/'shared/target/python'/(version+'.py');path.parent.mkdir(parents=True,exist_ok=True);path.write_text(code)
+        version=sha(code);path=self.root/'shared/target/python'/(version+'.py');path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(code.encode('utf-8'))
         self.doc['program_versions']['ELIGIBLE']=version
 
     def verify(self):return verify_jobs(self.doc,self.root,emit_jobs(self.doc,self.doc['program_versions']))

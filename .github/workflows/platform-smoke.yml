@@ -45,8 +45,15 @@ jobs:
           print(json.dumps({'platform': platform.platform(), 'architecture': platform.machine(),
                             'native_shell': 'Windows PowerShell' if os.name == 'nt' else 'bash',
                             'scope': 'offline native platform smoke; not Windows 11 desktop or live mainframe acceptance'}), flush=True)
+          results = []
           for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_db2_connection_setup.py', 'test_launch.py'):
-              subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
-          subprocess.run([str(python), '-m', 'workbench.layout', '--workspace', '.'], check=True)
-          subprocess.run([str(python), 'tools/check_handoff.py'], check=True)
-          subprocess.run([str(python), 'tools/check_factory.py'], check=True)
+              completed = subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=False)
+              results.append({'scope': pattern, 'returncode': completed.returncode})
+          for scope, arguments in (('layout', ['-m', 'workbench.layout', '--workspace', '.']),
+                                   ('handoff', ['tools/check_handoff.py']),
+                                   ('factory', ['tools/check_factory.py'])):
+              completed = subprocess.run([str(python), *arguments], check=False)
+              results.append({'scope': scope, 'returncode': completed.returncode})
+          passed = all(result['returncode'] == 0 for result in results)
+          print(json.dumps({'passed': passed, 'results': results}), flush=True)
+          raise SystemExit(0 if passed else 1)
