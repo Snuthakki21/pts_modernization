@@ -18,8 +18,9 @@ The launcher installs the locked environment when needed, starts the existing
 workbench and opens **http://127.0.0.1:8765** after startup. Keep the terminal
 open. Use `-NoBrowser` on Windows or `--no-browser` on Linux/macOS when needed.
 The UI is included; running it does not require Node. Follow any named setup error
-before continuing. CPython 3.12 must already be installed; native Windows and
-Linux launch still need workstation acceptance.
+before continuing. CPython 3.12 must already be installed. Native installation
+and offline checks pass on Windows Server and Linux; Windows 11 desktop and
+organization-specific driver/client/host acceptance remain separate.
 
 Commands shown as `python` below use the repository's locked environment:
 `.\.venv\Scripts\python.exe` on Windows PowerShell, or `.venv/bin/python` on
@@ -279,7 +280,8 @@ inspection command first, then decide on any new action. Never delete the marker
 or silently replay a mutation. REJECTED also exits 2 and names the cause.
 The local queue requires hard-link support (such as NTFS and usual Linux/macOS
 local filesystems); unsupported filesystems fail closed. Execution has been
-verified on macOS; native Windows/Linux verification remains separate.
+verified on macOS; native offline path guards also pass. Full queued-agent
+execution on Windows 11/Linux still needs end-to-end acceptance.
 
 A `--request-file` contains only `{"needs": [...]}`; each need names its `kind`,
 `name` and `reason`. The generated packet provides the complete return schema.

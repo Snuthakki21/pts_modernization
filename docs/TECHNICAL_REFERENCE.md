@@ -645,8 +645,9 @@ with the returned `--command-id` and identical action/payload. Older UI versions
 the existing launcher. Without the UI, the runner acquires the normal exclusive
 Coordinator lock. Commands/results are published atomically on a local filesystem
 supporting hard links (for example NTFS and usual Linux/macOS local filesystems);
-unsupported filesystems fail closed. Current execution evidence is macOS only,
-not native Windows/Linux verification.
+unsupported filesystems fail closed. Full queued-agent execution is verified on
+macOS; native offline path guards also pass on Windows Server and Linux.
+Windows 11/Linux end-to-end queued-agent acceptance remains separate.
 
 Before an action, the queue durably writes
 `.migration/agent-results/COMMAND_ID.started.json`. A prior start without a final

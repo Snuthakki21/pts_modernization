@@ -168393,7 +168393,8 @@
           "path": ".implementation/tmp/setup-backend-independent-review/native-node-env-source-manifest.json",
           "sha256": "a97f983030c4646cb76aebe9d065cbc912a1f0203c10b895d4a07924e140b363"
         },
-        "scope_note": "Exact argv/result oracle retained; test uses the actual production reader environment. Current gateway manifest binds the final workflow and native fixture files; native confirmation is recorded below."
+        "scope_note": "Exact argv/result oracle retained; test uses the actual production reader environment. Current gateway manifest binds the final workflow and native fixture files; native confirmation is recorded below.",
+        "native_confirmation": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366"
       },
       "db2_gateway_backend": {
         "status": "SCOPED_REVIEW_COMPLETE",
@@ -168748,7 +168749,8 @@
           "factory_tests": 17,
           "passed": true,
           "scope": "Windows factory group passed before the later fixture failure; full matrix was not green."
-        }
+        },
+        "native_confirmation": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366"
       },
       "native_target_fixture_followup": {
         "review_receipt": {
@@ -168889,7 +168891,8 @@
           "orchestration_tests": 11,
           "passed": true,
           "scope": "All original orchestration tests passed on Windows; the fifth full matrix failed in two separate later concerns."
-        }
+        },
+        "native_confirmation": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366"
       },
       "native_work_clock_followup": {
         "review_receipt": {
@@ -169020,7 +169023,8 @@
         "new_regressions": 5,
         "distinct_seeded_short_clock_intervals": 20,
         "randomized_scope_note": "Clock infrastructure checks are not mainframe source-logic fixtures or proof of parity.",
-        "native_failure_mechanism_note": "The original native HTTP error response body was not logged. The same invalid mixed-clock comparison was independently reproduced locally; actual native correction still requires the next matrix."
+        "native_failure_mechanism_note": "The fifth native error response was not logged. The mixed-clock defect was independently reproduced locally; the sixth corrected matrix passes all 30 economics tests, including 20 distinct same-UTC/positive-monotonic HTTP sessions, on both actual platforms.",
+        "native_confirmation": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366"
       }
     },
     "browser": {
@@ -169121,7 +169125,7 @@
         "Protected internal monotonic work-clock receipts retain short measured durations without weakening imported receipt intervals or UTC order/past validation"
       ],
       "native_ci": {
-        "status": "AWAITING_WORK_CLOCK_NATIVE_RUN",
+        "status": "PASS",
         "workflow": ".github/workflows/platform-smoke.yml",
         "matrix": [
           "windows-latest",
@@ -169221,8 +169225,152 @@
           }
         ],
         "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604",
-        "scope": "Five actual matrices retained. Current strict internal-clock correction and source-fixture byte write await a fresh all-group native matrix. Windows 11 desktop/live acceptance remain separate.",
-        "execution_policy": "Execute all 20 unittest groups and all 3 consistency gates once; retain individual return codes, print one summary and fail at the end when any group/gate fails."
+        "scope": "Native locked setup plus 318 offline tests in 20 groups on each actual hosted Windows Server 2025/Linux runner. Windows 11 desktop, full queued-agent end-to-end acceptance, real IBM driver/credentials, VS Code activation and live mainframe/Db2 connectivity remain unverified.",
+        "execution_policy": "Execute all 20 unittest groups and all 3 consistency gates once; retain individual return codes, print one summary and fail at the end when any group/gate fails.",
+        "verified_source_commit": "60dd45c65f52a8b19c1b38aa80c62a7ddab5b2e1",
+        "run_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366",
+        "run_receipt": {
+          "path": ".implementation/tmp/setup-ui-audit/native-clock-run-final.json",
+          "sha256": "248381935d116ef667826430a943bbbd87aae0c27032efebf27a3471d76bcd36"
+        },
+        "actual_platform_results": {
+          "windows": {
+            "platform": {
+              "platform": "Windows-2025Server-10.0.26100-SP0",
+              "architecture": "AMD64",
+              "native_shell": "Windows PowerShell",
+              "scope": "offline native platform smoke; not Windows 11 desktop or live mainframe acceptance"
+            },
+            "job_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366/job/112858877128",
+            "conclusion": "success",
+            "test_groups": 20,
+            "tests": 318,
+            "skips": 0,
+            "per_group_counts": [
+              12,
+              8,
+              14,
+              12,
+              23,
+              7,
+              16,
+              12,
+              11,
+              17,
+              30,
+              18,
+              3,
+              16,
+              11,
+              19,
+              27,
+              29,
+              15,
+              18
+            ],
+            "locked_dependency_setup": "PASS",
+            "layout": "PASS",
+            "handoff": "PASS",
+            "factory_consistency": "PASS",
+            "scope_return_codes": {
+              "test_layout.py": 0,
+              "test_runner.py": 0,
+              "test_zowe_setup.py": 0,
+              "test_native_cli.py": 0,
+              "test_preflight.py": 0,
+              "test_text_encoding.py": 0,
+              "test_platform*.py": 0,
+              "test_modernization_upgrade.py": 0,
+              "test_rule_inventory.py": 0,
+              "test_factory.py": 0,
+              "test_economics.py": 0,
+              "test_requirements_selection.py": 0,
+              "test_runtime_validation.py": 0,
+              "test_validation_policy.py": 0,
+              "test_orchestration_validation.py": 0,
+              "test_target_architecture.py": 0,
+              "test_workstation_setup.py": 0,
+              "test_connection_setup.py": 0,
+              "test_db2_connection_setup.py": 0,
+              "test_launch.py": 0,
+              "layout": 0,
+              "handoff": 0,
+              "factory": 0
+            },
+            "log": {
+              "path": ".implementation/tmp/setup-ui-audit/native-clock-windows-sixth.log",
+              "sha256": "81de132e9351eaf7351a39aadbfe82ad5f9c1054716d7d12b8230c865ef829cb"
+            }
+          },
+          "linux": {
+            "platform": {
+              "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+              "architecture": "x86_64",
+              "native_shell": "bash",
+              "scope": "offline native platform smoke; not Windows 11 desktop or live mainframe acceptance"
+            },
+            "job_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366/job/112858877587",
+            "conclusion": "success",
+            "test_groups": 20,
+            "tests": 318,
+            "skips": 0,
+            "per_group_counts": [
+              12,
+              8,
+              14,
+              12,
+              23,
+              7,
+              16,
+              12,
+              11,
+              17,
+              30,
+              18,
+              3,
+              16,
+              11,
+              19,
+              27,
+              29,
+              15,
+              18
+            ],
+            "locked_dependency_setup": "PASS",
+            "layout": "PASS",
+            "handoff": "PASS",
+            "factory_consistency": "PASS",
+            "scope_return_codes": {
+              "test_layout.py": 0,
+              "test_runner.py": 0,
+              "test_zowe_setup.py": 0,
+              "test_native_cli.py": 0,
+              "test_preflight.py": 0,
+              "test_text_encoding.py": 0,
+              "test_platform*.py": 0,
+              "test_modernization_upgrade.py": 0,
+              "test_rule_inventory.py": 0,
+              "test_factory.py": 0,
+              "test_economics.py": 0,
+              "test_requirements_selection.py": 0,
+              "test_runtime_validation.py": 0,
+              "test_validation_policy.py": 0,
+              "test_orchestration_validation.py": 0,
+              "test_target_architecture.py": 0,
+              "test_workstation_setup.py": 0,
+              "test_connection_setup.py": 0,
+              "test_db2_connection_setup.py": 0,
+              "test_launch.py": 0,
+              "layout": 0,
+              "handoff": 0,
+              "factory": 0
+            },
+            "log": {
+              "path": ".implementation/tmp/setup-ui-audit/native-clock-linux-sixth.log",
+              "sha256": "e4b94e50b9f42e8846b8f3e2fb824e9b125a5b6d7c93cda4f5228be0ac69ca58"
+            }
+          }
+        }
       },
       "windows_11_desktop_verified": false,
       "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."
@@ -169236,7 +169384,11 @@
       },
       "dependencies_added": 0,
       "scope": "Published cross-platform digests and closure, not latest-version or vulnerability certification.",
-      "optional_db2_driver_note": "No runtime dependency pins changed. Local Db2 gateway requires organization-approved pyodbc and an installed IBM ODBC driver; setup exposes missing prerequisites."
+      "optional_db2_driver_note": "No runtime dependency pins changed. Local Db2 gateway requires organization-approved pyodbc and an installed IBM ODBC driver; setup exposes missing prerequisites.",
+      "native_setup_installation_verified": [
+        "Windows Server 2025 via PowerShell",
+        "Linux via Bash"
+      ]
     },
     "preliminary_validation": {
       "pre_extension_accepted_suite": {
