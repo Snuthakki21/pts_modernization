@@ -10,7 +10,7 @@ import re
 import stat
 import unicodedata
 
-from .domain import decode, encode, identity, require, safe_path, sha, write_new
+from .domain import decode, encode, identity, path_is_link, require, safe_path, sha, write_new
 from .layout import output_path
 from .limits import MAX_SOURCE_FILE_BYTES, MAX_SOURCE_LINES, source_line_count
 
@@ -197,8 +197,29 @@ def _relative_path(path):
     return path
 
 
+def validate_source_paths(paths):
+    """Require one portable spelling and type for every source-tree component.
+
+    Full filenames alone miss a file reused as a directory, or differently
+    spelled directories that merge on Windows and Unicode-normalizing disks.
+    Exact file repeats are allowed for multiple needs returning the same bytes.
+    """
+    identities = {}
+    for path in paths:
+        parts = _relative_path(path).split('/')
+        for length in range(1, len(parts) + 1):
+            relative = '/'.join(parts[:length])
+            key = unicodedata.normalize('NFC', relative).casefold()
+            kind = 'file' if length == len(parts) else 'directory'
+            previous = identities.setdefault(key, (relative, kind))
+            require(previous[0] == relative,
+                    'Source portable path collision: ' + relative + ' conflicts with ' + previous[0])
+            require(previous[1] == kind,
+                    'Source file/directory path collision: ' + relative)
+
+
 def _bounded_read(path, limit, label):
-    require(path.is_file() and stat.S_ISREG(path.stat().st_mode), label + ' must be a regular file')
+    require(not path_is_link(path) and path.is_file() and stat.S_ISREG(path.stat().st_mode), label + ' must be a regular file')
     require(path.stat().st_size <= limit, label + ' exceeds size limit')
     with path.open('rb') as stream:
         raw = stream.read(limit + 1)
@@ -228,7 +249,6 @@ def inspect_response(root, request, existing_sources=None):
     require(isinstance(items, list) and len(items) == len(expected), 'Every retrieval need requires exactly one response item')
     entries, missing, seen, paths, staged_paths = [], [], set(), set(), set()
     staged_folded = {}; returned_files = {}
-    folded = {unicodedata.normalize('NFC', p).casefold(): p for p in (existing_sources or {})}
     total_bytes, total_lines = 0, 0
     for item in items:
         require(isinstance(item, dict), 'Retrieval response item must be an object')
@@ -272,9 +292,6 @@ def inspect_response(root, request, existing_sources=None):
         staged_paths.add(staged_path)
         require(path not in paths, 'Duplicate returned source path')
         paths.add(path)
-        key = unicodedata.normalize('NFC', path).casefold()
-        require(key not in folded or folded[key] == path, 'Returned source filename collision')
-        folded[key] = path
         content = _bounded_read(source, MAX_FILE_BYTES, 'Retrieved source')
         total_bytes += len(content)
         require(total_bytes <= MAX_RETURN_BYTES, 'Retrieval response exceeds total source size limit')
@@ -294,6 +311,8 @@ def inspect_response(root, request, existing_sources=None):
                         'provenance': {**item['provenance'], 'retrieval_request_id': request['request_id'],
                                        'retrieval_need_id': need_id, 'retrieval_need_ids': [need_id], 'authority': 'AGENT_SUPPLIED_RETRIEVAL'}})
         returned_files[path]=(signature,entries[-1])
+    validate_source_paths([*(existing_sources or {}), *paths])
+    validate_source_paths(staged_paths)
     inventory = set()
     for count, path in enumerate(inbox.rglob('*'), 1):
         require(count <= MAX_RETURN_ENTRIES, 'Retrieval inbox traversal exceeds entry bound')

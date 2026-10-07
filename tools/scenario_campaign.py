@@ -17,6 +17,8 @@ import random
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from workbench.source import analyze_program
 from workbench.reference import run_reference
 from workbench.target import emit_program, prepare_generated
@@ -392,7 +394,7 @@ def main():
     result = campaign(args.seed, args.limit, args.total_scenarios)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_name(args.output.name + '.new')
-    temporary.write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    temporary.write_text(json.dumps(result, indent=2, sort_keys=True)+'\n', encoding='utf-8')
     temporary.replace(args.output)
     print(json.dumps({k: result[k] for k in ('passed','executed','unique_scenarios','duplicate_executions',
                      'compiled_programs','valid_inputs','invalid_inputs','divergence_count','elapsed_seconds',

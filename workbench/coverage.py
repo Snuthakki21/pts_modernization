@@ -3,6 +3,7 @@
 Lines and semantic units have separate denominators. Verification is local,
 source-derived and bounded; it never claims observed mainframe equivalence.
 """
+from .domain import path_is_link
 import ast
 import csv
 import html
@@ -30,7 +31,7 @@ EXCEL_MAX_ROWS = 1048576
 
 
 def _read(path):
-    require(not path.is_symlink() and not any(p.is_symlink() for p in path.parents),
+    require(not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'Evidence symlinks are not accepted')
     return path.read_bytes()
 
@@ -77,7 +78,7 @@ def _program_evidence(doc, root, base, name, p, global_errors, checkpoint=None):
             # Historical evidence used a separate validation adapter; retain its mapping.
             from . import reference
             adapter = Path(reference.__file__).resolve()
-            adapter_function = next(n for n in ast.parse(adapter.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'input_errors')
+            adapter_function = next(n for n in ast.parse(adapter.read_text(encoding='utf-8')).body if isinstance(n, ast.FunctionDef) and n.name == 'input_errors')
             state['mappings']['layout'] = _target(adapter, root, adapter_function.lineno, adapter_function.end_lineno)
         require(not global_errors, 'Frozen process/evidence integrity failed; target replay and verified credit are prohibited')
         require(not doc.get('cancel_requested'), 'Cancelled: target execution prohibited; existing evidence is retained without new verification credit')
@@ -533,8 +534,8 @@ def write_coverage(model, report_root):
     """Stream every output and split worksheets; the canonical JSON loses no text."""
     root = Path(report_root)
     names = ('coverage.json','coverage.csv','coverage.xlsx','coverage.html')
-    require(not root.is_symlink() and not any(p.is_symlink() for p in root.parents), 'Unsafe coverage output path')
-    require(not any((root/name).exists() or (root/name).is_symlink() for name in names),
+    require(not path_is_link(root) and not any(path_is_link(p) for p in root.parents), 'Unsafe coverage output path')
+    require(not any((root/name).exists() or path_is_link(root/name) for name in names),
             'Coverage evidence already exists; create a new report version')
     root.mkdir(parents=True, exist_ok=True)
     json_path=root/'coverage.json'

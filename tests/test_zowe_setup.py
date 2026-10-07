@@ -137,6 +137,7 @@ class ZoweSetupTests(unittest.TestCase):
 
     def test_secure_prompts_use_argv_and_never_claim_live_connectivity(self):
         with tempfile.TemporaryDirectory() as directory, patch('workbench.zowe_setup.sys.stdin.isatty',return_value=True), \
+             patch('workbench.zowe_setup.zowe_command',side_effect=lambda command, env: command), \
              patch('workbench.zowe_setup.subprocess.call',return_value=0) as secure,redirect_stdout(io.StringIO()) as output:
             self.assertEqual(main(['--workspace',directory,'--secure','--host','zos.example.invalid']),0)
         self.assertEqual(secure.call_args.args[0],['zowe','config','secure']);self.assertFalse(secure.call_args.kwargs['shell'])

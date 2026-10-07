@@ -16,6 +16,9 @@ if [[ ! -x .venv/bin/python ]]; then
     "$setup_python" -m venv .venv || fail 'Could not create .venv. Install the Python 3.12 venv/ensurepip package and check folder permissions.'
 fi
 .venv/bin/python -c 'import platform, sys; sys.exit(0 if sys.version_info[:2] == (3, 12) and platform.python_implementation() == "CPython" else 1)' || fail 'Existing .venv must use CPython 3.12. Rename it, then rerun setup to create a compatible environment.'
+if ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+    .venv/bin/python -m ensurepip --upgrade || fail 'Could not restore pip in .venv. Install CPython 3.12 with ensurepip support, then rerun setup.'
+fi
 .venv/bin/python -m pip --disable-pip-version-check --no-input install --require-hashes --only-binary=:all: -r requirements.lock || fail 'Dependency installation failed. Check access to pypi.org/files.pythonhosted.org and wheel availability for CPython 3.12; no unverified source build was attempted.'
 .venv/bin/python -m workbench.preflight --workspace "$PWD" --initialize-knowledge || fail 'Setup checks found blockers. Follow the diagnostic actions above, then rerun setup; existing application knowledge was preserved.'
 mkdir -p Endeavor knowledge/inbox

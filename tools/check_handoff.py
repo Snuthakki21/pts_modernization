@@ -1,6 +1,9 @@
 """Keep the public handoff small and its local links usable; never rewrite evidence."""
 from html.parser import HTMLParser
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from workbench.domain import path_is_link
 import re
 from urllib.parse import unquote, urlsplit
 
@@ -13,7 +16,7 @@ def check(root=ROOT):
     root = Path(root).resolve()
     issues = []
     docs = root / 'docs'
-    if not docs.is_dir() or docs.is_symlink():
+    if not docs.is_dir() or path_is_link(docs):
         return ['docs must be a real directory']
     found = {p.name for p in docs.iterdir()}
     if found != DOCS:
@@ -27,7 +30,7 @@ def check(root=ROOT):
     skills=tuple(p.relative_to(root).as_posix() for p in (root/'.claude/skills').glob('*/SKILL.md'))
     for name in (*skills,*ENTRYPOINTS, 'docs/TECHNICAL_REFERENCE.md', 'docs/executive-report.html'):
         path = root / name
-        if not path.is_file() or path.is_symlink():
+        if not path.is_file() or path_is_link(path):
             issues.append(name + ': required handoff file is missing or unsafe'); continue
         text = path.read_text(encoding='utf-8')
         if path.suffix == '.html':

@@ -298,6 +298,7 @@ if [[ \"$1 $2\" == '-m venv' ]]; then
 fi
 if [[ \"$1 $2\" == '-m pip' ]]; then
     echo \"pip:$*\" >> \"$FAKE_LOG\"
+    if [[ \"$3\" == '--version' ]]; then exit 0; fi
     exit \"${FAKE_PIP_EXIT:-0}\"
 fi
 if [[ \"$1 $2\" == '-m workbench.preflight' ]]; then
@@ -324,8 +325,12 @@ exit 9
         calls = self.log.read_text().splitlines()
         self.assertEqual(calls.count('venv'), 1)
         pip_calls = [line for line in calls if line.startswith('pip:')]
-        self.assertEqual(len(pip_calls), 2)
-        self.assertTrue(all('--require-hashes' in line and '--only-binary=:all:' in line for line in pip_calls))
+        self.assertEqual(len(pip_calls), 4)
+        probes = [line for line in pip_calls if '--version' in line]
+        installs = [line for line in pip_calls if ' install ' in line]
+        self.assertEqual(len(probes), 2)
+        self.assertEqual(len(installs), 2)
+        self.assertTrue(all('--require-hashes' in line and '--only-binary=:all:' in line for line in installs))
         preflight_calls=[line for line in calls if line.startswith('preflight:')]
         self.assertEqual(len(preflight_calls),2)
         self.assertTrue(all('--initialize-knowledge' in line and '--workspace' in line for line in preflight_calls))

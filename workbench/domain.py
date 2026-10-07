@@ -35,11 +35,19 @@ def identity(value):
     return value
 
 
+def path_is_link(path):
+    """Treat Windows junctions and symbolic links as redirected filesystem paths."""
+    path = Path(path)
+    # Import-time environment diagnostics also run on unsupported interpreters.
+    # CPython 3.12 supplies is_junction; supported Windows writes always use it.
+    return path.is_symlink() or getattr(path, 'is_junction', lambda: False)()
+
+
 def safe_path(root, relative):
     # Inspect the supplied spelling before resolve() can erase a symlink root
     # or ancestor. This also covers a not-yet-created root below an alias.
     root = Path(root).absolute()
-    require(not any(p.is_symlink() for p in [root, *root.parents]), 'Symlink roots are not accepted')
+    require(not any(path_is_link(p) for p in [root, *root.parents]), 'Symlink roots are not accepted')
     root = root.resolve()
     require(isinstance(relative, str) and relative and '\\' not in relative and ':' not in relative, 'Invalid relative path')
     require(not any(ord(c)<32 or c in '<>"|?*' for c in relative),'Path contains unsupported control or platform-reserved characters')
@@ -47,7 +55,7 @@ def safe_path(root, relative):
     require(rel.parts and not rel.is_absolute() and '..' not in rel.parts, 'Path must remain inside its process directory')
     require(all(not p.endswith(('.', ' ')) and p.split('.')[0].upper() not in DEVICES for p in rel.parts),'Path uses a reserved or ambiguous platform filename')
     candidate = root / rel
-    require(not any(p.is_symlink() for p in [candidate, *candidate.parents] if p != root.parent), 'Symlink paths are not accepted')
+    require(not any(path_is_link(p) for p in [candidate, *candidate.parents] if p != root.parent), 'Symlink paths are not accepted')
     require(candidate.resolve().is_relative_to(root), 'Path escapes its directory')
     return candidate
 
@@ -128,8 +136,8 @@ def write_new(path, data):
     require(isinstance(data, (bytes, bytearray)), 'Evidence data must be bytes')
     data = bytes(data)
     path = Path(path)
-    require(not path.exists() and not path.is_symlink(), 'Evidence already exists; create a new version')
-    require(not any(p.is_symlink() for p in path.parents), 'Symlink output parents are not accepted')
+    require(not path.exists() and not path_is_link(path), 'Evidence already exists; create a new version')
+    require(not any(path_is_link(p) for p in path.parents), 'Symlink output parents are not accepted')
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('xb') as out: out.write(data)
     return sha(data)
@@ -142,7 +150,7 @@ def atomic_json(path, value):
 def atomic_bytes(path, payload):
     require(isinstance(payload, bytes), 'State payload must be bytes')
     path = Path(path)
-    require(not path.is_symlink() and not any(p.is_symlink() for p in path.parents), 'Unsafe state path')
+    require(not path_is_link(path) and not any(path_is_link(p) for p in path.parents), 'Unsafe state path')
     require(not path.exists() or path.is_file(), 'State destination must be a regular file')
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.parent / ('.' + path.name + '.' + uuid.uuid4().hex)

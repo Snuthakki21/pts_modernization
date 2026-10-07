@@ -1,4 +1,5 @@
 """Local target runtime. Transport/session behavior is not native CICS parity."""
+from .domain import path_is_link
 import hashlib
 import hmac
 import json
@@ -14,7 +15,7 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
     if not isinstance(token,str) or len(token)<32:raise ValueError('Set a private ONLINE_TOKEN of at least 32 characters')
     if not 1<=ttl<=86400:raise ValueError('Invalid session lifetime')
     database=Path(database)
-    if database.is_symlink() or any(p.is_symlink() for p in database.absolute().parents):raise ValueError('Unsafe local database path')
+    if path_is_link(database) or any(path_is_link(p) for p in database.absolute().parents):raise ValueError('Unsafe local database path')
     database.parent.mkdir(parents=True,exist_ok=True)
     def connect():
         db=sqlite3.connect(database,timeout=5);db.row_factory=sqlite3.Row

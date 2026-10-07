@@ -1,16 +1,19 @@
 """Fictional-only full flow, including returned SME file and reuse metrics."""
 import argparse
 from pathlib import Path
+import sys
 from io import BytesIO
 import json
 from openpyxl import load_workbook
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from workbench.coordinator import Coordinator
 from workbench.reports import portfolio
 from workbench.domain import require
 
 def run(root):
-    example=Path(__file__).parent.parent/'examples';manifest=(example/'process-input.md').read_text()
-    sources={p.name:p.read_text() for p in (example/'Endeavor').iterdir()}
+    example=Path(__file__).parent.parent/'examples';manifest=(example/'process-input.md').read_bytes().decode('utf-8')
+    sources={p.name:p.read_bytes().decode('utf-8') for p in (example/'Endeavor').iterdir()}
     c=Coordinator(root)
     try:
         for pid in ['example-referral','example-reuse']:

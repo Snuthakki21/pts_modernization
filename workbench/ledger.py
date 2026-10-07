@@ -1,4 +1,5 @@
 """One serialized ledger writer, versioned events and an atomic one-packet quota."""
+from .domain import path_is_link
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -15,17 +16,17 @@ class Ledger:
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         state = self.root / '.migration'
-        require(not state.is_symlink(), 'Unsafe ledger path')
+        require(not path_is_link(state), 'Unsafe ledger path')
         state.mkdir(exist_ok=True)
         self.lock = threading.RLock()
-        require(not (state/'ledger.sqlite').is_symlink(), 'Unsafe ledger database path')
+        require(not path_is_link(state/'ledger.sqlite'), 'Unsafe ledger database path')
         self.db = sqlite3.connect(state/'ledger.sqlite', check_same_thread=False, timeout=10)
         try:
             self.db.row_factory = sqlite3.Row
             self.db.execute('PRAGMA foreign_keys=ON')
             # Rollback journaling avoids WAL-reset bugs and filesystem assumptions.
             self.db.execute('PRAGMA journal_mode=DELETE')
-            self.db.executescript(Path(__file__).with_name('schema.sql').read_text())
+            self.db.executescript(Path(__file__).with_name('schema.sql').read_text(encoding='utf-8'))
         except Exception:
             self.db.close();raise
 

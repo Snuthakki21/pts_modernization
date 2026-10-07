@@ -2,6 +2,8 @@ param(
     [ValidateRange(1, 65535)][int]$Port = 8765,
     [switch]$NoBrowser
 )
+# Native exit codes are checked explicitly, including expected setup probes.
+$PSNativeCommandUseErrorActionPreference = $false
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath (Split-Path $PSScriptRoot -Parent)
 $venvPython = Join-Path (Get-Location).Path '.venv/Scripts/python.exe'

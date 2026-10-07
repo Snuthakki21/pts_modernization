@@ -1,14 +1,14 @@
 """OS-owned single writer lock, released even when the process terminates."""
 import os
 from pathlib import Path
-from .domain import require, ValidationError
+from .domain import require, ValidationError, path_is_link
 
 class InstanceLock:
     def __init__(self,root):
         root=Path(root).absolute()
-        require(not root.is_symlink() and not any(p.is_symlink() for p in root.parents),'Unsafe workspace root: symlinks are not accepted')
-        root.mkdir(parents=True,exist_ok=True);state=root/'.migration';require(not state.is_symlink(),'Unsafe state path');state.mkdir(exist_ok=True)
-        path=state/'coordinator.lock';require(not path.is_symlink(),'Unsafe lock path');self.file=path.open('a+b')
+        require(not path_is_link(root) and not any(path_is_link(p) for p in root.parents),'Unsafe workspace root: symlinks are not accepted')
+        root.mkdir(parents=True,exist_ok=True);state=root/'.migration';require(not path_is_link(state),'Unsafe state path');state.mkdir(exist_ok=True)
+        path=state/'coordinator.lock';require(not path_is_link(path),'Unsafe lock path');self.file=path.open('a+b')
         try:
             if os.name=='nt':
                 import msvcrt

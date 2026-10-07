@@ -1,4 +1,5 @@
 """Persistent Start → one SME exchange → verification → reports coordinator."""
+from .domain import path_is_link
 import json
 from pathlib import Path
 import sqlite3
@@ -74,10 +75,13 @@ class Coordinator:
             finally:self.instance.close()
             raise
 
-    def configure_workstation(self,settings):
+    def configure_workstation(self,settings,connections=None,origin='http://127.0.0.1:8765'):
         from .setup import save_workstation
         with self.lock:
-            result=save_workstation(self.root,settings)
+            if connections is None:result=save_workstation(self.root,settings)
+            else:
+                from .connection_setup import configure_connections
+                result=configure_connections(self.root,settings,connections,origin=origin)
             self.workstation_settings=result['settings']
             return result
 
@@ -115,14 +119,8 @@ class Coordinator:
         except UnicodeError as exc:raise ValidationError('Source filenames, source text, manifest and prompt must be valid UTF-8 text without unpaired surrogates') from exc
         require(sum(len(raw) for raw in encoded_sources.values())<=MAX_SOURCE_BYTES,'Source export exceeds combined size bound')
         # Reject collisions before any immutable process evidence is created.
-        import unicodedata
-        portable={}
-        for path in source_files:
-            require(Path(path).as_posix()==path and all(part not in ('','.','..') for part in path.split('/')),'Source paths must be canonical relative filenames')
-            folded=unicodedata.normalize('NFC',path).casefold()
-            require(folded not in portable,'Source filenames collide across supported platforms: '+path)
-            portable[folded]=path
-        require(not any('/'.join(path.split('/')[:i]) in portable for path in portable for i in range(1,len(path.split('/')))), 'Source file/directory names collide across supported platforms')
+        from .retrieval import validate_source_paths
+        validate_source_paths(source_files)
         from .mainframe import load_knowledge
         knowledge=load_knowledge(self.root)
         from .process_context import freeze_context
@@ -329,7 +327,7 @@ class Coordinator:
         inventory=set()
         for count,path in enumerate(source_root.rglob('*'),1):
             require(count<=MAX_SOURCE_ENTRIES,'Frozen source traversal exceeds entry bound')
-            require(not path.is_symlink() and (path.is_file() or path.is_dir()),
+            require(not path_is_link(path) and (path.is_file() or path.is_dir()),
                     'Source snapshot contains an unsafe file')
             if path.is_file():inventory.add(path.relative_to(source_root).as_posix())
         require(inventory==set(doc['source_files']),
@@ -348,6 +346,16 @@ class Coordinator:
         relative=pending['artifact'];raw=output_path(self.root,doc['id'],relative).read_bytes()
         require(sha(raw)==doc.get('artifact_hashes',{}).get(relative),'Discovery journal integrity failed')
         entries=decode(raw)['files'];require(sha(encode(entries))==pending['hash'],'Discovery journal differs from recorded intent')
+        # Validate the complete pinned intent before publishing even its first
+        # file. Older versions could pin an impossible source-tree collision.
+        existing={}
+        for path,digest in doc['source_files'].items():
+            content=output_path(self.root,doc['id'],'input/sources/'+path).read_bytes()
+            require(sha(content)==digest,'Source snapshot changed; pending discovery cannot be recovered')
+            existing[path]=content.decode('utf-8')
+        try:self._validate_discovered_sources(doc,entries,existing)
+        except ValidationError as exc:
+            raise ValidationError('Pinned discovery cannot be applied; preserve its accepted evidence and create a separately identified process from intact exports: '+str(exc)) from exc
         for item in entries:
             path=item['path'];data=item['text'].encode('utf-8')
             require(sha(data)==item['source_hash'] and item.get('provenance'),'Retrieved source lacks immutable origin evidence')
@@ -358,23 +366,26 @@ class Coordinator:
         doc.setdefault('discovery_provenance',{}).update({e['path']:e['provenance'] for e in entries})
         doc.pop('pending_discovery');self.ledger.save(doc)
 
-    def freeze_discovered_sources(self,doc,entries):
-        if not entries:return
-        existing=self.sources(doc);merged=dict(existing)
-        import unicodedata
-        folded={unicodedata.normalize('NFC',p).casefold():p for p in existing}
+    def _validate_discovered_sources(self,doc,entries,existing):
+        """Check the merged source intent without pinning or writing evidence."""
+        from .retrieval import validate_source_paths
+        require(isinstance(entries,list) and all(isinstance(e,dict) for e in entries),'Retrieved source entries must be objects')
+        validate_source_paths([*existing, *[entry['path'] for entry in entries]])
+        merged=dict(existing)
         for entry in entries:
             path=entry['path'];text=entry['text']
             require(isinstance(text,str) and '\x00' not in text,'Retrieved source must be readable text')
             require(Path(path).as_posix()==path and all(p not in ('','.','..') for p in path.split('/')),'Retrieved source path must be canonical')
             output_path(self.root,doc['id'],'input/sources/'+path)
-            key=unicodedata.normalize('NFC',path).casefold()
-            require(key not in folded or folded[key]==path,'Retrieved source filename collision')
             require(path not in merged or merged[path]==text,'Retrieved source conflicts with original export')
             require(sha(text)==entry['source_hash'] and entry.get('provenance'),'Retrieved source hash/provenance missing')
-            folded[key]=path;merged[path]=text
+            merged[path]=text
         require(len(merged)<=MAX_SOURCE_FILES and sum(len(t.encode('utf-8')) for t in merged.values())<=MAX_SOURCE_BYTES,'Retrieved closure exceeds source bounds')
         require(all(len(t.encode('utf-8'))<=MAX_SOURCE_FILE_BYTES for t in merged.values()) and sum(source_line_count(t) for t in merged.values())<=MAX_SOURCE_LINES,'Retrieved closure exceeds file/line bounds')
+
+    def freeze_discovered_sources(self,doc,entries):
+        if not entries:return
+        self._validate_discovered_sources(doc,entries,self.sources(doc))
         fingerprint=sha(encode(entries));relative='analysis/discovery-'+fingerprint+'.json'
         destination=output_path(self.root,doc['id'],relative);data=encode({'files':entries})
         if destination.exists():require(destination.read_bytes()==data,'Discovery evidence collision')
@@ -496,7 +507,7 @@ class Coordinator:
     def continue_retrieval(self, pid):
         from .retrieval import inspect_response,validate_binding
         with self.lock:
-            doc=self.ledger.get(pid);self.sources(doc);record=doc.get('retrieval_request')
+            doc=self.ledger.get(pid);existing=self.sources(doc);record=doc.get('retrieval_request')
             require(not doc['packet_issued'] and pid not in self.active and doc['status'] in ('WAITING_DISCOVERY','WAITING_COPILOT','WAITING_REQUIREMENTS'),
                     'Continue retrieval only at a pre-review checkpoint')
             require(record and record['status'] in ('WAITING','IMPORTING'),'No outstanding retrieval request')
@@ -505,6 +516,7 @@ class Coordinator:
                 validate_binding(request,doc)
                 result=inspect_response(self.root,request,doc['source_files'])
                 if result['status']=='WAITING_FOR_RESPONSE':return self.local_agent_view(pid)
+                self._validate_discovered_sources(doc,result['entries'],existing)
                 relative='analysis/retrieval/'+request['request_id']+'/accepted-'+result['response_hash']+'.json'
                 data=encode(result);destination=output_path(self.root,pid,relative)
                 if destination.exists():require(destination.read_bytes()==data,'Retrieval response changed after acceptance')
@@ -914,8 +926,8 @@ class Coordinator:
         if doc.get('process_context',{}).get('documents') and 'knowledge_context' not in doc:
             doc['knowledge_context']={'status':'UNVERIFIED_INPUT','artifact':'analysis/process-context.json', 'sha256':sha(encode(doc['process_context'])), 'documents':[{k:v for k,v in d.items() if k!='text'} for d in doc['process_context']['documents']]}
         if context_path.exists() and 'knowledge_context' not in doc and 'process_context' not in doc:
-            require(not context_path.is_symlink() and context_path.stat().st_size<=16000,'Knowledge context must be a regular Markdown file of at most 16 KB')
-            doc['knowledge_context']={'text':context_path.read_text(),'sha256':sha(context_path.read_bytes()),'status':'UNVERIFIED_INPUT'}
+            require(not path_is_link(context_path) and context_path.stat().st_size<=16000,'Knowledge context must be a regular Markdown file of at most 16 KB')
+            doc['knowledge_context']={'text':context_path.read_bytes().decode('utf-8'),'sha256':sha(context_path.read_bytes()),'status':'UNVERIFIED_INPUT'}
         from .connectors import read_only_discovery
         if 'discovery' not in doc:doc['discovery']={'status':'COPILOT_RETRIEVAL_ONLY','operations':[]} if doc.get('agent_transport')=='local_files' else read_only_discovery()
         doc.setdefault('llm',{'status':'NOT_CONFIGURED','live_ready':False})
@@ -965,7 +977,7 @@ class Coordinator:
             version=sha(code);doc['program_versions'][name]=version
             path=self.root/'shared'/'target'/'python'/(version+'.py')
             if not path.exists():write_new(path,code.encode())
-            require(path.read_text()==code,'Shared target version integrity failed')
+            require(path.read_text(encoding='utf-8')==code,'Shared target version integrity failed')
         if self.ledger.get(pid)['packet_issued']:
             packet=decode((root/'review'/'packet.json').read_bytes())
             require(packet.get('packet_hash')==self.ledger.get(pid)['packet_hash'] and sha(encode({k:v for k,v in packet.items() if k!='packet_hash'}))==packet['packet_hash'],'Issued packet integrity failed')
@@ -1008,7 +1020,7 @@ class Coordinator:
             self.checkpoint(doc)
             expected_path=runroot/name/'expected.json';write_new(expected_path,encode(suite));self.register(doc,f'synthetic/{run_id}/{name}/expected.json')
             target_path=self.root/'shared'/'target'/'python'/(doc['program_versions'][name]+'.py')
-            code=target_path.read_text();require(sha(code)==doc['program_versions'][name],'Target version changed')
+            code=target_path.read_text(encoding='utf-8');require(sha(code)==doc['program_versions'][name],'Target version changed')
             write_new(root/'target'/run_id/(name+'.py'),code.encode());self.register(doc,f'target/{run_id}/{name}.py')
             self.checkpoint(doc)
             result=verify_program(p,code,suite,checkpoint=lambda:self.checkpoint(doc,persist=False));self.checkpoint(doc)
@@ -1108,7 +1120,7 @@ class Coordinator:
             # Even an interrupted writer's partial files remain reviewable evidence.
             if output.exists():
                 for partial in output.rglob('*'):
-                    if partial.is_file() and not partial.is_symlink():self.register(doc,str(partial.relative_to(root)))
+                    if partial.is_file() and not path_is_link(partial):self.register(doc,str(partial.relative_to(root)))
         self.checkpoint(doc)
         required={'economics.json','economics.html','economics.csv','metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json','coverage.json','coverage.csv','coverage.xlsx','coverage.html','executive-report.html','rules.html','rules.json','rules.csv'}
         if doc.get('factory_contract_version'):required.update({'factory.json','factory.html','program-insights.json','program-insights.html'})

@@ -233,6 +233,52 @@ class RetrievalTests(unittest.TestCase):
             with self.subTest(staged=staged), self.assertRaises(ValidationError):
                 inspect_response(self.root, self.request)
 
+    def test_original_source_paths_cannot_collide_with_frozen_tree(self):
+        cases = [
+            ('jobs/PAY.jcl/EMPLOYEE.cpy', {'jobs/PAY.jcl': sha('original')}),
+            ('jobs/PAY.jcl', {'jobs/PAY.jcl/EMPLOYEE.cpy': sha('original')}),
+            ('JOBS/pay.JCL/EMPLOYEE.cpy', {'jobs/PAY.jcl': sha('original')}),
+            ('lib/EMPLOYEE.cpy', {'LIB/OTHER.cpy': sha('original')}),
+            ('cafe\u0301/EMPLOYEE.cpy', {'caf\u00e9/OTHER.cpy': sha('original')}),
+            ('caf\u00e9.cpy/EMPLOYEE.cpy', {'cafe\u0301.cpy': sha('original')}),
+        ]
+        for path, existing in cases:
+            with self.subTest(path=path, existing=existing):
+                item = self.item(path='staged.txt')
+                item.update(path=path, staged_path='staged.txt')
+                self.response([item])
+                with self.assertRaisesRegex(ValidationError, 'colli'):
+                    inspect_response(self.root, self.request, existing)
+
+    def test_returned_source_tree_rejects_prefixes_and_directory_aliases(self):
+        self.request = build_request(self.doc, [
+            {'kind': 'copybook', 'name': 'A', 'reason': 'COPY A'},
+            {'kind': 'copybook', 'name': 'B', 'reason': 'COPY B'}])
+        write_request(self.root, self.request)
+        self.inbox = self.root / self.request['return_folder']
+        first = self.item(path='first.txt', need=self.request['needs'][0]['need_id'])
+        second = self.item(path='second.txt', need=self.request['needs'][1]['need_id'])
+        for paths in [('A.cpy', 'A.cpy/B.cpy'), ('A.cpy/B.cpy', 'a.CPY'),
+                      ('LIB/A.cpy', 'lib/B.cpy'), ('caf\u00e9/A.cpy', 'cafe\u0301/B.cpy')]:
+            with self.subTest(paths=paths):
+                items = [{**item, 'path': path, 'staged_path': item['path']}
+                         for item, path in zip((first, second), paths)]
+                self.response(items)
+                with self.assertRaisesRegex(ValidationError, 'colli'):
+                    inspect_response(self.root, self.request)
+
+    def test_staged_directory_aliases_are_not_portable_inventory(self):
+        self.request = build_request(self.doc, [
+            {'kind': 'copybook', 'name': 'A', 'reason': 'COPY A'},
+            {'kind': 'copybook', 'name': 'B', 'reason': 'COPY B'}])
+        write_request(self.root, self.request)
+        self.inbox = self.root / self.request['return_folder']
+        first = self.item(path='LIB/A.txt', need=self.request['needs'][0]['need_id'])
+        second = self.item(path='lib/B.txt', need=self.request['needs'][1]['need_id'])
+        self.response([first, second])
+        with self.assertRaisesRegex(ValidationError, 'colli'):
+            inspect_response(self.root, self.request)
+
     def test_duplicate_json_keys_cannot_override_a_return_identity(self):
         (self.inbox / 'response.json').write_text('{"request_id":"a","request_id":"b","items":[]}')
         with self.assertRaises(ValidationError):

@@ -110,6 +110,23 @@ class FactoryTests(unittest.TestCase):
             with TestClient(create_app({'ELIGIBLE':execute},spec,db,token,clock=lambda:100)) as client:
                 self.assertEqual(client.post('/api/transactions/ELIG',json=data,headers=headers).json(),first.json())
 
+    def test_packaged_online_runtime_supports_lf_and_windows_crlf_implementation_checkouts(self):
+        from unittest.mock import patch
+        from workbench.online import packaged_runtime
+        original = Path('workbench/online_runtime.py').read_bytes().replace(b'\r\n', b'\n')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for mode, data in (('LF', original), ('CRLF', original.replace(b'\n', b'\r\n'))):
+                with self.subTest(mode=mode):
+                    (root/'online_runtime.py').write_bytes(data)
+                    with patch('workbench.online.__file__', str(root/'online.py')):
+                        packed = packaged_runtime()
+                    scope = {'__name__':'standalone_runtime'}
+                    exec(compile(packed, 'runtime.py', 'exec'), scope)
+                    app = scope['create_app']({}, {}, root/(mode+'.sqlite'), 'x'*32)
+                    self.assertEqual(app.title, 'Modernized business capabilities')
+                    self.assertTrue(callable(scope['path_is_link']))
+
     def test_factory_end_to_end_fictional_online_report(self):
         from workbench.coordinator import Coordinator
         from test_source import COBOL

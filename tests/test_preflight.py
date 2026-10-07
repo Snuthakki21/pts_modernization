@@ -204,4 +204,15 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual(self.check(result, 'llm')['status'], 'BLOCKED')
 
 
+    def test_unusable_native_zowe_entry_point_blocks_without_executing_cli(self):
+        from workbench.domain import ValidationError
+        with patch('workbench.preflight.shutil.which', return_value='private/zowe.cmd'), \
+                patch('workbench.connectors.zowe_command', side_effect=ValidationError('Private malformed launcher')) as command, \
+                patch('subprocess.Popen', side_effect=AssertionError('Offline checks must not execute Zowe')):
+            result = inspect_workspace(self.root, environ={'WB_ZOWE_PROFILE': 'approved'})
+        self.assertEqual(self.check(result, 'zowe')['status'], 'BLOCKED')
+        self.assertNotIn('Private', json.dumps(result))
+        command.assert_called_once()
+
+
 if __name__ == '__main__': unittest.main()

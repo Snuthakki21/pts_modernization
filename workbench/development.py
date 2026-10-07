@@ -1,4 +1,5 @@
 """Source-free development contracts; no execution or conversion authority."""
+from .domain import path_is_link
 from collections import Counter
 from pathlib import Path, PurePosixPath
 import re
@@ -156,7 +157,7 @@ def check_integrated_changes(result, repository=None):
         current = root
         for part in relative.parts:
             current = current / part
-            require(not current.is_symlink(), 'Integrate development changes into regular framework files before refresh')
+            require(not path_is_link(current), 'Integrate development changes into regular framework files before refresh')
         if change['operation'] == 'delete':
             require(not candidate.exists(), 'A returned file deletion has not been integrated; review the patch before refresh')
         else:

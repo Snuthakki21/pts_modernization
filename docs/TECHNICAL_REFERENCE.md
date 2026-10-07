@@ -43,31 +43,68 @@ not observed mainframe results. No claim of perfect software is supported.
 
 ## Workspace setup and credentials
 
-The first UI visit opens one settings form. Choose a local source folder or
-upload-at-intake mode, optionally set a process Markdown file, then Save setup.
-Optional fields hold exact WEDLX/Tran Repository folder bindings and already
-approved Zowe base/service aliases and Db2 metadata URL. These values are
-operator-provided retrieval context, not installed connections or access proof.
-Copilot receives that context beside its immutable request and in the copyable
-prompt; changes never rewrite the original request, hash or frozen prompt. The existing
-Coordinator validates and saves local settings; new intake uses these defaults
-immediately and after restart. Explicit source uploads override the saved
-source folder. Existing process snapshots and accepted evidence are unchanged.
+The first UI visit opens one settings form for source folders/upload mode,
+process Markdown and optional exact WEDLX/Tran Repository locations. One Save
+can also prepare the approved Copilot MCP bridge and selected project Zowe
+profiles. The existing Coordinator owns configuration writes under its lock;
+there is no additional engine, worker or ledger. Existing snapshots and accepted
+evidence remain immutable. New intake uses saved defaults after restart;
+explicit source uploads override the saved folder.
 
-`GET /api/setup/workstation` and CSRF-protected
-`POST /api/setup/workstation` use a bounded nonsecret `settings` object. Settings
-live only in ignored `.migration/workstation.json`. Invalid paths or fields
-produce actionable errors and preserve the last accepted settings. The legacy
-`/api/setup` six-choice endpoint and `.migration/setup.json` remain available
-for historical clients; they no longer drive the active setup screen.
+`GET /api/setup/workstation` returns settings plus `connection_setup`: selected
+choices, local CLI availability, prepared file paths, commands and remaining
+client actions. CSRF-protected `POST` accepts `settings` and optional
+`connections={copilot:boolean,zowe:{mode,host,port,config_file,schema_file}}`.
+Modes are `off`, `existing`, `create` and `import`. Inactive options are null;
+create requires actual host/port and existing settings' two profile aliases.
+Import accepts exact local supplied config/schema paths and preserves bytes;
+a different existing destination is refused. A declared local schema pointer
+selects its approved root filename (`zowe.schema.json`,
+`zowe.config.schema.json` or `zowe.config.user.schema.json`); missing or unsupported
+bindings stop preparation. Config and schema paths are both shown in the result. Nested selected aliases use safe
+Zowe dotted names; literal dotted node keys cannot impersonate that traversal. Profile inheritance, host/port, HTTPS, certificate validation,
+default type bindings and self-contained supplied schemas are checked before
+writing. External `$ref`, `$dynamicRef` and `$recursiveRef` are never fetched.
 
-The default workflow is Claude Code with local files and Copilot for approved
-retrieval. No model endpoint/token, manifest-ready declaration or reviewer
-availability answer is required to finish workstation setup. Saved readiness
-means local settings are usable. Source validation, successful connection,
-supported conversion and the actual human return remain separate gates. No
-network/model request or mainframe execution occurs during setup. Authentication
-stays in existing approved secure tools or private environment variables.
+Settings remain in ignored `.migration/workstation.json`; choices and managed
+MCP hashes use ignored `.migration/connections.json`. The request is bounded to
+32 KiB and local config/schema files to 1 MiB. All output paths reject symlinks
+and Windows junctions. Invalid input/conflicts leave prior files unchanged;
+ordinary write failures restore changed configuration, while concurrent external
+edits fail closed and stay visible. A crash can leave valid newly prepared
+connector files beside earlier preferences; Save reconciles those local files
+without altering process evidence. This is configuration preparation, not an
+atomic transaction spanning external clients or their secure stores.
+
+Copilot preparation merges ignored `.vscode/mcp.json`, accepting VS Code JSONC
+comments/trailing commas while preserving other server/input values. Managed
+keys are `workbench-retrieval`, optional `workbench-db2` and
+`workbenchDb2Token`. Existing different bindings are preserved and rejected;
+only unchanged previously managed hashes authorize updates/removal. Shared
+credential-input references are retained. The stdio retrieval server uses the
+current Python executable, repository server path, running loopback origin and
+`--role retrieval`; VS Code starts it without another dependency install.
+Db2 uses the approved endpoint and VS Code password input, never a saved token.
+Changed loopback ports or managed bindings require fresh Save.
+
+Zowe preparation reuses `zowe_setup.prepare_profile`/`prepare_import` and the
+existing CLI wrappers. Availability checks resolve installed launchers without
+running them. The screen emits native PowerShell or POSIX secure commands;
+Windows uses the native Node argv for an installed npm Zowe package and
+`npm.cmd` for the optional installation command. The published v3 LTS channel
+is a convenience command for an organization-approved installation, not an
+automatic package download or permission to bypass enterprise deployment.
+Missing CLI/runtime, secure credential entry, VS Code review/start and Db2
+authentication remain explicit actions. No configuration implies successful
+host access; setup makes no network, model or mainframe call.
+
+The default workflow remains Claude local files and Copilot approved retrieval.
+No model token, manifest declaration or reviewer answer is needed for local
+intake readiness. Claude gets zero MCP servers. Copilot receives saved retrieval
+context beside its immutable request; changes never rewrite request hashes or
+frozen prompts. Source validation, connectivity, supported conversion and the
+actual human return remain separate gates. Historical `/api/setup` enum clients
+and `.migration/setup.json` remain supported without driving the active screen.
 
 ## What you provide once
 
@@ -396,11 +433,16 @@ Public Wells Fargo homepage CSS supplies red `#d71e28`, yellow `#ffcd41`, charco
 `#3b3331` and neutral `#f4f0ed`. Use system fonts, not unlicensed brand fonts or
 invented corporate marks. This is public-style alignment; internal Wells Fargo
 design-system approval is not available. WCAG 2.2 AA is the accessibility target,
-not a claim that automated checks constitute certification. The current local
-browser check covers setup Save, rejected paths, restart and intake defaults at
-390px and 1280px without horizontal overflow. Complete keyboard, zoom and
-screen-reader acceptance is pending. Native Windows/Linux, native PowerPoint and
-live source connections require target-workstation acceptance.
+not a claim that automated checks constitute certification. Local Chrome checks
+cover setup, intake defaults, work windows and exact 18-digit record transport at
+320px, 390px and 1280px. Lost-response retries retain their original work-window
+choice or serialized record bytes; feedback follows the server's saved outcome.
+Failed measurement reads clear loading and expose recovery. Long recovery IDs
+remain fully available with narrow-screen wrapping. The current exercised matrix,
+including checks not exercised at each viewport, lives in `docs/evidence.json`.
+Complete keyboard/popup, zoom and screen-reader acceptance remains separate.
+Windows 11 desktop, native PowerPoint and live source connections require
+acceptance on the target workstation.
 
 ## Efficient engineering and evidence
 
@@ -417,13 +459,19 @@ Development checks in the locked environment:
 
 ```sh
 python -m unittest discover -s tests
-PYTHONPATH=. python tools/review500.py
-PYTHONPATH=. python tools/review_expanded.py
-PYTHONPATH=. python tools/scenario_campaign.py --seed 20261003 --total-scenarios 200000 --output .implementation/tmp/campaign-200000.json
-PYTHONPATH=. python tools/scenario_campaign.py --seed 20261003 --total-scenarios 600000 --output .implementation/tmp/campaign-600000.json
+python tools/review500.py
+python tools/review_expanded.py
+python tools/scenario_campaign.py --seed 20261003 --total-scenarios 200000 --output .implementation/tmp/campaign-200000.json
 python -m workbench.layout --workspace .
 python tools/check_handoff.py
 ```
+
+The standalone `tools/synthetic_cases.py` generator uses the same V4 fixture
+contract and current record adapter: a fresh runtime seed, 20 distinct randomized
+states per supported logic, and frozen source/copybook byte hashes. Supply
+`--seed` with an unsigned 63-bit integer for exact replay. Insufficient budgets
+and finite domains remain coverage gaps; generation alone grants no conversion
+credit. Historical suites retain their original contract.
 
 On macOS, set `TMPDIR` to the absolute nonsymlink workspace `.implementation/tmp`
 path before tests; the system `/var` symlink is intentionally rejected by fixture
@@ -434,9 +482,10 @@ Install frontend development dependencies with `npm ci` in `frontend/`, then
 `node frontend/test-ui.mjs` for the component/behavior checks. Engineering tests use fictional fixtures only and clear
 all source/provider environment settings. The real HTTP tests bind loopback.
 The 1,000 named checks comprise R001–R500 and 500 new R501–R1000 checks. They are
-not 1,000 independent reviewers. The generated campaign explicitly selects 600,000 unique
-program/input scenarios (200 programs × 3,000 records); the historical default
-200,000 recipe remains reproducible. It compares executed Python and reference
+not 1,000 independent reviewers. The required campaign selects 200,000 unique
+program/input scenarios (200 programs × 1,000 records). An optional expanded run
+uses `--total-scenarios 600000` and a fresh private output path; historical receipts
+are preserved. The campaign compares executed Python and reference
 behavior against independently coded family expectations, records
 its seed, implementation hashes and replay indices, and uses zero LLM calls.
 Finite combinations do not establish exhaustive legacy parity.
@@ -704,9 +753,29 @@ credentials/connectivity remain UNVERIFIED until a permitted live read succeeds.
 Native Windows/Linux and both agent-host smoke evidence are required separately
 from local Python and frontend checks.
 
-The native platform smoke workflow exercises folder intake, CLI/ledger behavior,
-Zowe setup and rule reports on Windows and Ubuntu using locked dependencies.
-A configured workflow is not an executed native-platform receipt.
+Windows 11 is the workstation target with CPython 3.12 and a writable local,
+hard-link-capable disk. The shipping Windows PowerShell launcher prepares the
+locked environment, restores missing pip through ensurepip, starts the one
+Coordinator and opens the browser after the local service binds. PowerShell 7
+native-error preferences are also exercised. POSIX uses the same Python engine.
+Workspace/source paths reject junctions and symlinks before access; layout
+traversal prunes redirects. Source and copybook UTF-8 bytes retain LF/CRLF/mixed
+line endings and hashes. Implementation-module packaging normalizes checkout
+line endings independently of immutable mainframe exports.
+
+For an approved Windows npm Zowe install, `connectors.zowe_command` resolves the
+existing package's declared JavaScript bin and invokes native Node with argument
+boundaries intact. Native executable installs remain supported. Package/bin/Node
+absence is a named preflight gate; no batch-command fallback or source-system
+write is permitted. Secure configuration uses the same resolver. This validates
+the local launch configuration without asserting authentication or connectivity.
+
+The native platform smoke workflow executes shipping setup and offline
+intake/ledger/report/CLI, junction, encoding, adapter and launcher tests on Windows
+and Ubuntu using the locked dependencies. Current execution receipts are indexed
+in `docs/evidence.json`; a configured workflow alone is not evidence. Windows
+Server CI is separate from Windows 11 desktop, Excel/PowerPoint, enterprise
+agent-host and live read-only connector acceptance.
 
 ### Consolidated program knowledge
 
@@ -809,26 +878,28 @@ separates queue, agent/SME/discovery waits, pause and service stages. A crashed
 attempt has unknown duration. Historical partial timing cannot calibrate a whole
 process. Service, work effort and elapsed time can overlap and are never summed.
 
-The running UI owns all writes. Existing UI effort controls record work windows.
-The compatibility MCP API `workbench_begin_work` accepts `id`,
-`process_id`, `actor`, `stage`; `workbench_end_work` accepts `id` and optional
-`abandon`. Stages are discovery, analysis, mainframe, conversion, sql, validation,
-review, reporting, rework and framework. Framework uses null process_id. Use a
-unique stable session ID and actor/session identity; stop before human waits.
-Retry returns the existing receipt. A restart loses the monotonic session clock:
-abandon the session as unmeasured rather than charging downtime. Work windows
+The running UI owns all writes. Open **Effort & scale** from workspace navigation
+or **Evidence & reports → Effort & scale** for a selected process. Its work-window
+controls start, stop or close unmeasured windows through POST
+`/api/economics/work/start` and `/api/economics/work/stop`. Start accepts `id`,
+`process_id`, `actor` and `stage`; stop accepts `id` and optional `abandon`.
+Stages are discovery, analysis, mainframe, conversion, sql, validation, review,
+reporting, rework and framework. Framework uses null process_id. Use a unique
+stable session ID and actor/session identity; stop before human waits. Retry
+returns the existing receipt. A restart loses the monotonic session clock:
+close the session as unmeasured rather than charging downtime. Work windows
 measure agent session time, not human attendance or total project completeness.
 
-The compatibility `workbench_record_measurement` interface appends a bounded
-64 KiB receipt through the same Coordinator. Active Claude sessions use
-`runner agent PROCESS_ID --workspace WORKSPACE --measurement-file RECEIPT`,
-including the local queue when the UI is running; they never invoke MCP. `workbench_economics` reads live metrics; `workbench_forecast` previews
-a plan. HTTP equivalents are GET `/api/economics?process_id=ID`, POST
-`/api/economics/receipts`, `/api/economics/forecast`, `/api/economics/work/start`
-and `/api/economics/work/stop`. Mutation routes retain same-origin/token guards;
-preview is read-only but uses the same authenticated POST transport. With the UI
-stopped, `python -m workbench.runner measure --workspace WORKSPACE --file RECEIPT`
-uses the existing exclusive writer. Do not launch it beside the UI.
+Active Claude sessions append a bounded 64 KiB receipt through
+`python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE --measurement-file RECEIPT`,
+including the local queue when the UI is running. GET `/api/economics?process_id=ID`
+reads live metrics. POST `/api/economics/receipts` records an attributed receipt;
+POST `/api/economics/forecast` previews a plan. Mutation routes retain the
+same-origin/token guards; preview is read-only but uses the same authenticated
+POST transport. With the UI stopped,
+`python -m workbench.runner measure --workspace WORKSPACE --file RECEIPT`
+uses the existing exclusive writer. Do not launch it beside the UI. Copilot's
+retrieval-only MCP surface does not expose development or economics operations.
 
 Every receipt requires `id`, `kind`, `process_id` (nullable), `evidence` (a bounded
 source description/reference, never credentials), and `recorded_by`. IDs are

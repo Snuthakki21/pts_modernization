@@ -1,5 +1,5 @@
 name: Native platform smoke
-on:
+'on':
   push:
   pull_request:
   workflow_dispatch:
@@ -17,22 +17,36 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install locked binary dependencies
-        run: python -m pip install --require-hashes --only-binary=:all: -r requirements.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies through Windows PowerShell setup
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\scripts\Setup.ps1
+      - name: Install locked dependencies through POSIX setup
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash scripts/setup.sh
       - name: Exercise native intake, ledger, reports and CLI
         shell: python
         run: |
+          import json
           import os
+          import platform
           from pathlib import Path
           import subprocess
-          import sys
           scratch = Path.cwd() / '.implementation' / 'tmp'
           scratch.mkdir(parents=True, exist_ok=True)
           os.environ['TMPDIR'] = str(scratch)
           os.environ['TEMP'] = str(scratch)
           os.environ['TMP'] = str(scratch)
-          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_launch.py'):
-              subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
-          subprocess.run([sys.executable, '-m', 'workbench.layout', '--workspace', '.'], check=True)
-          subprocess.run([sys.executable, 'tools/check_handoff.py'], check=True)
-          subprocess.run([sys.executable, 'tools/check_factory.py'], check=True)
+          python = Path.cwd() / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          print(json.dumps({'platform': platform.platform(), 'architecture': platform.machine(),
+                            'native_shell': 'Windows PowerShell' if os.name == 'nt' else 'bash',
+                            'scope': 'offline native platform smoke; not Windows 11 desktop or live mainframe acceptance'}), flush=True)
+          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_launch.py'):
+              subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
+          subprocess.run([str(python), '-m', 'workbench.layout', '--workspace', '.'], check=True)
+          subprocess.run([str(python), 'tools/check_handoff.py'], check=True)
+          subprocess.run([str(python), 'tools/check_factory.py'], check=True)

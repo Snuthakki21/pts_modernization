@@ -1,4 +1,5 @@
 """Deterministic operator preparation; no source, credential or network access."""
+from .domain import path_is_link
 import os
 from pathlib import Path
 import re
@@ -174,7 +175,7 @@ def _local_path(root, value, field, *, check_links=True):
         path = root / path
     path = path.absolute()
     if check_links:
-        require(not any(p.is_symlink() for p in (path, *path.parents)),
+        require(not any(path_is_link(p) for p in (path, *path.parents)),
                 field + ': use the direct path rather than a symlink')
         return str(path.resolve())
     return str(path)
@@ -248,7 +249,7 @@ def _workstation_view(root, settings, *, saved):
         checks.append({'id': field, 'status': status, 'message': message, 'action': action})
     if settings['source_mode'] == 'folder':
         folder=Path(settings['source_folder']) if settings['source_folder'] else None
-        present=bool(folder and not any(p.is_symlink() for p in (folder,*folder.parents)) and folder.is_dir())
+        present=bool(folder and not any(path_is_link(p) for p in (folder,*folder.parents)) and folder.is_dir())
         add('source_folder', 'READY' if present else 'BLOCKED',
             'Local export folder is available; its content is checked at intake.' if present else 'Select an existing source export folder.',
             '' if present else 'Enter the direct path to the complete local Endeavor export.')
@@ -261,7 +262,7 @@ def _workstation_view(root, settings, *, saved):
             add(field, 'NOT_CONFIGURED', label + ' is optional.')
         else:
             path=Path(value)
-            safe=not any(p.is_symlink() for p in (path,*path.parents))
+            safe=not any(path_is_link(p) for p in (path,*path.parents))
             available=safe and (path.is_file() if field == 'process_notes' else path.is_dir())
             add(field, 'READY' if available else 'BLOCKED',
                 label + ' is available; business readiness remains unverified.' if available else label + ' is no longer available.',
@@ -283,7 +284,7 @@ def _workstation_view(root, settings, *, saved):
                          'claude_mcp_servers': 0}, 'metrics': deterministic_metrics()}
 
 
-def inspect_workstation(workspace, *, environ=None):
+def inspect_workstation(workspace, *, environ=None, origin=None):
     """Read the single form's values. Environment fallbacks are nonsecret and bounded."""
     with _LOCK:
         path = _workstation_path(workspace)
@@ -299,11 +300,14 @@ def inspect_workstation(workspace, *, environ=None):
                         pass  # Never echo a credential-bearing legacy URL or malformed alias.
             if settings['zowe_profile'] is None:
                 settings['zowe_zosmf_profile'] = None
-        return _workstation_view(path.parent.parent, settings, saved=path.exists())
+        view = _workstation_view(path.parent.parent, settings, saved=path.exists())
+        from .connection_setup import inspect_connections
+        view['connection_setup'] = inspect_connections(path.parent.parent, settings, origin)
+        return view
 
 
-def save_workstation(workspace, settings, *, environ=None):
-    """One atomic save; setup does not alter exports, catalog bindings or process evidence."""
+def prepare_workstation(workspace, settings, *, environ=None):
+    """Validate a local settings write without changing exports, bindings or evidence."""
     with _LOCK:
         path = _workstation_path(workspace)
         root = path.parent.parent
@@ -324,7 +328,16 @@ def save_workstation(workspace, settings, *, environ=None):
         from .domain import encode
         document = {'version': 1, 'settings': current}
         encode(document, MAX_WORKSTATION_BYTES)
+        return view, path, document
+
+
+
+def save_workstation(workspace, settings, *, environ=None):
+    with _LOCK:
+        view, path, document = prepare_workstation(workspace, settings, environ=environ)
         atomic_json(path, document)
+        from .connection_setup import inspect_connections
+        view['connection_setup'] = inspect_connections(path.parent.parent,view['settings'])
         return view
 
 

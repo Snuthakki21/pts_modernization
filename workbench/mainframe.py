@@ -3,6 +3,7 @@
 Catalog text is context, never executable instructions or proof of conversion. A
 process freezes this snapshot so later catalog edits cannot change old evidence.
 """
+from .domain import path_is_link
 from pathlib import Path
 from copy import deepcopy
 from datetime import date
@@ -103,7 +104,7 @@ def _check_aliases(catalog, application):
 
 def load_knowledge(workspace: Path):
     """Load standard knowledge plus optional local application overlay, without writes."""
-    require(not CATALOG_PATH.is_symlink(), 'Standard catalog must not be a symlink')
+    require(not path_is_link(CATALOG_PATH), 'Standard catalog must not be a symlink')
     require(CATALOG_PATH.is_file(), 'Standard catalog must be an existing JSON file')
     require(CATALOG_PATH.stat().st_size <= CATALOG_LIMIT, 'Standard catalog exceeds size limit')
     standard_bytes=CATALOG_PATH.read_bytes(); catalog=decode(standard_bytes, CATALOG_LIMIT)

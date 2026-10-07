@@ -17,42 +17,58 @@ Use CPython **3.12** and a writable folder on your local disk.
 The launcher installs the locked environment when needed, starts the existing
 workbench and opens **http://127.0.0.1:8765** after startup. Keep the terminal
 open. Use `-NoBrowser` on Windows or `--no-browser` on Linux/macOS when needed.
-The UI is included; operators do not need Node. Follow any named setup error
+The UI is included; running it does not require Node. Follow any named setup error
 before continuing. CPython 3.12 must already be installed; native Windows and
 Linux launch still need workstation acceptance.
+
+Commands shown as `python` below use the repository's locked environment:
+`.\.venv\Scripts\python.exe` on Windows PowerShell, or `.venv/bin/python` on
+Linux/macOS. Use that executable directly for agent and maintenance commands;
+no separate global dependency installation is needed.
 
 ## 2. Enter your settings and save once
 
 The first visit opens **Workspace setup**. Choose your local source export folder,
-or choose to upload files when adding a process. Optionally enter your process
-notes Markdown path. Click **Save setup**. The screen checks the local paths,
-saves your settings and shows **Setup is done** when those checks pass. Click
-**Add a process** to continue. The same values are reused after a restart; no
-manifest or reviewer questionnaire is needed to finish setup.
+or upload files when adding a process. Optionally enter your process Markdown
+and exact WEDLX/Tran Repository folders. These defaults survive a restart.
 
-Optional settings let you enter exact WEDLX and Tran Repository folders,
-already approved Zowe profile aliases and a Db2 metadata endpoint. They provide
-retrieval context for Copilot; setup performs no network or model calls.
-Passwords and tokens stay in the approved secure tools or private launch
-environment. Source snapshots, requirements Save and the real SME return keep
-their existing gates. The form never marks a connection or migration verified.
+The same screen prepares your approved retrieval connections:
 
-Copilot Chat uses your normal VS Code Copilot access and already approved MCP
-connections. If your organization approves the optional workbench retrieval
-bridge, [examples/mcp.json](examples/mcp.json) is its template; preserve existing
-approved server bindings. The bridge exposes retrieval-only tools. Claude Code has no
-MCP setup: its approved VS Code extension reads the retrieved local files.
-Use standard VS Code workspace chat for Copilot; input prompts are not supported
-by every agent harness.
-[Technical reference](docs/TECHNICAL_REFERENCE.md)
-contains the exact connection prerequisites and recovery actions.
+- **Copilot MCP:** select the retrieval bridge. Save writes the ignored
+  `.vscode/mcp.json` with the current Python interpreter and running Workbench
+  address. Existing approved servers and inputs are preserved. An optional
+  approved Db2 MCP endpoint uses a secure VS Code token prompt.
+- **Zowe:** select existing project profiles, create profiles using the actual
+  z/OSMF host/port and two aliases, or import your exact supplied config/schema
+  paths. Import preserves file bytes. New profiles declare secure credentials
+  and require HTTPS with certificate validation.
 
-For Zowe, import your exact files with
-`python tools/setup_zowe.py --workspace WORKSPACE --import-config CONFIG --import-schema SCHEMA`.
-For guided profile preparation, use `python tools/setup_zowe.py --workspace WORKSPACE --interactive`.
-It declares `user` and `password` as secure fields. Enter values only at the local
-`zowe config secure` prompts. Use the returned base/service profile variables.
-Profile configuration is distinct from verified connectivity.
+Click **Save setup** once to prepare the selected files and save intake defaults.
+The result shows the files, local CLI availability and any remaining client steps.
+Copy the displayed command to install your approved Zowe CLI when needed, then
+recheck. Zowe requires its approved Node/npm runtime; the Workbench UI itself
+needs no Node installation. Enter credentials only at the displayed local
+`zowe config secure` command or VS Code's secure prompt. Open this workspace in
+VS Code and use **MCP: List Servers** to review/start the approved retrieval
+servers. Keep the Workbench running for its retrieval bridge.
+
+Local intake can continue with **Add a process** when its settings pass.
+Connector actions remain visible until their native configuration/authentication
+is established; the form never asserts connectivity or migration parity from
+configuration. Save performs no CLI execution, network or model calls.
+Passwords and tokens stay in their approved secure clients or private launch
+environment. Claude Code builds and tests from local files with **no MCP
+servers**. Source snapshots, requirements Save and the actual SME return keep
+their existing gates.
+
+Conflicting MCP bindings, different existing Zowe import destinations, unsafe
+paths or invalid schemas stop the save and preserve existing files. Ordinary
+failed writes restore prior configuration. Correct the named conflict and retry.
+CLI alternatives remain `python tools/setup_zowe.py --workspace WORKSPACE
+--import-config CONFIG --import-schema SCHEMA` and `--interactive`; the
+[technical reference](docs/TECHNICAL_REFERENCE.md) describes the same helpers.
+Zowe installation follows its [official CLI guide](https://docs.zowe.org/stable/user-guide/cli-installcli/);
+VS Code activation follows its [MCP guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
 
 For Db2, keep **`tools/dq3g_mcp/.env`** (template:
 [tools/dq3g_mcp/.env.example](tools/dq3g_mcp/.env.example)). The supplied connection

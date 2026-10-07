@@ -4,6 +4,7 @@ Only the nine documented DB2 fields are read. The optional env_file argument is
 for isolated embedding/tests; the server uses DEFAULT_ENV_FILE and has no path
 environment variable. Values and ODBC strings must never be used as diagnostics.
 """
+from .domain import path_is_link
 from dataclasses import dataclass, field
 import ipaddress
 import os
@@ -39,8 +40,8 @@ class Db2Settings:
 
 def _path(path: Path) -> Path:
     path = path.absolute()
-    require('..' not in path.parts and not path.is_symlink()
-            and not any(parent.is_symlink() for parent in path.parents),
+    require('..' not in path.parts and not path_is_link(path)
+            and not any(path_is_link(parent) for parent in path.parents),
             'Db2 local configuration paths must not contain traversal or symbolic links')
     return path
 

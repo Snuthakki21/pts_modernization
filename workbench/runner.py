@@ -1,4 +1,5 @@
 """Agent and operator CLI over the same persistent Coordinator as the UI."""
+from .domain import path_is_link
 import argparse
 from io import BytesIO
 import json
@@ -31,7 +32,7 @@ def manifest_integrity(coordinator, doc, supplied=None):
 
 def start_process(coordinator, manifest_path, assistant_mode=None, source_folder=None, process_notes=None, requirements_selection=False):
     path = Path(manifest_path)
-    require(path.is_file() and not path.is_symlink() and not any(p.is_symlink() for p in path.absolute().parents),
+    require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.absolute().parents),
             'Manifest must be a regular Markdown file with no symlink parents')
     require(path.stat().st_size <= 128000, 'Markdown intake is too large')
     raw = path.read_bytes()
@@ -62,7 +63,7 @@ def import_return(coordinator, pid, path, reviewer):
     require(isinstance(reviewer, str) and 0 < len(reviewer.strip()) <= 160,
             'Supply --reviewer with the person responsible for this returned workbook')
     path = Path(path)
-    require(path.is_file() and not path.is_symlink() and not any(p.is_symlink() for p in path.parents),
+    require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'SME return must be a regular file with no symlink parents')
     require(path.stat().st_size <= 8 * 1024 * 1024, 'SME workbook exceeds upload bound')
     data = path.read_bytes(); doc = coordinator.ledger.get(pid)
@@ -228,7 +229,7 @@ def agent_command(args):
     payload={};filename=args.analysis_file or args.request_file or args.measurement_file
     if filename:
         path=Path(filename).absolute()
-        require(not path.is_symlink() and not any(p.is_symlink() for p in path.parents) and path.is_file() and path.stat().st_size<=128000,'Agent input must be a bounded regular JSON file without symlinks')
+        require(not path_is_link(path) and not any(path_is_link(p) for p in path.parents) and path.is_file() and path.stat().st_size<=128000,'Agent input must be a bounded regular JSON file without symlinks')
         value=decode(path.read_bytes(),128000)
         if action=='request':
             require(isinstance(value,dict) and set(value)=={'needs'},'Request file must contain only a needs array');payload=value

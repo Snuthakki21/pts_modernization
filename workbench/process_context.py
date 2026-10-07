@@ -1,4 +1,5 @@
 """Bounded Markdown evidence, indexed without interpreting embedded instructions."""
+from .domain import path_is_link
 from pathlib import Path
 from .domain import require, sha, ValidationError
 
@@ -8,7 +9,7 @@ MAX_CONTEXT_FILES = 20
 
 def read_markdown(path):
     path = Path(path).absolute()
-    require(path.is_file() and not path.is_symlink() and not any(p.is_symlink() for p in path.parents), 'Process notes must be a regular Markdown file')
+    require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents), 'Process notes must be a regular Markdown file')
     with path.open('rb') as stream: raw = stream.read(MAX_CONTEXT_BYTES + 1)
     require(len(raw) <= MAX_CONTEXT_BYTES, 'Process notes exceed 1 MiB; split the supplied document explicitly')
     try:text = raw.decode('utf-8')
@@ -28,7 +29,7 @@ def freeze_context(workspace, supplied=None):
     folder = Path(workspace)/'knowledge/inbox'
     paths = []
     if folder.exists():
-        require(folder.is_dir() and not folder.is_symlink(), 'Knowledge inbox must be a regular directory')
+        require(folder.is_dir() and not path_is_link(folder), 'Knowledge inbox must be a regular directory')
         for path in folder.iterdir():
             if path.suffix.lower() == '.md':
                 paths.append(path)

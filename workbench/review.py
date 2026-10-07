@@ -1,4 +1,5 @@
 """One editable, plain-language SME packet with immutable question identities."""
+from .domain import path_is_link
 from io import BytesIO
 from pathlib import Path
 import html
@@ -435,7 +436,7 @@ def export_packet(process, directory):
     from docx import Document
     directory=Path(directory);document=packet_document(process)
     if directory.exists():
-        require(all((directory/name).is_file() and not (directory/name).is_symlink()
+        require(all((directory/name).is_file() and not path_is_link(directory/name)
                     for name in ('packet.json','sme-checklist.xlsx','sme-checklist.docx','sme-checklist.html')),
                 'Existing packet is incomplete; recover its preserved snapshot')
         existing=decode((directory/'packet.json').read_bytes())

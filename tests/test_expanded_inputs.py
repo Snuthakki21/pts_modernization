@@ -315,21 +315,22 @@ class ExpandedInputTests(unittest.TestCase):
         folder=self.root/'processes';original=folder/'Case';original.mkdir(parents=True)
         self.assertFalse(validate_workspace(self.root))
         # Model directory entries that cannot coexist on a case-insensitive host.
-        rglob=Path.rglob
-        def entries(path,pattern):
-            return iter((original,folder/'case')) if path==folder else rglob(path,pattern)
-        with patch.object(Path,'rglob',entries):
+        from workbench.layout import _walk_paths
+        def entries(path):
+            return iter((original,folder/'case')) if path==folder else _walk_paths(path)
+        with patch('workbench.layout._walk_paths',entries):
             self.assertTrue(any('identity collides' in issue for issue in validate_workspace(self.root)))
 
     def test_r552_process_nested_portable_name_collision_is_reported(self):
         """Two sibling artifact names differing only by case must fail a workspace scan; prior output_path checks were single-path checks."""
         self.place('processes/fictional/analysis/Rules.json');self.assertFalse(validate_workspace(self.root))
-        folder=self.root/'processes';rglob=Path.rglob
-        def entries(path,pattern):
-            items=list(rglob(path,pattern))
+        folder=self.root/'processes'
+        from workbench.layout import _walk_paths
+        def entries(path):
+            items=list(_walk_paths(path))
             if path==folder:items.append(folder/'fictional/analysis/rules.json')
             return iter(items)
-        with patch.object(Path,'rglob',entries):
+        with patch('workbench.layout._walk_paths',entries):
             self.assertTrue(any('identity collides' in issue for issue in validate_workspace(self.root)))
 
     def test_r553_process_fifo_cannot_hide_issued_evidence(self):

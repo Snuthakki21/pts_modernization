@@ -1,4 +1,5 @@
 """One frozen metric model drives CSV, workbook and editable PowerPoint."""
+from .domain import path_is_link
 import csv
 import json
 from pathlib import Path
@@ -37,7 +38,7 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
             matches+=len(r['actual'])-len(r['differences'])
             verified+=sum(answers.get(rule['id'],{}).get('answer')=='Yes' and not answers.get(rule['id'],{}).get('correction') for rule in p['rules'])
     versions=doc.get('program_versions',{})
-    target_loc=sum(sum(bool(x.strip()) and not x.lstrip().startswith('#') for x in ((ledger.root/'shared/target/python'/f'{v}.py').read_text().splitlines() if (ledger.root/'shared/target/python'/f'{v}.py').is_file() else [])) for v in set(versions.values()))
+    target_loc=sum(sum(bool(x.strip()) and not x.lstrip().startswith('#') for x in ((ledger.root/'shared/target/python'/f'{v}.py').read_text(encoding='utf-8').splitlines() if (ledger.root/'shared/target/python'/f'{v}.py').is_file() else [])) for v in set(versions.values()))
     result={'process_id':doc['id'],'demo':doc['demo'],'report_final_status':final_status,
         'portfolio_completed_processes':projected['completed_processes'],
         'portfolio_basis':'Includes current report outcome upon atomic artifact acceptance; excludes demonstrations',
@@ -130,8 +131,8 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
     root=Path(root)
     names=('metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json',
            'program-insights.json','program-insights.html','factory.json','factory.html','economics.json','economics.html','economics.csv','coverage.json','coverage.csv','coverage.xlsx','coverage.html','rules.json','rules.csv','rules.html',PRIMARY_REPORT)
-    require(not root.is_symlink() and not any(p.is_symlink() for p in root.parents),'Unsafe report output path')
-    require(not any((root/name).exists() or (root/name).is_symlink() for name in names),
+    require(not path_is_link(root) and not any(path_is_link(p) for p in root.parents),'Unsafe report output path')
+    require(not any((root/name).exists() or path_is_link(root/name) for name in names),
             'Report evidence already exists; create a new report version')
     root.mkdir(parents=True,exist_ok=True)
     coverage=coverage if coverage is not None else build_coverage(doc,ledger.root,checkpoint=checkpoint)
@@ -191,7 +192,7 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
     atomic_json(root/'metrics.json',model)
     csvout=StringIO();writer=csv.writer(csvout);writer.writerow(['Metric','Value'])
     for k,v in m.items():writer.writerow([k,'Unknown' if v is None else v])
-    (root/'metrics.csv').write_text(csvout.getvalue())
+    (root/'metrics.csv').write_text(csvout.getvalue(), encoding='utf-8')
     book=Workbook();sheet=book.active;sheet.title='Metrics';sheet.append(['Metric','Value'])
     for k,v in m.items():sheet.append([k,'Unknown' if v is None else v])
     sheet.column_dimensions['A'].width=48;sheet.column_dimensions['B'].width=90;sheet.freeze_panes='B2'

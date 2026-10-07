@@ -1,12 +1,22 @@
 """Package an existing verified record adapter as a bounded online candidate."""
+import inspect
 import json
 from pathlib import Path
-from .domain import encode, sha, write_new, require
+from .domain import encode, sha, write_new, require, path_is_link
 from .target import run_generated
 
 LIMITATIONS=['Local JSON record API and generated form; BMS layout, AID keys and native CICS behavior are not replaced',
              'Bearer token is local operator access, not RACF or enterprise user/role equivalence',
              'SQLite session/idempotency transactions do not implement Db2, VSAM, IMS or distributed commits']
+
+
+def packaged_runtime():
+    """Embed the shared path guard in the independently runnable target package."""
+    # Normalize implementation checkout line endings only; source exports stay byte-exact.
+    source = Path(__file__).with_name('online_runtime.py').read_text(encoding='utf-8')
+    dependency = 'from .domain import path_is_link\n'
+    require(source.count(dependency) == 1, 'Online runtime path guard dependency differs')
+    return source.replace(dependency, inspect.getsource(path_is_link) + '\n', 1).encode('utf-8')
 
 
 def deliver(coordinator, doc, run):
@@ -19,12 +29,12 @@ def deliver(coordinator, doc, run):
     for tx in doc.get('transactions',[]):
         name=tx['program'];p=doc['analysis']['programs'].get(name);result=run['programs'].get(name)
         if not p or p['blockers'] or not result or result['differences'] or not result['coverage']['complete'] or not result.get('adversarial',{}).get('passed'):continue
-        code=(coordinator.root/'shared/target/python'/(doc['program_versions'][name]+'.py')).read_text()
+        code=(coordinator.root/'shared/target/python'/(doc['program_versions'][name]+'.py')).read_text(encoding='utf-8')
         codes[name]=code
         spec[tx['id']]={'program':name,'source_path':p['path'],'source_hash':p['source_hash'],'target_hash':sha(code),'fields':p['fields'],'mapset':tx.get('mapset'),'map':tx.get('map'),'limitations':LIMITATIONS}
         transactions[tx['id']]={'api':'/api/transactions/'+tx['id'],'screen':'/','state':'IMPLEMENTED_UNVERIFIED','limitations':LIMITATIONS}
     if not spec:return {'transactions':{},'status':'BLOCKED','reason':'No fully tested business module available'}
-    files={'contract.json':encode(spec),'runtime.py':Path(__file__).with_name('online_runtime.py').read_bytes()}
+    files={'contract.json':encode(spec),'runtime.py':packaged_runtime()}
     for name,code in codes.items():files['modules/'+sha(code)+'.py']=code.encode()
     files['application.py']=b'''# Local target launcher; never connects to a mainframe.
 import hashlib, importlib.util, json, os
@@ -66,7 +76,7 @@ if __name__=='__main__':
         with TestClient(app) as client:
             headers={'Authorization':'Bearer '+'fixture-token-'+'x'*32}
             for tx,item in spec.items():
-                suite=json.loads((root/'synthetic'/run['id']/item['program']/'expected.json').read_text())
+                suite=json.loads((root/'synthetic'/run['id']/item['program']/'expected.json').read_text(encoding='utf-8'))
                 total=0;differences=[]
                 for case in suite['cases']:
                     session=client.post('/api/sessions',json={'transaction':tx},headers=headers).json()

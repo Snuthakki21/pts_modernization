@@ -12,7 +12,7 @@ import socket
 import sys
 import unicodedata
 
-from .domain import MAX_UPLOAD, ValidationError, require, safe_path
+from .domain import MAX_UPLOAD, ValidationError, require, safe_path, path_is_link
 from .limits import (MAX_SOURCE_BYTES, MAX_SOURCE_ENTRIES, MAX_SOURCE_FILE_BYTES,
                      MAX_SOURCE_FILES, MAX_SOURCE_LINES, source_line_count)
 from .layout import validate_workspace
@@ -26,27 +26,27 @@ MIN_FREE_BYTES = 256 * 1024 * 1024
 def initialize_knowledge(workspace):
     """Explicit setup only: install the editable template once, preserving all edits."""
     root = Path(workspace).absolute()
-    require(root.is_dir() and not root.is_symlink() and not any(p.is_symlink() for p in root.parents),
+    require(root.is_dir() and not path_is_link(root) and not any(path_is_link(p) for p in root.parents),
             'Use an existing workspace directory with no symlink parents')
     destination = safe_path(root, 'knowledge/application-knowledge.json')
     if destination.exists():
         require(destination.is_file(), 'Application knowledge must be a regular JSON file')
         return destination
     template = REPOSITORY / 'examples/application-knowledge.json'
-    require(template.is_file() and not template.is_symlink(), 'Application knowledge template is missing; restore the repository release')
+    require(template.is_file() and not path_is_link(template), 'Application knowledge template is missing; restore the repository release')
     raw = template.read_bytes()
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
         with destination.open('xb') as out: out.write(raw)
     except FileExistsError:
-        require(destination.is_file() and not destination.is_symlink(), 'Application knowledge destination changed during setup')
+        require(destination.is_file() and not path_is_link(destination), 'Application knowledge destination changed during setup')
     return destination
 
 
 def _locked(path):
     """Probe only an existing OS lock; do not create or modify lock files."""
     if not path.exists(): return False
-    require(path.is_file() and not path.is_symlink(), 'Unsafe workspace lock path')
+    require(path.is_file() and not path_is_link(path), 'Unsafe workspace lock path')
     with path.open('r+b' if os.name == 'nt' else 'rb') as handle:
         if os.name == 'nt':
             import msvcrt
@@ -65,7 +65,7 @@ def _locked(path):
 
 def _read_sources(root, source_folder=None):
     folder = Path(source_folder).absolute() if source_folder is not None else safe_path(root, 'Endeavor')
-    require(not folder.is_symlink() and not any(p.is_symlink() for p in folder.parents),'Source folder must not contain symlink parents')
+    require(not path_is_link(folder) and not any(path_is_link(p) for p in folder.parents),'Source folder must not contain symlink parents')
     require(folder.is_dir(), 'Endeavor is missing; provide the complete UTF-8 text export')
     files, portable, size, lines = {}, {}, 0, 0
     # Count entries before sorting, and never follow a directory symlink. A
@@ -74,18 +74,18 @@ def _read_sources(root, source_folder=None):
     while pending:
         current = pending.pop()
         if current != folder: safe_path(folder, current.relative_to(folder).as_posix())
-        require(current.is_dir() and not current.is_symlink(), 'Source directories must be regular directories without symlinks')
+        require(current.is_dir() and not path_is_link(current), 'Source directories must be regular directories without symlinks')
         with os.scandir(current) as children:
             for child in children:
                 entries += 1
                 require(entries <= MAX_SOURCE_ENTRIES,
                         f'Source directory traversal exceeds {MAX_SOURCE_ENTRIES:,} entries; use a process-scoped export')
                 path = Path(child.path)
-                require(not child.is_symlink(), 'Source exports must not contain symlinks')
+                require(not path_is_link(path), 'Source exports must not contain symlinks')
                 paths.append(path)
                 if child.is_dir(follow_symlinks=False): pending.append(path)
     for path in sorted(paths):
-        require(not path.is_symlink(), 'Source exports must not contain symlinks')
+        require(not path_is_link(path), 'Source exports must not contain symlinks')
         relative = path.relative_to(folder).as_posix()
         safe_path(folder, relative)
         key = unicodedata.normalize('NFC', relative).casefold()
@@ -116,7 +116,7 @@ def _read_sources(root, source_folder=None):
 def _manifest(path):
     from .intake import parse_manifest, parse_intake_xlsx
     path = Path(path).absolute()
-    require(path.is_file() and not path.is_symlink() and not any(p.is_symlink() for p in path.parents),
+    require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'Manifest must be a regular Markdown or XLSX file with no symlink parents')
     limit = MAX_UPLOAD if path.suffix.lower() == '.xlsx' else 128000
     require(path.stat().st_size <= limit, 'Intake file exceeds its size limit')
@@ -141,7 +141,7 @@ def _locked_requirements(path):
     except ImportError as exc:
         raise ValidationError('Dependency lock parser is missing; run the release setup script') from exc
     selected, seen, pending = [], set(), []
-    for line_number, raw in enumerate(path.read_text().splitlines(), 1):
+    for line_number, raw in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith('#'):
             require(not pending, 'Incomplete dependency lock continuation')
@@ -220,7 +220,7 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
     env = dict(os.environ if environ is None else environ)
     # Saved form values are local defaults, not new connectivity or approval.
     # Preserve explicit CLI arguments and the existing offline diagnostic boundary.
-    if workstation_defaults and root.is_dir() and not any(p.is_symlink() for p in (root,*root.parents)):
+    if workstation_defaults and root.is_dir() and not any(path_is_link(p) for p in (root,*root.parents)):
         from .setup import intake_defaults, workstation_environment
         defaults = intake_defaults(root)
         if source_folder is None:source_folder = defaults['source_folder']
@@ -242,12 +242,12 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
         environment['dependency_message'],
         '' if environment['dependencies_ready'] else 'Run the setup script using the release requirements.lock and its verified wheels.')
     try:
-        frontend = all((STATIC_ROOT / name).is_file() and not (STATIC_ROOT / name).is_symlink()
+        frontend = all((STATIC_ROOT / name).is_file() and not path_is_link(STATIC_ROOT / name)
                        and (STATIC_ROOT / name).stat().st_size > 0 for name in ('index.html', 'app.js', 'style.css'))
     except OSError: frontend = False
     add('frontend', 'READY' if frontend else 'BLOCKED', 'Committed UI bundle is present.' if frontend else 'The committed UI bundle is incomplete.',
         '' if frontend else 'Restore workbench/static from the release, or run npm ci and npm run build in frontend.')
-    safe_root = root.is_dir() and not root.is_symlink() and not any(p.is_symlink() for p in root.parents)
+    safe_root = root.is_dir() and not path_is_link(root) and not any(path_is_link(p) for p in root.parents)
     add('workspace', 'READY' if safe_root else 'BLOCKED', 'Existing workspace path is a directory without symlink parents.' if safe_root else 'Workspace is missing, is not a directory, or uses a symlink.',
         '' if safe_root else 'Create a dedicated local-disk workspace directory and use its direct path.')
     if safe_root:
@@ -339,7 +339,7 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
                 result['conversion_status'] = 'BLOCKED'
 
     # Validate configuration only. Do not print endpoint, profile, model or token values.
-    from .connectors import endpoint, ZoweReader
+    from .connectors import endpoint, ZoweReader, zowe_command
     if env.get('WB_DB2_MCP_URL'):
         try:
             endpoint(env['WB_DB2_MCP_URL'])
@@ -352,12 +352,13 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
         try:
             ZoweReader(env['WB_ZOWE_PROFILE'], env.get('WB_ZOWE_ZOSMF_PROFILE'))
             require(shutil.which('zowe', path=env.get('PATH', os.defpath)), 'Zowe CLI is not on PATH')
+            zowe_command(['zowe'], env)  # Resolve local argv only; never execute a probe.
             hint = env.get('WB_DATASET_HINT', '*')
             require(isinstance(hint,str) and re.fullmatch(r'[A-Za-z0-9@$#.*()_-]{1,150}', hint) and not hint.startswith('-'), 'Invalid dataset hint')
             add('zowe', 'UNVERIFIED', 'Zowe CLI and profile syntax are configured; credentials, profile existence, access and catalog completeness are unverified.',
                 'Authenticate the approved read-only profile locally; review discovery errors or truncation during analysis.')
         except ValidationError:
-            add('zowe', 'BLOCKED', 'Configured Zowe CLI/profile/dataset hint failed a local check.', 'Install the approved Zowe CLI on PATH; use a valid existing profile alias and dataset hint.')
+            add('zowe', 'BLOCKED', 'Configured Zowe CLI/profile/dataset hint failed a local check.', 'Repair the approved Zowe CLI and its Node.js runtime on PATH; use a valid existing profile alias and dataset hint.')
     else: add('zowe', 'NOT_CONFIGURED', 'Optional Zowe profile is not configured.', 'Set WB_ZOWE_PROFILE after local authentication if live discovery is needed.')
     if env.get('WB_LLM_URL'):
         try:

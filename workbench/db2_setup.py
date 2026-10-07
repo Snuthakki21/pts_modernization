@@ -1,4 +1,5 @@
 """Nonsecret local Db2 settings; runtime credentials come from private environment."""
+from .domain import path_is_link
 import argparse
 import json
 from pathlib import Path
@@ -84,7 +85,7 @@ def load_connection(config_file,env=None):
     import os
     env=os.environ if env is None else env
     path=Path(config_file).absolute()
-    require(not path.is_symlink() and not any(parent.is_symlink() for parent in path.parents)
+    require(not path_is_link(path) and not any(path_is_link(parent) for parent in path.parents)
             and path.is_file() and path.stat().st_size<=1024*1024,'Select a regular bounded local Db2 config')
     config=_config(decode(path.read_bytes(),1024*1024))
     host=_host(config.get('host'));database=_text(config.get('database'));driver=_text(config.get('driver'))
@@ -106,7 +107,7 @@ def load_connection(config_file,env=None):
 
 def configured_max_rows(config_file):
     path=Path(config_file).absolute()
-    require(not path.is_symlink() and not any(parent.is_symlink() for parent in path.parents)
+    require(not path_is_link(path) and not any(path_is_link(parent) for parent in path.parents)
             and path.is_file() and path.stat().st_size<=1024*1024,'Select a regular bounded local Db2 config')
     return _config(decode(path.read_bytes(),1024*1024))['max_rows']
 

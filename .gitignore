@@ -21,6 +21,7 @@ frontend/dist/
 /zowe.config.user.json
 /zowe.schema.json
 /zowe.config.schema.json
+/zowe.config.user.schema.json
 /mcp.json
 /.mcp.json
 /.vscode/mcp.json

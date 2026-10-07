@@ -15,6 +15,8 @@ def check(root):
     root=Path(root);issues=[]
     for name in ('START_HERE.md','docs/TECHNICAL_REFERENCE.md','knowledge/README.md'):
         text=(root/name).read_text(encoding='utf-8')
+        for removed in ('workbench_begin_work', 'workbench_end_work', 'workbench_record_measurement', 'workbench_economics', 'workbench_forecast'):
+            if removed in text:issues.append(name+': advertises removed development MCP tool '+removed)
         if 'up to 16 KB' in text or 'maximum 16 KB for automatic ingestion' in text:issues.append(name+': obsolete context limit')
         if str(MAX_CONTEXT_FILES) not in text or str(MAX_CONTEXT_BYTES//(1024*1024))+' MiB' not in text:issues.append(name+': current context bounds missing')
     if set(TOOLS) != {'workbench_retrieval_task'}:issues.append('Copilot MCP must expose only the retrieval request')
@@ -22,9 +24,9 @@ def check(root):
     try:WorkflowBridge(role='development')
     except ValidationError:pass
     else:issues.append('Claude development MCP integration must be rejected')
-    claude=json.loads((root/'examples/claude-mcp.json').read_text())
+    claude=json.loads((root/'examples/claude-mcp.json').read_text(encoding='utf-8'))
     if claude != {'mcpServers':{}}:issues.append('Claude template must configure no MCP servers')
-    copilot=json.loads((root/'examples/mcp.json').read_text())
+    copilot=json.loads((root/'examples/mcp.json').read_text(encoding='utf-8'))
     if copilot['servers']['workbench']['args'][-2:]!=['--role','retrieval']:issues.append('Copilot template must select retrieval')
     # The route must exist in the real running API, not just the advertised schema.
     import tempfile

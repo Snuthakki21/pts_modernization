@@ -84,7 +84,8 @@ class LineageConnectorTests(unittest.TestCase):
 
     def test_fake_subprocess_has_no_shell_or_credential_prompts(self):
         process = Mock(stdout=io.BytesIO(b'{"success":true,"data":{}}')); process.wait.return_value = 0
-        with patch('workbench.connectors.subprocess.Popen',return_value=process) as popen:
+        with patch('workbench.connectors.zowe_command', side_effect=lambda command, env: command), \
+             patch('workbench.connectors.subprocess.Popen',return_value=process) as popen:
             bounded_command(['zowe'], {'PATH':'/approved'})
         self.assertFalse(popen.call_args.kwargs['shell']); self.assertEqual(popen.call_args.kwargs['stdin'],subprocess.DEVNULL)
         self.assertEqual(popen.call_args.kwargs['stderr'],subprocess.DEVNULL)

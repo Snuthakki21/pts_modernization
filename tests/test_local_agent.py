@@ -20,6 +20,21 @@ class LocalAgentFixture(unittest.TestCase):
         return self.c.create(MANIFEST,files,assistant_mode='claude_files')
 
 class LocalAgentTests(LocalAgentFixture):
+    def test_initial_source_directory_aliases_are_rejected_before_storage(self):
+        for first,second in [('LIB/ELIGIBLE.cbl','lib/OTHER.cpy'),
+                             ('caf\u00e9/ELIGIBLE.cbl','cafe\u0301/OTHER.cpy'),
+                             ('JOBA.jcl','joba.JCL/ELIGIBLE.cbl')]:
+            with self.subTest(paths=(first,second)):
+                with self.assertRaisesRegex(ValidationError,'colli'):
+                    self.c.create(MANIFEST,{first:COBOL,second:'01 OTHER PIC X.\n'},assistant_mode='claude_files')
+                self.assertEqual(self.c.ledger.list(True),[])
+                self.assertFalse(self.c.process_root('process-a').exists())
+
+    def test_initial_shared_directory_preserves_each_original_source_path(self):
+        files={'LIB/ELIGIBLE.cbl':COBOL,'LIB/OTHER.cpy':'01 OTHER PIC X.\n'}
+        doc=self.c.create(MANIFEST,files,assistant_mode='claude_files')
+        self.assertEqual(self.c.sources(doc),files)
+
     def test_new_local_mode_never_uses_mainframe_connectors(self):
         self.create()
         with patch('workbench.connectors.ReadOnlyLineageResolver.from_environment',side_effect=AssertionError('network forbidden')),patch('workbench.connectors.read_only_discovery',side_effect=AssertionError('network forbidden')):
@@ -86,6 +101,57 @@ class RetrievalLifecycleTests(LocalAgentFixture):
         self.c.close();self.c=Coordinator(self.root)
         self.assertEqual(self.c.local_agent_action('process-a','continue',{})['status'],'WAITING_COPILOT')
         self.assertEqual(self.c.sources(self.c.ledger.get('process-a'))['ELIGIBLE.cbl'],COBOL)
+
+    def test_colliding_return_is_rejected_before_acceptance_and_remains_correctable(self):
+        view=self.ready(True);before=self.c.ledger.get('process-a')
+        original=self.c.sources(before)
+        self.response(view,path='JOBA.jcl/ELIGIBLE.cbl')
+        with self.assertRaisesRegex(ValidationError,'colli'):
+            self.c.continue_retrieval('process-a')
+        self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.assertEqual(self.c.sources(before),original)
+        self.assertFalse(list((self.c.process_root('process-a')/'analysis').glob('discovery-*.json')))
+        self.assertFalse(list((self.root/view['retrieval']['return_folder']).parent.glob('accepted-*.json')))
+        # Only the mutable rejected return is corrected; source evidence is intact.
+        (self.root/view['retrieval']['return_folder']/'files/JOBA.jcl/ELIGIBLE.cbl').unlink()
+        self.response(view)
+        self.assertEqual(self.c.continue_retrieval('process-a')['status'],'WAITING_COPILOT')
+        self.assertEqual(self.c.sources(self.c.ledger.get('process-a'))['JOBA.jcl'],original['JOBA.jcl'])
+
+    def test_merged_source_bounds_are_checked_before_accepted_receipt(self):
+        view=self.ready(True);before=self.c.ledger.get('process-a');self.response(view)
+        with patch('workbench.coordinator.MAX_SOURCE_FILES',1):
+            with self.assertRaisesRegex(ValidationError,'source bounds'):
+                self.c.continue_retrieval('process-a')
+        self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.assertFalse(list((self.root/view['retrieval']['return_folder']).parent.glob('accepted-*.json')))
+
+    def test_historical_pinned_collision_preserves_receipt_journal_and_originals(self):
+        view=self.ready(True);self.response(view,path='JOBA.jcl/ELIGIBLE.cbl')
+        # Simulate the former validators only to create its fictional interrupted
+        # ledger state. Production recovery must use the preserved pinned bytes.
+        with patch('workbench.retrieval.validate_source_paths'),patch.object(self.c,'_validate_discovered_sources'):
+            with self.assertRaises(FileExistsError):self.c.continue_retrieval('process-a')
+        before=self.c.ledger.get('process-a')
+        pinned=[before['retrieval_request']['response_artifact'],before['pending_discovery']['artifact']]
+        snapshots={p:(self.c.process_root('process-a')/p).read_bytes() for p in pinned}
+        original=(self.c.process_root('process-a')/'input/sources/JOBA.jcl').read_bytes()
+        self.c.close();self.c=Coordinator(self.root)
+        with self.assertRaisesRegex(ValidationError,'Pinned discovery.*colli'):
+            self.c.local_agent_action('process-a','continue',{})
+        self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.assertEqual({p:(self.c.process_root('process-a')/p).read_bytes() for p in pinned},snapshots)
+        self.assertEqual((self.c.process_root('process-a')/'input/sources/JOBA.jcl').read_bytes(),original)
+
+    def test_direct_discovery_rejects_entire_colliding_batch_before_journal(self):
+        self.ready(True);before=self.c.ledger.get('process-a')
+        paths=['valid/EXTRA.cpy','JOBA.jcl/ELIGIBLE.cbl']
+        entries=[{'path':p,'text':COBOL,'source_hash':sha(COBOL),'provenance':{'origin':'synthetic_fixture'}} for p in paths]
+        with self.assertRaisesRegex(ValidationError,'colli'):
+            self.c.freeze_discovered_sources(before,entries)
+        self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.assertFalse(list((self.c.process_root('process-a')/'analysis').glob('discovery-*.json')))
+        self.assertFalse((self.c.process_root('process-a')/'input/sources/valid').exists())
 
     def test_missing_requested_metadata_stays_blocked_without_repeated_prompts(self):
         self.ready()

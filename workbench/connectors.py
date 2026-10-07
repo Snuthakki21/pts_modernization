@@ -1,15 +1,19 @@
 """Typed, bounded read-only source access. No free-form shell or SQL tool."""
+from .domain import path_is_link
 import json
 import hashlib
 import os
 import re
 import subprocess
+import shutil
+import sys
+from pathlib import Path
 import threading
 import time
 from datetime import datetime, timezone
 import urllib.request
 from urllib.parse import urlsplit
-from .domain import require, decode, encode, ValidationError
+from .domain import require, decode, encode, safe_path, ValidationError
 from .limits import MAX_SOURCE_FILE_BYTES, MAX_JSON_DOCUMENT_BYTES
 
 READ_TOOLS={'db2_list_schemas','db2_list_tables','db2_describe_table','db2_sample_rows','db2_read_table_rows'}
@@ -278,7 +282,7 @@ def export_table_rows(client,schema,table,output,max_rows=1000,page_size=100,
     require(type(max_bytes)is int and 1024<=max_bytes<=2*1024*1024*1024,'Invalid table export byte budget')
     require(type(max_seconds) in (int,float) and 0<max_seconds<=3600,'Invalid table export time budget')
     path=Path(output).absolute()
-    require(not path.exists() and not path.is_symlink() and not any(p.is_symlink() for p in path.parents),
+    require(not path.exists() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'Table export requires a new regular output path')
     path.parent.mkdir(parents=True,exist_ok=True)
     result={'status':'PARTIAL','coverage':'PARTIAL','reason':'row_budget','schema':schema,'table':table,
@@ -330,7 +334,44 @@ def export_table_rows(client,schema,table,output,max_rows=1000,page_size=100,
     return result
 
 
+def zowe_command(command, env):
+    """Run the approved npm CLI through Node on Windows, without a batch shell.
+
+    Resolve the existing package's declared bin; do not parse or execute its
+    .cmd/.bat shim, download software, or change the selected Zowe profiles.
+    """
+    require(isinstance(command, (list, tuple)) and command and command[0] == 'zowe', 'Expected a typed Zowe argv')
+    if sys.platform != 'win32': return list(command)
+    executable = shutil.which('zowe', path=env.get('PATH', ''))
+    require(executable, 'Zowe CLI unavailable; install the approved local CLI and put it on PATH')
+    executable = Path(executable).absolute()
+    if executable.suffix.lower() in ('.exe', '.com'):
+        return [str(executable), *command[1:]]
+    require(executable.suffix.lower() in ('.cmd', '.bat'), 'Windows Zowe requires an approved native executable or npm CLI installation')
+    prefix = executable.parent
+    candidates = (prefix / 'node_modules' / '@zowe' / 'cli', prefix.parent / '@zowe' / 'cli')
+    package = next((item for item in candidates if (item / 'package.json').is_file()), None)
+    require(package is not None, 'Zowe npm package is missing beside its launcher; repair the approved local CLI installation')
+    manifest = safe_path(package, 'package.json')
+    require(manifest.is_file() and manifest.stat().st_size <= 32768, 'Zowe package declaration is missing or exceeds its bound')
+    declaration = decode(manifest.read_bytes(), 32768)
+    require(isinstance(declaration, dict) and declaration.get('name') == '@zowe/cli', 'Launcher does not identify the approved Zowe CLI package')
+    bins = declaration.get('bin')
+    entry = bins.get('zowe') if isinstance(bins, dict) else None
+    require(isinstance(entry, str), 'Zowe package must declare its zowe entry point')
+    script = safe_path(package, entry)
+    require(script.is_file() and script.suffix.lower() == '.js', 'Zowe package entry point is missing or invalid')
+    node = prefix / 'node.exe'
+    if not node.is_file():
+        selected = shutil.which('node', path=env.get('PATH', ''))
+        require(selected is not None, 'Node.js is unavailable; repair the approved Zowe CLI runtime')
+        node = Path(selected).absolute()
+    require(node.is_file() and node.suffix.lower() == '.exe', 'Windows Zowe needs a native Node.js executable')
+    return [str(node), str(script), *command[1:]]
+
+
 def bounded_command(command,env,timeout=20,limit=1024*1024):
+    if command and command[0] == 'zowe': command = zowe_command(command, env)
     process=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env=env,shell=False)
     chunks=[];size=[0];overflow=[False]
     def drain():
@@ -352,7 +393,7 @@ class ZoweReader:
     def __init__(self,profile,zosmf_profile=None):
         self.profile=profile;self.zosmf_profile=zosmf_profile;self.timeout=20
         for name in (profile,) if zosmf_profile is None else (profile,zosmf_profile):
-            require(isinstance(name,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,80}',name),'Unsafe Zowe profile alias')
+            require(isinstance(name,str) and len(name)<=80 and re.fullmatch(r'[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*',name) and not set(name.split('.')) & {'__proto__','constructor','prototype'},'Unsafe Zowe profile alias')
     def operation(self,op,value,*,pattern=None,max_items=100):
         require(op in ('list_data_sets','list_members','read_member','read_dataset'),'Zowe source operations are strictly read-only')
         require(type(max_items)is int and 1<=max_items<=1000,'Zowe item bound must be 1..1000')
@@ -369,7 +410,7 @@ class ZoweReader:
         if op.startswith('list_'):command+=['--attributes','--max-length',str(max_items)]
         if pattern is not None:command+=['--pattern',pattern]
         command+=['--response-format-json']
-        allowed=['PATH','HOME','USERPROFILE','APPDATA','SystemRoot','ZOWE_CLI_HOME','NODE_EXTRA_CA_CERTS']
+        allowed=['PATH','PATHEXT','HOME','USERPROFILE','APPDATA','LOCALAPPDATA','TEMP','TMP','SystemRoot','ZOWE_CLI_HOME','NODE_EXTRA_CA_CERTS']
         env={k:os.environ[k] for k in allowed if k in os.environ}
         try:
             source_read=op in ('read_member','read_dataset')

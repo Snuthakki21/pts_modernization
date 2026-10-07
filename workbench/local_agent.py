@@ -3,6 +3,7 @@
 The existing Coordinator worker is the sole consumer. Durable start markers
 prevent automatic mutation replay when an action's final outcome is uncertain.
 """
+from .domain import path_is_link
 import os
 from pathlib import Path
 import re
@@ -138,7 +139,7 @@ def submit_command(root, pid, action, payload, timeout=30, command_id=None):
 
 def _retire(root, path, quarantine=False):
     # Never follow a rejected symlink. The rejection result records its cause.
-    if path.is_symlink():
+    if path_is_link(path):
         path.unlink()
     elif quarantine:
         rejected = safe_path(root, REJECTED + '/' + path.name + '.' + uuid.uuid4().hex + '.rejected')

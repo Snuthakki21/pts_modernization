@@ -1,4 +1,5 @@
 """Explicit read-only application file-share bindings; no guessed dataset paths."""
+from .domain import path_is_link
 from pathlib import Path
 from .domain import decode, require, safe_path, sha
 
@@ -31,7 +32,7 @@ def input_locations(workspace):
         name=item['name'];require(name in ('WEDLX','TranRepository') and name not in result,'Unknown or duplicate input location')
         require(isinstance(item['path'],str) and item['path'],'Provide the actual mounted folder path')
         folder=Path(item['path']).absolute()
-        require(not any(p.is_symlink() for p in (folder,*folder.parents)),'Input locations must not use symlinks')
+        require(not any(path_is_link(p) for p in (folder,*folder.parents)),'Input locations must not use symlinks')
         bindings=item['bindings'];require(isinstance(bindings,list) and len(bindings)<=10000,'Input bindings must be bounded')
         facts=[];ids=set()
         for binding in bindings:

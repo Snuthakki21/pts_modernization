@@ -349,14 +349,14 @@ class ConnectionReviews(unittest.TestCase):
     def test_r374_command_timeout_kills_and_reaps_child(self):
         """An over-time source read terminates its process and returns a bounded validation error."""
         process=Mock(stdout=io.BytesIO(b''));process.wait.side_effect=[subprocess.TimeoutExpired('zowe',1),-9]
-        with patch.object(con.subprocess,'Popen',return_value=process):
+        with patch.object(con,'zowe_command',side_effect=lambda command, env: command), patch.object(con.subprocess,'Popen',return_value=process):
             with self.assertRaisesRegex(ValidationError,'timed out'): con.bounded_command(['zowe'],{},timeout=0.01)
         process.kill.assert_called_once();self.assertEqual(process.wait.call_count,2)
 
     def test_r375_command_output_overflow_stops_before_decode(self):
         """A noisy source command cannot accumulate or decode bytes beyond its approved output bound."""
         process=Mock(stdout=io.BytesIO(b'x'*8192));process.wait.return_value=0
-        with patch.object(con.subprocess,'Popen',return_value=process):
+        with patch.object(con,'zowe_command',side_effect=lambda command, env: command), patch.object(con.subprocess,'Popen',return_value=process):
             with self.assertRaisesRegex(ValidationError,'output bound'): con.bounded_command(['zowe'],{},limit=100)
         process.kill.assert_called_once()
 

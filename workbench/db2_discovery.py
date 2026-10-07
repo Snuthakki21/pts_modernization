@@ -3,6 +3,7 @@
 Only catalog-derived identifiers enter fixed SELECT statements. A local journal
 is operational state, never conversion/parity evidence. WITH UR is not a snapshot.
 """
+from .domain import path_is_link
 from datetime import date, datetime, time as daytime
 from decimal import Decimal
 import json
@@ -62,20 +63,20 @@ class SearchStore:
     """
     def __init__(self, root, connect, row_limit):
         self.root = Path(root).absolute()
-        check(not self.root.is_symlink() and not any(p.is_symlink() for p in self.root.parents),
+        check(not path_is_link(self.root) and not any(path_is_link(p) for p in self.root.parents),
               'Search state must use a regular private directory')
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(self.root, 0o700)
         self.path = self.root / 'search.sqlite3'
         for name in ('search.sqlite3','search.sqlite3-journal','search.sqlite3-wal','search.sqlite3-shm'):
             p = self.root / name
-            check(not p.is_symlink() and (not p.exists() or p.is_file()), 'Invalid search state path')
+            check(not path_is_link(p) and (not p.exists() or p.is_file()), 'Invalid search state path')
         self.connect, self.row_limit = connect, row_limit
         self.lock = threading.RLock(); self.live = {}; self.closed = False
         # Another process cannot share this journal; lifetime lock is OS released.
         # Portable SQLite exclusive transaction held in a separate lock database.
         lock_path = self.root / 'owner.sqlite3'
-        check(all(not (self.root/n).is_symlink() for n in ('owner.sqlite3','owner.sqlite3-journal','owner.sqlite3-wal','owner.sqlite3-shm')), 'Invalid search lock path')
+        check(all(not path_is_link(self.root/n) for n in ('owner.sqlite3','owner.sqlite3-journal','owner.sqlite3-wal','owner.sqlite3-shm')), 'Invalid search lock path')
         self.owner = sqlite3.connect(lock_path, timeout=0, check_same_thread=False)
         os.chmod(lock_path, 0o600)
         try:

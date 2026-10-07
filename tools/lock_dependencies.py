@@ -205,11 +205,11 @@ def main():
     contents = render_lock(releases)
     destination = Path(__file__).resolve().parents[1] / 'requirements.lock'
     if args.check:
-        if destination.read_text() != contents:
+        if destination.read_text(encoding='utf-8') != contents:
             raise SystemExit('Lock differs from official metadata; regenerate and revalidate')
         print(f'Verified all published SHA256 digests and transitive pins for {len(PINS)} releases')
     else:
-        destination.write_text(contents)
+        destination.write_text(contents, encoding='utf-8')
         print(f'Wrote {destination}: {len(PINS)} exact pins with published SHA256 digests')
 
 

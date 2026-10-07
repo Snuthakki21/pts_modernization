@@ -106,13 +106,13 @@ def create_app(root, origin='http://127.0.0.1:8765'):
     @app.get('/api/setup/workstation')
     async def workstation_setup():
         from .setup import inspect_workstation
-        return await asyncio.to_thread(inspect_workstation,c.root)
+        return await asyncio.to_thread(inspect_workstation,c.root,origin=origin)
     @app.post('/api/setup/workstation')
     async def update_workstation_setup(request:Request):
         from .setup import MAX_WORKSTATION_BYTES, save_workstation
-        b=await body(request,MAX_WORKSTATION_BYTES)
-        require(set(b)=={'settings'},'Supply only the nonsecret workstation settings object')
-        return await asyncio.to_thread(c.configure_workstation,b['settings'])
+        b=await body(request,MAX_WORKSTATION_BYTES*2)
+        require(set(b) in ({'settings'},{'settings','connections'}),'Supply only nonsecret workstation settings and connection choices')
+        return await asyncio.to_thread(c.configure_workstation,b['settings'],b.get('connections'),origin)
     @app.get('/api/templates/intake')
     async def template():
         path=Path(__file__).parent.parent/'examples/intake-template.xlsx'
@@ -268,8 +268,8 @@ def create_app(root, origin='http://127.0.0.1:8765'):
     @app.post('/api/demo')
     async def demo():
         examples=Path(__file__).parent.parent/'examples';pid='demo-'+secrets.token_hex(4)
-        manifest=(examples/'process-input.md').read_text().replace('example-referral',pid)
-        sources={p.name:p.read_text() for p in (examples/'Endeavor').iterdir() if p.is_file()}
+        manifest=(examples/'process-input.md').read_bytes().decode('utf-8').replace('example-referral',pid)
+        sources={p.name:p.read_bytes().decode('utf-8') for p in (examples/'Endeavor').iterdir() if p.is_file()}
         doc=c.create(manifest,sources,True);return c.start(doc['id'])
     @app.post('/api/process/{pid}/{action}')
     async def action(pid:str,action:str,request:Request):

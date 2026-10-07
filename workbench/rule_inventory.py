@@ -77,6 +77,7 @@ def build_rule_inventory(doc, coverage, root=None):
     programs = (doc.get('analysis') or {}).get('programs', {})
     by_path = {p['path']: (name, p) for name, p in programs.items()}
     memberships = _memberships(doc)
+    program_memberships = _memberships(doc, by_definition=True)
     from .review import rule_classifications
     classifications = rule_classifications(doc)
     identified = {}; modeled = {}; original = {}
@@ -166,15 +167,20 @@ def build_rule_inventory(doc, coverage, root=None):
         owned={p['path']} | {d['path'] for d in p.get('dependencies',[]) if d.get('path')}
         for field in p.get('fields',{}).values():
             if field.get('source_ref'):owned.add(field['source_ref'].rsplit(':',1)[0])
-        program_rows.append(rollup({'program':name,'source_path':p['path'],'source_version':p['source_hash']},[r for path in sorted(owned) for r in rules_by_path[path]]))
+        selected=[r for path in sorted(owned) for r in rules_by_path[path]]
+        row=rollup({'program':name,'source_path':p['path'],'source_version':p['source_hash']},selected)
+        reached=program_memberships[p['path'],name]
+        row['invocation_memberships']=sum(sum((m['job'],m['step'],m['program']) in reached for m in r['memberships']) for r in selected)
+        program_rows.append(row)
     rules_by_id={r['id']:r for r in rules}
     job_programs=[]
     for job in job_rows:
         for program in program_rows:
-            selected=[rules_by_id[rid] for rid in program['rule_ids'] if any(m['job']==job['job'] for m in rules_by_id[rid]['memberships'])]
+            reached={member for member in program_memberships[program['source_path'],program['program']] if member[0]==job['job']}
+            selected=[rules_by_id[rid] for rid in program['rule_ids'] if any((m['job'],m['step'],m['program']) in reached for m in rules_by_id[rid]['memberships'])]
             if selected:
                 row=rollup({'job':job['job'],'program':program['program']},selected)
-                row['invocation_memberships']=sum(sum(m['job']==job['job'] for m in r['memberships']) for r in selected)
+                row['invocation_memberships']=sum(sum((m['job'],m['step'],m['program']) in reached for m in r['memberships']) for r in selected)
                 job_programs.append(row)
     from .requirements import comparison
     return {'requirements_comparison':comparison(doc,coverage), 'schema_version': 1, 'process_id': doc['id'], 'rules': rules, 'job_programs':job_programs, 'summary': _counts(rules),

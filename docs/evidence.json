@@ -167653,7 +167653,6 @@
     "date": "2026-10-07",
     "kind": "advisory_repository_review",
     "source_fingerprint": "d33672f50cfe29a9c73d47f616ef5ecb6bc5e165608dd8e2a0dd16718faccd20",
-    "findings_remain_unresolved": true,
     "findings": [
       {
         "priority": "P1",
@@ -167713,9 +167712,30 @@
       "No native Windows/Linux or real interactive browser execution this pass",
       "Finite tests and scoped inspection do not establish exhaustive correctness; all findings remain unresolved"
     ],
-    "publication_note": "The reviewed working tree is published on modernization-factory; remote main retains its distinct prior implementation. Passing existing checks does not clear these reproduced findings."
+    "publication_note": "The reviewed working tree is published on modernization-factory; remote main retains its distinct prior implementation. Passing existing checks does not clear these reproduced findings.",
+    "findings_remain_unresolved_at_original_review": true,
+    "followup_resolution": {
+      "date": "2026-10-07",
+      "status": "CORRECTED_AND_SCOPED_REVIEWED_FOR_NEW_OPERATIONS",
+      "original_findings_preserved": true,
+      "replacements": [
+        "Lossless browser integer transport and parsing; 256 independently generated integer states, seven decimal-type cases and actual browser request/response comparisons.",
+        "Merged normalized path-tree collisions rejected before retrieval acceptance or journal pinning; case and Unicode collisions remain accounted. Historically frozen invalid imports require a new identified process.",
+        "Shared-copybook report attribution uses actual program invocation reachability; JSON, CSV, Excel and HTML reconcile.",
+        "Credits instructions use the local runner --measurement-file workflow. Work clocks have start/stop controls, pinned retry identities and server-confirmed feedback."
+      ],
+      "pre_extension_backend_review": {
+        "path": ".implementation/tmp/windows-independent-review/scoped-review.json",
+        "sha256": "154f5a003f6da17eeaecd587d0280522a45af0bb8ad0028a86af48ea577d181b"
+      },
+      "pre_extension_frontend_review": {
+        "path": ".implementation/tmp/frontend-independent-review/report.json",
+        "sha256": "9490c4c7400aaf3f02776c9555d7943a062649b2f8156930bfc0c8fbd05537aa"
+      },
+      "scope_note": "These receipts cover their stated snapshots and do not rewrite the original advisory review or immutable process evidence."
+    }
   },
-  "current_revision": {
+  "previous_revision_2026_10_07_before_windows11": {
     "date": "2026-10-07",
     "functional_source_fingerprint": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
     "full_suite": {
@@ -167936,6 +167956,403 @@
       ".venv/bin/python -m workbench.layout --workspace WORKSPACE",
       ".venv/bin/python tools/check_handoff.py",
       ".venv/bin/python tools/check_factory.py"
+    ]
+  },
+  "current_revision": {
+    "date": "2026-10-07",
+    "base_commit": "e896e5f73d7c4d553bfbd3fd867b374de8958760",
+    "scope": "Windows compatibility, repository consistency and one-screen approved Copilot MCP/Zowe configuration preparation",
+    "functional_source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+    "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
+    "full_suite": {
+      "tests": 1831,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 179.095,
+      "source_before": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_after": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "bd0a4ab6c56fd52ef50f396f4c291202531f7425975c0a644817b68906fced71",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/release-suite-receipt.json",
+        "sha256": "dd67b6418fef1e50559439281d4468ef3a81323fc92d38d4cdac343bcf760a0a"
+      }
+    },
+    "original_named_checks": {
+      "schema_version": 1,
+      "created": "2026-10-07T12:56:52.074586+00:00",
+      "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
+      "source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_unchanged": true,
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "execution_log_sha256": "ee74adec8a79ade66d8326dd9b5f61f1979e39e2eb48396985b74708d70fb786",
+      "limitations": [
+        "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
+        "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
+      ],
+      "accepted": true,
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/release-review500/receipt.json",
+        "sha256": "e8edc38e37f77fcac37d29a1001d6c336ad5b7c2b40ed69daba081d63f1354c8"
+      }
+    },
+    "expanded_named_checks": {
+      "schema_version": 1,
+      "created": "2026-10-07T12:56:56.864545+00:00",
+      "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
+      "source_fingerprint": "f07b528d03f36bbf07f5f6274157b4647d3ae66819d9d1db9f12c9a10b283ee6",
+      "source_unchanged": true,
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "execution_log_sha256": "c11822738787857e5eacbb30180496986be5dd55e388dfa51d05d0f94abf1a10",
+      "limitations": [
+        "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
+        "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
+      ],
+      "accepted": true,
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/release-expanded/receipt.json",
+        "sha256": "75d0d6d7f9db5208c278dd6bb8beecf930951e618eacbac15ecde4219509d681"
+      }
+    },
+    "named_check_ids": {
+      "first": "R001",
+      "last": "R1000",
+      "distinct_ids": 1000,
+      "each_executed_once_in_accepted_named_run": true,
+      "skips": 0,
+      "note": "Complete-suite tests also include these IDs; no assertion of only one invocation across all development verification."
+    },
+    "scenario_campaign": {
+      "method": "10 finite source families x 20 program variants x 1000 unique program/input scenarios; 800 valid and 200 invalid inputs per program; compiled once per concrete program; three-way comparison to independent hand-coded family expectations",
+      "seed": 20261003,
+      "requested": 200000,
+      "executed": 200000,
+      "passed": true,
+      "unique_scenarios": 200000,
+      "duplicate_executions": 0,
+      "valid_inputs": 160000,
+      "invalid_inputs": 40000,
+      "divergence_count": 0,
+      "branch_targets": 520,
+      "branches_observed": 512,
+      "elapsed_seconds": 2.309958,
+      "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
+      "source_unchanged_during_campaign": true,
+      "limitations": [
+        "Finite generated combinations, not 200000 independent reviews or exhaustive proof.",
+        "Only flat caller-owned LINKAGE JSON semantics; no native storage, files, decimal encoding, collation ordering, CICS, SQL, scheduler or mainframe execution.",
+        "Independent expected behavior is hand-coded for these ten families; target and reference still share the production source parser.",
+        "Decision outcomes include provably unreachable boundaries; missing outcomes remain explicit.",
+        "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
+      ],
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/release-campaign.json",
+        "sha256": "6ac397574782093f83736d4d50c7d30684910fe07af02f99d1dc221a8eacec4e"
+      }
+    },
+    "frontend": {
+      "tests": 96,
+      "failures": 0,
+      "skips": 0,
+      "typescript": "PASS",
+      "production_build": "PASS",
+      "source_and_asset_manifest": {
+        "path": ".implementation/tmp/setup-ui-audit/frontend-manifest.json",
+        "sha256": "b0bd9063a0705f7cd450a6e315ba7a15e617f538409455eeb9aa4fc68c202d9a"
+      },
+      "manifest_files": 31,
+      "ui_log": {
+        "path": ".implementation/tmp/setup-ui-audit/ui-final.log",
+        "sha256": "039bb708cefea361b569ed902e2ad93d06c2fc2d9d72c5fe57607ef21e17ae54"
+      },
+      "independent_write_false_bundle_comparison": {
+        "files": 6,
+        "all_match": true,
+        "receipt": {
+          "path": ".implementation/tmp/setup-frontend-independent-review/asset-review.json",
+          "sha256": "f3d74f8d51d82815a58c66ed0b105b906a62a3cb88be975c6c39f104a96a1153"
+        }
+      },
+      "app_js_sha256": "6d1391c535adca8a9892311e421987ea13d50eac15cfd33150e0718dd8077aa0",
+      "typecheck_log_sha256": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73",
+      "design_scope_note": "Existing brand/layout was retained. Eight Impeccable aesthetic patterns were verified as incumbent, not connector regressions. Full Premium/Impeccable or internal design-system compliance is not asserted."
+    },
+    "setup": {
+      "single_form_single_save": true,
+      "configuration_modes": [
+        "off",
+        "existing",
+        "create",
+        "import"
+      ],
+      "prepared_files": [
+        ".migration/workstation.json",
+        ".migration/connections.json",
+        ".vscode/mcp.json",
+        "zowe.config.json",
+        "declared approved local Zowe schema"
+      ],
+      "copilot_role": "retrieval_only",
+      "claude_mcp_servers": 0,
+      "save_cli_executions": 0,
+      "save_network_calls": 0,
+      "save_model_calls": 0,
+      "credentials": "Native Zowe secure command and VS Code password prompt; no plaintext fields added to setup.",
+      "safety": "Existing approved servers/inputs preserved; conflicts, schema/alias/path failures and concurrent edits stop Save. Ordinary failed writes restore prior bytes. Not an atomic transaction across external clients or process crashes.",
+      "remaining_client_steps": [
+        "Install the organization-approved Node/npm and Zowe runtime if unavailable",
+        "Enter Zowe credentials in its native secure store",
+        "Review and start approved servers in VS Code",
+        "Enter any approved Db2 token at the secure VS Code prompt"
+      ],
+      "connectivity": "UNVERIFIED",
+      "focused_setup_checks": 173,
+      "new_configuration_regressions": 29,
+      "randomized_configuration_roundtrips": 20,
+      "roundtrip_note": "Configuration tests only; not semantic source-logic fixtures and not evidence of mainframe parity."
+    },
+    "independent_review": {
+      "backend": {
+        "role": "Independent scoped adversarial reviewer, no implementation authorship",
+        "scope": "Core Windows paths/launch/CLI, retrieval, setup save/API/configuration and supporting tests",
+        "outcome": "NO_REMAINING_ACTIONABLE_SCOPED_FINDINGS",
+        "focused_tests": 435,
+        "skips": 0,
+        "private_adversarial_cases": 21,
+        "test_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/final-focused-tests.json",
+          "sha256": "ec179e4274c323ed63db9650bec27aac6380bde857fcf649b715014701650942"
+        },
+        "adversarial_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/final-adversarial-receipts.json",
+          "sha256": "0d59fd0b9f8dfffcc67fe4838ebc02c810c340446d74d79e62fc7b099eaca851"
+        },
+        "source_manifest": {
+          "path": ".implementation/tmp/setup-backend-independent-review/reviewed-source-manifest.json",
+          "sha256": "e8241c990fcf8526cadcbfbd579c343c0d2d364ea33e87b78e5ff44ac84d00fb"
+        },
+        "reproduced_then_corrected": [
+          "Stale-plan overwrite of an externally changed MCP file",
+          "Unknown schema dialect silently falling back to a default",
+          "Invalid JSONC leading commas accepted as trailing delimiters",
+          "Literal dotted profile keys impersonating nested aliases",
+          "Imported configuration pointing to a missing local schema"
+        ],
+        "source_drift_during_checks": {},
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/scoped-review.json",
+          "sha256": "bd45edc2487d540544f1dd3a22c2f684c2b489a53c42448fed7933f492e8f342"
+        },
+        "combined_reviewed_files": 53
+      },
+      "pre_extension_frontend": {
+        "receipt": {
+          "path": ".implementation/tmp/frontend-independent-review/report.json",
+          "sha256": "9490c4c7400aaf3f02776c9555d7943a062649b2f8156930bfc0c8fbd05537aa"
+        },
+        "checks": 89,
+        "independent_integer_states": 256,
+        "decimal_type_cases": 7,
+        "resolved_reproductions": [
+          "Contradictory work-clock stop feedback after lost response/opposite choice",
+          "Economics 503 retaining loading status",
+          "Full pending session ID overflowing 320-pixel viewport"
+        ],
+        "scope_note": "Online integer and work-clock code is unchanged since this scoped review. Setup/main/style/assets also receive the separate current extension review."
+      },
+      "frontend_extension": {
+        "status": "READY_NO_ACTIONABLE_FINDINGS",
+        "role": "Independent Codex frontend reviewer",
+        "checks": 96,
+        "typescript": "PASS",
+        "asset_files_match": 6,
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-frontend-independent-review/report.json",
+          "sha256": "f95e4412a315bbbd918fd1c8ac86202323e0b909e6087e48f33cba11023e0563"
+        },
+        "source_stability": {
+          "files": 35,
+          "start_matches_finish": true,
+          "author_manifest_files": 31,
+          "current_author_manifest_matches": true,
+          "dependency_files_added_at_final_capture": [
+            "frontend/package.json",
+            "frontend/package-lock.json",
+            "frontend/tsconfig.json"
+          ]
+        },
+        "final_manifest_files": 38,
+        "receipt_hashes": {
+          "setup-browser-review.json": "6a87f0522114365dafd9776bff1b0c2eaa13e56d04aad867078de6d7be9b576e",
+          "setup-live-api-review.json": "0e3a585c4440956fce82581ebf66bb336390e7c7f5e0186c074ae1633f96383e",
+          "asset-review.json": "f3d74f8d51d82815a58c66ed0b105b906a62a3cb88be975c6c39f104a96a1153",
+          "ui-tests-final.log": "7ac9c07559ee9666c1d0c627ab573f2201662888e86cad1cd35a6e88089c15ee",
+          "typecheck-final.log": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73"
+        },
+        "limitations": [
+          "Chrome154 headless on macOS. Native Windows11/PowerShell, native select popup acceptance, screen readers and browser zoom were not executed.",
+          "Windows multiline native commands were synthetic API fixtures; actual API commands reflect the macOS host. No returned install/secure command was executed.",
+          "CLI installation/runtime qualification, credentials, VS Code MCP trust/start and Db2 authentication/read reachability remain unverified client actions, explicitly shown by Setup.",
+          "No MCP/mainframe/source-host call or private business/source export access.",
+          "Parent owns the complete suite, named IDs, campaign and publication gates. Bounded finite checks do not prove every scenario."
+        ]
+      },
+      "scope_limit": "Scoped review and finite verification do not certify absence of all defects, real enterprise host integration or Windows 11 desktop behavior."
+    },
+    "browser": {
+      "author_actual_ui": {
+        "host": "darwin",
+        "browser": "154.0.8037.98",
+        "contexts": 6,
+        "viewports": [
+          1280,
+          390,
+          320
+        ],
+        "page_errors": [],
+        "receipt": {
+          "path": ".implementation/tmp/setup-ui-audit/browser-setup-receipt.json",
+          "sha256": "917f999609f1cd932e99d8ce5c0d0e3ad761f3cb5b79787ad1af0332efe056a1"
+        },
+        "exact_import_files": [
+          {
+            "source": "supplied.zowe.json",
+            "destination": "zowe.config.json",
+            "bytes": 761,
+            "sha256": "6883827ee1ffd90a54cbdfd1d33e11903db7b7f03fbd000edb6f9a2baf821079",
+            "exact_bytes": true,
+            "contains_CRLF": true
+          },
+          {
+            "source": "supplied.schema.json",
+            "destination": "zowe.schema.json",
+            "bytes": 270,
+            "sha256": "6c7228c47a61eb02dd6ae5bb3accaf8bc98d3bb097378ede53900bfecc35a617",
+            "exact_bytes": true,
+            "contains_CRLF": true
+          }
+        ],
+        "scope": "Dedicated local Coordinator fixtures, actual shipped App/ASGI save path. No returned installation/authentication command or remote host executed.",
+        "executed_assertions": 84
+      },
+      "independent_setup": {
+        "status": "PASS",
+        "host": "macOS",
+        "browser": "Chrome 154",
+        "synthetic_checks": 17,
+        "actual_coordinator_checks": 21,
+        "actual_save_posts": 15,
+        "viewports": [
+          1280,
+          390,
+          320
+        ],
+        "page_errors": 0,
+        "external_requests": 0,
+        "source_stability": true,
+        "synthetic_receipt": {
+          "path": ".implementation/tmp/setup-frontend-independent-review/setup-browser-review.json",
+          "sha256": "6a87f0522114365dafd9776bff1b0c2eaa13e56d04aad867078de6d7be9b576e"
+        },
+        "actual_receipt": {
+          "path": ".implementation/tmp/setup-frontend-independent-review/setup-live-api-review.json",
+          "sha256": "0e3a585c4440956fce82581ebf66bb336390e7c7f5e0186c074ae1633f96383e"
+        },
+        "scope": "Independent shipped-asset browser checks plus isolated API fixtures; source hosts and returned commands were not executed."
+      },
+      "limits": [
+        "macOS Chrome only; no native Windows 11 desktop run",
+        "No complete screen-reader or native zoom acceptance",
+        "No real MCP activation or mainframe authentication"
+      ]
+    },
+    "windows_and_linux": {
+      "implemented": [
+        "Missing-pip repair through ensurepip",
+        "PowerShell 5.1/7 stderr and startup handling",
+        "Symlink and junction-aware workspace/configuration/queue validation",
+        "Native Node dispatch for recognized npm Zowe shims, without cmd.exe shell wrapping",
+        "Explicit UTF-8 engineering reads/writes; raw source LF/CRLF/mixed bytes preserved",
+        "Self-contained online runtime and Windows checkout-newline normalization for implementation files only",
+        "Direct standalone CLI imports and mixed-case copybook discovery",
+        "Native Windows installation and secure-entry command quoting"
+      ],
+      "native_ci": {
+        "status": "AWAITING_PUSH_OF_REVIEWED_REVISION",
+        "workflow": ".github/workflows/platform-smoke.yml",
+        "matrix": [
+          "windows-latest",
+          "ubuntu-latest"
+        ],
+        "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604"
+      },
+      "windows_11_desktop_verified": false,
+      "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."
+    },
+    "dependency_lock": {
+      "published_release_hashes_verified": 79,
+      "transitive_pins_verified": true,
+      "log": {
+        "path": ".implementation/tmp/setup-ui-audit/dependency-lock-check.log",
+        "sha256": "4ad43c8d36e7f5f19f6806a27cf4f988c7d2baaf3873e43cf93a10738d8699d7"
+      },
+      "dependencies_added": 0,
+      "scope": "Published cross-platform digests and closure, not latest-version or vulnerability certification."
+    },
+    "preliminary_validation": {
+      "pre_extension_accepted_suite": {
+        "tests": 1802,
+        "source_fingerprint": "8860175895773aa4908688420208d4dc12c04fab42f3f6607cee3f94cf908b27",
+        "receipt": {
+          "path": ".implementation/tmp/windows-release-suite-final-receipt.json",
+          "sha256": "73f57683fbfdfeef6ac9417aa9ac4a6f36901531958aed04a17068f33476b405"
+        }
+      },
+      "initial_failed_runs_preserved": true,
+      "stale_harness_corrections": [
+        "Walker mocks updated to the actual scandir contract without changing R551/R552 identities",
+        "Pip-bootstrap probe expectations updated for the added ensurepip check"
+      ],
+      "note": "Initial source-changing or stale-harness attempts are not accepted release results and not inflated as production bug counts. Added configuration capability tests are not counted as pre-existing defects.",
+      "raw_logs": "Private .implementation/tmp/ only; immutable process/source evidence preserved."
+    },
+    "operational_processes_converted": 0,
+    "actual_development_provider_credits": "Unknown without attributed provider/account receipts",
+    "campaign_llm_calls": 0,
+    "layout": "PASS",
+    "handoff": "PASS",
+    "factory_consistency": "PASS",
+    "diff_check": "PASS",
+    "limitations": [
+      "Finite tests and independent scoped review do not prove every possible mainframe scenario, zero defects or observed legacy parity.",
+      "Full COBOL/native storage/files, Db2/SQL, CICS, utility and scheduler semantics need separately tested adapters; unsupported behavior remains a named obligation.",
+      "No operational export, real application migration, live host access or actual enterprise Copilot/Claude acceptance was performed.",
+      "Historically frozen invalid discovery snapshots remain blocked; corrections protect new operations and do not rewrite issued evidence.",
+      "Configuration preparation and launcher presence do not prove credentials, approved runtime version, connectivity or read access.",
+      "Windows 11 desktop, complete keyboard/zoom/screen-reader and native PowerPoint acceptance remain unverified.",
+      "Full capacity-ceiling memory/performance is not established by the bounded fixtures.",
+      "Actual credit counts and remaining allowance stay Unknown without real attributed receipts."
+    ],
+    "verification_commands": [
+      "Use absolute repository .implementation/tmp as TMPDIR/TEMP/TMP for the complete unittest discovery.",
+      "node frontend/test-ui.mjs",
+      "npm --prefix frontend run typecheck",
+      "npm --prefix frontend run build",
+      "python tools/review500.py --output PRIVATE_DIRECTORY",
+      "python tools/review_expanded.py --output PRIVATE_DIRECTORY",
+      "python tools/scenario_campaign.py --total-scenarios 200000 --output PRIVATE_JSON",
+      "python -m workbench.layout --workspace WORKSPACE",
+      "python tools/check_handoff.py",
+      "python tools/check_factory.py",
+      "git diff --check"
     ]
   }
 }
