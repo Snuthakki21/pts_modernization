@@ -101,7 +101,7 @@ class WorkstationApiTests(unittest.IsolatedAsyncioTestCase):
         notes = self.export.parent / 'provided.md'
         notes.write_text('# Supplied context\nA business fact, not approval.')
         source = '       IDENTIFICATION DIVISION.\n       PROGRAM-ID. P.\n       PROCEDURE DIVISION.\n           STOP RUN.\n'
-        (self.export / 'P.cbl').write_text(source)
+        (self.export / 'P.cbl').write_bytes(source.encode('utf-8'))
         await self.save({'source_mode': 'folder', 'source_folder': str(self.export), 'process_notes': str(notes)})
         self.app.state.coordinator.close()
         c = Coordinator(self.root)

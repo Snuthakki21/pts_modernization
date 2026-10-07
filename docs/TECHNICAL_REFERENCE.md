@@ -923,6 +923,11 @@ stable session ID and actor/session identity; stop before human waits. Retry
 returns the existing receipt. A restart loses the monotonic session clock:
 close the session as unmeasured rather than charging downtime. Work windows
 measure agent session time, not human attendance or total project completeness.
+Internal work-clock receipts retain the measured monotonic duration even when
+coarse UTC audit timestamps fall on the same tick. Only the protected internal
+observation with its reserved session ID and exact clock attribution uses this
+rule; timestamps still must be ordered and in the past, and durations finite and
+nonnegative. Imported detail work remains bounded by its stated UTC interval.
 
 Active Claude sessions append a bounded 64 KiB receipt through
 `python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE --measurement-file RECEIPT`,
@@ -945,7 +950,7 @@ balances. Session/provider prefixes are reserved for internal observations.
 
 | Kind | Additional fields and meaning |
 |---|---|
-| `work` | `actor`, `stage`, decimal `hours`, timezone-aware `started_at`, `ended_at`; intervals must be in the past. Detail work cannot exceed its actor interval. `stage: pilot_total` with `complete: true` explicitly attests total repeatable process effort across all stages/actors, including rework. Stage detail is contained in this total, never added again. Framework investment is workspace-wide. |
+| `work` | `actor`, `stage`, decimal `hours`, timezone-aware `started_at`, `ended_at`; intervals must be in the past. Imported detail work cannot exceed its actor interval; internal work windows use the protected monotonic clock described above. `stage: pilot_total` with `complete: true` explicitly attests total repeatable process effort across all stages/actors, including rework. Stage detail is contained in this total, never added again. Framework investment is workspace-wide. |
 | `usage` | `provider`, `account`, `model`, timestamps and `quantities`, such as `{"credits":"5.25"}`. Default `coverage: partial`. `coverage: complete_process` requires a process and a whole-pilot credits-only total for that provider/account. Its detail receipts are not added again. Imported overlapping intervals, duplicate totals and conflicting attribution withhold affected totals/calibration. |
 | `budget` | `provider`, `account`, `unit: credits`, `allowance`, `consumed`, `period_start`, `period_end`, `snapshot_at`; process_id null. Show the dated actual balance and tracked subsequent usage separately. Conditional remaining assumes no untracked charges and becomes Unknown for expired or straddled periods. An allowance is not a live account connection. |
 | `plan` | process_id null and `plan` as below. This is an attributed scenario, never conversion credit. |

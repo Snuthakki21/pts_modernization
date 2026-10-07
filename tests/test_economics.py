@@ -316,6 +316,146 @@ class EconomicsTests(unittest.TestCase):
                 self.assertEqual(c.ledger.get('process-a')['status'],'READY')
             finally:c.close()
 
+    def test_coarse_utc_work_clock_preserves_twenty_distinct_monotonic_intervals(self):
+        from decimal import Decimal
+        import random
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from fastapi.testclient import TestClient
+        from workbench.api import create_app
+        wall='2026-01-01T00:00:00+00:00'
+        intervals=random.Random(7319).sample(range(1,4096),20)
+        with tempfile.TemporaryDirectory() as temp:
+            app=create_app(temp);c=app.state.coordinator
+            try:
+                client=TestClient(app,base_url='http://127.0.0.1:8765')
+                token=client.get('/api/state').json()['token']
+                headers={'Origin':'http://127.0.0.1:8765','X-Workbench-Token':token}
+                for i,ticks in enumerate(intervals):
+                    with self.subTest(ticks=ticks):
+                        duration=ticks/8192
+                        clock=SimpleNamespace(monotonic=Mock(side_effect=[100.0,100.0+duration]))
+                        session={'id':'short-'+str(i),'process_id':None,'actor':'fixture-clock-'+str(i),'stage':'framework'}
+                        with patch('workbench.ledger.now',return_value=wall), patch('workbench.coordinator.now',return_value=wall), patch('workbench.coordinator.time',clock):
+                            start=client.post('/api/economics/work/start',json=session,headers=headers)
+                            self.assertEqual(start.status_code,200,start.text)
+                            stop=client.post('/api/economics/work/stop',json={'id':session['id']},headers=headers)
+                            self.assertEqual(stop.status_code,200,stop.text)
+                            self.assertTrue(stop.json()['recorded'])
+                        receipt=c.ledger.measurements()[-1]['document']
+                        self.assertEqual(Decimal(receipt['hours']),Decimal(str(duration))/3600)
+                        self.assertEqual((receipt['started_at'],receipt['ended_at']),(wall,wall))
+                        self.assertEqual(receipt['recorded_by'],'workbench work-session clock')
+                        self.assertEqual(client.post('/api/economics/work/stop',json={'id':session['id']},headers=headers).status_code,200)
+                        self.assertEqual(len(c.ledger.measurements()),i+1)
+                self.assertEqual(c.economics()['integrity_errors'],[])
+            finally:c.close()
+
+    def test_imports_cannot_claim_clock_observation_or_reserved_identity(self):
+        from fastapi.testclient import TestClient
+        from workbench.api import create_app
+        from workbench.economics import validate_receipt
+        wall='2026-01-01T00:00:00Z'
+        record=self.work(id='session-forged',process_id=None,stage='framework',complete=False,
+                         hours='0.01',started_at=wall,ended_at=wall,recorded_by='workbench work-session clock')
+        for change in ({'id':'ordinary'}, {'recorded_by':'claimed clock'}):
+            with self.subTest(change=change),self.assertRaisesRegex(ValidationError,'exceed the interval'):
+                validate_receipt({**record,**change},observed=True)
+        with self.assertRaisesRegex(ValidationError,'exceed the interval'):
+            validate_receipt(record,observed='claimed')
+        with tempfile.TemporaryDirectory() as temp:
+            app=create_app(temp);c=app.state.coordinator
+            try:
+                client=TestClient(app,base_url='http://127.0.0.1:8765')
+                token=client.get('/api/state').json()['token']
+                headers={'Origin':'http://127.0.0.1:8765','X-Workbench-Token':token}
+                self.assertEqual(client.post('/api/economics/receipts',json=record).status_code,403)
+                self.assertEqual(client.post('/api/economics/receipts',json=record,headers={'Origin':headers['Origin']}).status_code,403)
+                for change,message in (({},'exceed the interval'),({'id':'ordinary'},'exceed the interval'),
+                                       ({'hours':'0'},'prefix is reserved'),({'observed':True},'unsupported measurement fields')):
+                    with self.subTest(change=change):
+                        response=client.post('/api/economics/receipts',json={**record,**change},headers=headers)
+                        self.assertEqual(response.status_code,400,response.text)
+                        self.assertIn(message,response.text)
+                self.assertEqual(c.ledger.measurements(),[])
+            finally:c.close()
+
+    def test_internal_clock_keeps_duration_timestamp_and_scope_guards(self):
+        from workbench.economics import validate_receipt
+        from workbench.coordinator import Coordinator
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        wall='2026-01-01T00:00:00+00:00'
+        record=self.work(id='session-short',process_id=None,stage='framework',complete=False,
+                         hours='0.01',started_at=wall,ended_at=wall,recorded_by='workbench work-session clock')
+        for change in ({'hours':'-1'},{'hours':'NaN'},{'hours':'Infinity'},{'hours':'1e99'},
+                       {'started_at':'2026-01-01T00:00:01Z'},{'ended_at':'2999-01-01T00:00:00Z'},
+                       {'ended_at':'2026-01-01T00:00:00'},{'complete':True},{'complete':'false'},{'stage':'analysis'}):
+            with self.subTest(change=change),self.assertRaises(ValidationError):
+                validate_receipt({**record,**change},observed=True)
+        with tempfile.TemporaryDirectory() as temp:
+            c=Coordinator(temp)
+            try:
+                clock=SimpleNamespace(monotonic=Mock(side_effect=[100.0,99.0,100.25]))
+                with patch('workbench.ledger.now',return_value=wall), patch('workbench.coordinator.now',return_value=wall), patch('workbench.coordinator.time',clock):
+                    c.begin_work({'id':'invalid-clock','process_id':None,'actor':'fixture','stage':'framework'})
+                    with self.assertRaisesRegex(ValidationError,'Invalid work hours'):c.end_work('invalid-clock')
+                    self.assertEqual(c.ledger.measurements(),[])
+                    self.assertIn('invalid-clock',c.work_clocks)
+                    self.assertFalse(c.ledger.work_sessions()[0]['receipt_id'])
+                    self.assertTrue(c.end_work('invalid-clock')['recorded'])
+                self.assertEqual(len(c.ledger.measurements()),1)
+            finally:c.close()
+
+    def test_coarse_clock_commit_recovery_survives_restart_without_duplicate_work(self):
+        from workbench.coordinator import Coordinator
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        wall='2026-01-01T00:00:00+00:00'
+        with tempfile.TemporaryDirectory() as temp:
+            c=Coordinator(temp)
+            try:
+                with patch('workbench.ledger.now',return_value=wall), patch('workbench.coordinator.now',return_value=wall), patch('workbench.coordinator.time',SimpleNamespace(monotonic=Mock(side_effect=[100.0,100.25]))):
+                    c.begin_work({'id':'coarse-recovery','process_id':None,'actor':'fixture','stage':'framework'})
+                    with patch.object(c.ledger,'close_work_session',side_effect=OSError('crash after receipt')),self.assertRaises(OSError):
+                        c.end_work('coarse-recovery')
+                before=c.ledger.measurements();self.assertEqual(len(before),1)
+                self.assertFalse(c.ledger.work_sessions()[0]['receipt_id'])
+                c.close();c=Coordinator(temp)
+                self.assertEqual(c.work_clocks,{})
+                self.assertTrue(c.end_work('coarse-recovery')['recorded'])
+                self.assertEqual(c.ledger.measurements(),before)
+                self.assertEqual(c.end_work('coarse-recovery')['receipt_id'],before[0]['id'])
+                self.assertEqual(c.economics()['integrity_errors'],[])
+            finally:c.close()
+
+    def test_coarse_process_clock_receipt_remains_immutable_and_tamper_evident(self):
+        from workbench.coordinator import Coordinator
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from test_workflow import MANIFEST
+        from test_source import COBOL
+        wall='2026-01-01T00:00:00+00:00'
+        with tempfile.TemporaryDirectory() as temp:
+            c=Coordinator(temp)
+            try:
+                c.create(MANIFEST,{'ELIGIBLE.cbl':COBOL})
+                with patch('workbench.ledger.now',return_value=wall), patch('workbench.coordinator.now',return_value=wall), patch('workbench.coordinator.time',SimpleNamespace(monotonic=Mock(side_effect=[100.0,100.25]))):
+                    c.begin_work({'id':'coarse-process','process_id':'process-a','actor':'fixture','stage':'analysis'})
+                    receipt=c.end_work('coarse-process')
+                path=Path(temp)/'processes/process-a'/receipt['path'];frozen=path.read_bytes()
+                original=c.ledger.measurements()[0]['document']
+                with self.assertRaisesRegex(ValidationError,'different evidence'):
+                    c.record_measurement({**original,'hours':'0.02'},observed=True)
+                self.assertEqual(path.read_bytes(),frozen)
+                c.close();c=Coordinator(temp)
+                self.assertEqual(c.economics()['integrity_errors'],[])
+                self.assertEqual(c.end_work('coarse-process')['receipt_id'],receipt['id'])
+                path.write_bytes(b'{}')
+                self.assertIn(receipt['id'],c.economics()['integrity_errors'])
+                self.assertEqual(len(c.ledger.measurements()),1)
+            finally:c.close()
+
 class CopilotCountTests(unittest.TestCase):
     def receipt(self,**kw):
         return {'id':'credits','kind':'usage','process_id':'p','provider':'GitHub Copilot','account':'team','model':'all',

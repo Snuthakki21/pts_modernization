@@ -114,7 +114,13 @@ def validate_receipt(record, observed=False, as_of=None):
         require(isinstance(record['stage'],str) and record['stage'] in STAGES, 'Unknown work stage'); text(record['actor'],'actor')
         require(type(record.get('complete',False)) is bool,'Complete must be a boolean')
         hours=decimal(record['hours'],'work hours')
-        if record['stage']!='pilot_total': require(hours <= Decimal(str((end-start).total_seconds()))/3600, 'Actor work hours exceed the interval')
+        # Internal clocks measure monotonic elapsed time independently of the
+        # ordered UTC audit markers, which can fall on the same coarse tick.
+        clock_observation=(observed is True and record['id'].startswith('session-')
+                           and record['recorded_by']=='workbench work-session clock'
+                           and record['stage']!='pilot_total' and not record.get('complete',False))
+        if record['stage']!='pilot_total' and not clock_observation:
+            require(hours <= Decimal(str((end-start).total_seconds()))/3600, 'Actor work hours exceed the interval')
         if record['process_id'] is None: require(record['stage']=='framework' and not record.get('complete'), 'Global work records are one-time framework investment')
         else: require(record['stage']!='framework', 'Framework investment must be recorded once at workspace scope')
         if record.get('complete'): require(record['stage']=='pilot_total' and hours>0, 'Complete effort requires an explicit whole-pilot total')
