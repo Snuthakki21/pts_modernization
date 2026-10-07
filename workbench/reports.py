@@ -170,7 +170,8 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
     out=StringIO();csv.writer(out).writerows(economics_rows);(root/'economics.csv').write_text(out.getvalue(),encoding='utf-8')
     rule_inventory=build_rule_inventory(doc,coverage,ledger.root)
     rule_paths=write_inventory(rule_inventory,root)
-    (root/'rules.html').write_text('<!doctype html><meta charset="utf-8"><title>Source and modernized rules</title><style>body{font:16px system-ui;margin:2rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}td,th{padding:.5rem;text-align:left}details{margin:1rem 0}</style><h1>Source and modernized rules</h1>'+render_rule_summary(rule_inventory),encoding='utf-8')
+    from .comparison import render_comparison_report
+    (root/'rules.html').write_text(render_comparison_report(rule_inventory),encoding='utf-8')
     rule_paths.append(root/'rules.html')
     final_status='COMPLETED' if coverage['summary']['completion_eligible'] and not doc.get('blockers') and not doc.get('cancel_requested') else 'COMPLETED_WITH_BLOCKERS'
     pf=report_portfolio(ledger,doc,final_status)

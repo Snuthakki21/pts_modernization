@@ -122,10 +122,11 @@ def build_rule_inventory(doc, coverage, root=None):
         item = groups.setdefault(key, {'id': 'RULE_' + sha(encode([path, row['source_hash'], identity]))[:24],
             'source_rule_id': identity, 'category': category, 'description': description, 'classification_basis': basis,
             'program': by_path.get(path, (None,))[0], 'source_path': path, 'source_version': row['source_hash'],
-            'requirements_excluded':row.get('requirements_excluded',False), 'source': [], 'targets': [], 'tests': set(), 'evidence': [], 'reasons': set(), '_dispositions': [],
+            'requirements_excluded':row.get('requirements_excluded',False), 'source': [], 'targets': [], 'tests': set(), 'evidence': [], 'reasons': set(), '_gap_reasons':set(), '_dispositions': [],
             'memberships': [{'job': j, 'step': s, 'program': p} for j, s, p in sorted(memberships[path]) if path not in jcl_context or j.upper()==jcl_context[path]]})
         item['source'].append({'line': number, 'text': row['source_text']})
         item['_dispositions'].append(row['disposition']); item['tests'].update(row['tests']); item['reasons'].add(row['reason'])
+        if row['disposition'] not in VERIFIED:item['_gap_reasons'].add(row['reason'])
         for value in row.get('evidence', []):
             if value not in item['evidence']: item['evidence'].append(value)
         for target in row['target_mappings']:
@@ -150,6 +151,7 @@ def build_rule_inventory(doc, coverage, root=None):
         item['status'] = 'excluded_by_requirements' if item['requirements_excluded'] else 'converted_verified' if verified else 'blocked' if 'blocked' in dispositions or coverage['summary']['integrity_errors'] or item['category'] == 'unclassified' else 'implemented_unverified' if item['targets'] else 'identified'
         from .requirements import NO_REASON
         item['modernized_behavior'] = NO_REASON if item['requirements_excluded'] else item['description'] if item['targets'] else 'Not implemented'
+        item['gap_reasons']=sorted(item.pop('_gap_reasons'))
         item['tests'] = sorted(item['tests']); item['reasons'] = sorted(item['reasons']); rules.append(item)
     def rollup(key, selected):
         return {**key, 'counts': _counts(selected), 'rule_ids': [r['id'] for r in selected],
@@ -183,7 +185,8 @@ def build_rule_inventory(doc, coverage, root=None):
                 row['invocation_memberships']=sum(sum((m['job'],m['step'],m['program']) in reached for m in r['memberships']) for r in selected)
                 job_programs.append(row)
     from .requirements import comparison
-    return {'requirements_comparison':comparison(doc,coverage), 'schema_version': 1, 'process_id': doc['id'], 'rules': rules, 'job_programs':job_programs, 'summary': _counts(rules),
+    from .comparison import freeze_program_gates, freeze_process_gates
+    return {'comparison_contract_version':2, 'process_gates':freeze_process_gates(doc,coverage), 'program_gates':freeze_program_gates(doc,program_rows), 'requirements_comparison':comparison(doc,coverage), 'schema_version': 1, 'process_id': doc['id'], 'rules': rules, 'job_programs':job_programs, 'summary': _counts(rules),
             'jobs': job_rows, 'programs': program_rows,
             'unassigned_rule_ids': [r['id'] for r in rules if not r['memberships']],
             'basis': 'Unique source-version rule occurrences; job totals deduplicate repeated invocations. Unclassified spans are obligations, not a known count of semantic rules. Selected No units remain in original totals and are excluded from requested-scope conversion percentages. Verification inherits replayed whole-program coverage. Source-derived evidence is not observed mainframe parity.'}

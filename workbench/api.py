@@ -284,6 +284,13 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return c.import_answers(pid,data,b.get('reviewer',''))
     @app.get('/api/process/{pid}/events')
     async def events(pid:str):return c.ledger.events(pid)
+    @app.get('/api/process/{pid}/comparison')
+    async def comparison(pid:str,request:Request,program:str='',status:str='all',after:int=0,limit:int=25):
+        allowed={'program','status','after','limit'}
+        require(all(key in allowed and len(request.query_params.getlist(key))==1 for key in request.query_params),
+                'Comparison query contains an unknown or repeated parameter')
+        return await asyncio.to_thread(c.program_comparison,pid,program=program,status=status,after=after,limit=limit)
+
     @app.get('/api/process/{pid}/coverage')
     async def coverage(pid:str):
         from .coverage import build_coverage

@@ -389,6 +389,19 @@ It does not invent business purpose or claim that a parsed screen is converted.
 Verified counts require replayed coverage. Program details page in groups of 20;
 bounded lists flag omissions and point to the complete source and rule reports.
 
+At the end of conversion, open **Evidence → Program comparison** or click
+**Compare COBOL and Python** in Reports. Choose a program and click **Gaps only**.
+Each source unit shows the original file/lines beside the actual Python
+file/lines, accepted status and evidence. Gaps name the recorded reason,
+missing branch or distinct-state count, differing case IDs, and evidence needed
+for resolution. Rule, whole-program and process-wide gates stay distinct;
+process obligations remain visible even when a program has no conversion gaps.
+**Selected No** shows “Not converted because selected No in requirements.”
+Shared copybooks retain all program owners without inflating unique totals.
+The downloadable comparison HTML has the same program/status filters; JSON keeps
+all details when an on-screen preview is abbreviated. Filtering reads the frozen
+accepted report; it does not rerun verification or establish mainframe parity.
+
 The final factory report links one navigable **Program knowledge** HTML document
 and its structured JSON under the process report folder. These consolidate useful
 technical and functional documentation without a separate Markdown file per

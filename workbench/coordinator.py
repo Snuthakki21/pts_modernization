@@ -231,6 +231,51 @@ class Coordinator:
         if relative in doc.get('report_hashes',{}):require(fingerprint==doc['report_hashes'][relative],'Report artifact differs from its inspected version')
         return path
 
+    def program_comparison(self,pid,*,program='',status='all',after=0,limit=25):
+        """Read the accepted report snapshot; never run conversion or verification."""
+        from .executive import accepted_executive
+        from .comparison import comparison_page
+        with self.lock:
+            doc=self.ledger.get(pid)
+            accepted=accepted_executive(self,doc)
+            relative=accepted['executive_report']
+            require(relative is not None,'Program comparison requires an accepted report from the Coordinator')
+            folder=Path(relative).parent.as_posix()
+            def frozen(name):
+                require(name in doc.get('report_hashes',{}),'Comparison evidence is missing from the accepted report baseline')
+                path=self.artifact(pid,name)
+                require(path.stat().st_size<=128*1024*1024,'Accepted comparison artifact exceeds the bounded reader limit; use the complete report download')
+                raw=path.read_bytes()
+                require(len(raw)<=128*1024*1024 and sha(raw)==doc['report_hashes'][name],
+                        'Accepted comparison evidence changed while reading: '+name)
+                return raw
+            # Bind the exact bytes being parsed, including the accepted generation gates.
+            frozen(relative)
+            metrics_raw=frozen(folder+'/metrics.json'); raw=frozen(folder+'/rules.json')
+            try:
+                metrics=json.loads(metrics_raw); inventory=json.loads(raw)
+            except (ValueError,UnicodeError) as exc:
+                raise ValidationError('Accepted comparison evidence is not valid JSON') from exc
+            require(inventory.get('process_id')==pid,'Accepted rule inventory belongs to another process')
+            context=metrics.get('executive_context') or {}
+            require(context.get('rule_inventory')=={k:v for k,v in inventory.items() if k not in ('rules','requirements_comparison')},
+                    'Accepted comparison inventory differs from the executive report context')
+            if 'process_gates' not in inventory:
+                # Historical details come only from accepted frozen coverage/context, never live replay.
+                from .comparison import freeze_process_gates
+                coverage_raw=frozen(folder+'/coverage.json')
+                try:historical_coverage=json.loads(coverage_raw)
+                except (ValueError,UnicodeError) as exc:raise ValidationError('Accepted coverage details are not valid JSON') from exc
+                inventory={**inventory,'process_gates':freeze_process_gates(context,historical_coverage)}
+            page=comparison_page(inventory,program=program,status=status,after=after,limit=limit)
+            gates=page['process_gates']+[gate for rule in page['rules'] for field in ('gaps','program_gates') for gate in rule[field]]
+            references={ref for gate in gates for ref in gate.get('evidence',[])}
+            # Preserved inputs use their frozen receipt hash, not the artifact download route.
+            page['downloadable_evidence']=sorted(references.intersection(doc.get('artifacts',[]),doc.get('artifact_hashes',{})))
+            page['snapshot']={'report':relative,'inventory':folder+'/rules.json','html':folder+'/rules.html',
+                              'coverage':folder+'/coverage.html','inventory_sha256':sha(raw),'created':metrics.get('created')}
+            return page
+
     def register(self,doc,relative):
         path=output_path(self.root,doc['id'],relative)
         require(path.is_file(),'Artifact registration requires an existing regular file: '+relative)

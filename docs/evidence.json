@@ -30778,7 +30778,7 @@
     "The latest five referenced screenshots did not have readable image attachments/file references in this conversation. No claims are based on inspection of those screenshots.",
     "Copilot runs through the IDE host and its normal workspace tool permissions. The UI service cannot independently invoke Copilot Chat. Actual token usage/model identity are Unknown without host evidence."
   ],
-  "historical_receipts_note": "Earlier review and revision receipts are preserved. current_revision identifies the accepted setup revision; prior receipts do not certify changed code. Named IDs are counted once per accepted run; repeats are not additional distinct checks.",
+  "historical_receipts_note": "Earlier review and revision receipts are preserved. current_revision identifies the accepted current program-comparison revision; prior receipts do not certify changed code. Named IDs are counted once per accepted named run; full-suite repeats are not additional distinct checks.",
   "previous_revision_2026_10_04": {
     "date": "2026-10-04",
     "baseline_local_commit": "7651f0103e2f5901d3dfe194332820ecf0a08384",
@@ -167651,89 +167651,22 @@
   },
   "latest_repository_review": {
     "date": "2026-10-07",
-    "kind": "advisory_repository_review",
-    "source_fingerprint": "d33672f50cfe29a9c73d47f616ef5ecb6bc5e165608dd8e2a0dd16718faccd20",
-    "findings": [
-      {
-        "priority": "P1",
-        "file": "frontend/src/online.tsx",
-        "line": 11,
-        "summary": "Browser Number conversion and response JSON parsing lose supported integer precision",
-        "suggestion": "Use exact integer transport and parsing at both browser boundaries; preserve the backend validated integer contract"
-      },
-      {
-        "priority": "P2",
-        "file": "workbench/retrieval.py",
-        "line": 275,
-        "summary": "Returned file/directory prefix collision is accepted and leaves irreversible IMPORTING recovery intent",
-        "suggestion": "Validate merged normalized path-tree conflicts before committing acceptance or discovery journal"
-      },
-      {
-        "priority": "P2",
-        "file": "workbench/rule_inventory.py",
-        "line": 174,
-        "summary": "Shared copybook rules create job/program pairs that never execute",
-        "suggestion": "Constrain report rows and counts by actual program invocation reachability"
-      },
-      {
-        "priority": "P3",
-        "file": "frontend/src/EconomicsPanel.tsx",
-        "line": 25,
-        "summary": "Receipt instructions still direct the agent to an MCP bridge absent from active retrieval-only workflow",
-        "suggestion": "Point Claude at local runner --measurement-file and keep Copilot retrieval-only"
-      }
-    ],
-    "secondary_contract_observation": "The effort UI renders clock counts but no start/stop controls despite the documented effort-panel workflow; inspect UI/local-action integration before promising automatic clocks.",
-    "existing_checks": {
-      "python_tests": 1710,
-      "python_failures": 0,
-      "python_errors": 0,
-      "python_skips": 0,
-      "ui_tests": 57,
-      "typescript": "completed without errors",
-      "build": "all generated assets match committed bytes using write:false",
-      "named_checks": 1000,
-      "each_named_id_once": true,
-      "scenario_count": 200000,
-      "scenario_divergences": 0,
-      "layout": "valid",
-      "handoff": "valid",
-      "factory_consistency": "valid",
-      "diff_check": "no whitespace errors"
+    "kind": "independent_scoped_comparison_review",
+    "functional_source_fingerprint": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+    "backend_receipt": {
+      "path": ".implementation/tmp/program-comparison-independent-review/scoped-delta-review-publish.json",
+      "sha256": "40732958612da7221cd70b12a7c00a99ead7f0496aee75426feaecaa34b54d1e"
     },
-    "scope": [
-      "Lifecycle and retrieval/queue recovery",
-      "Parser, target, fixtures, coverage, requirement exclusions and rule reports",
-      "Frontend/API/runner contracts, credits display and setup",
-      "Private business context integrity, documentation/layout consistency and static bundle parity"
-    ],
-    "limitations": [
-      "No live mainframe, production data, actual Copilot/Claude enterprise-host integration or remote connector checks",
-      "No native Windows/Linux or real interactive browser execution this pass",
-      "Finite tests and scoped inspection do not establish exhaustive correctness; all findings remain unresolved"
-    ],
-    "publication_note": "The reviewed working tree is published on modernization-factory; remote main retains its distinct prior implementation. Passing existing checks does not clear these reproduced findings.",
-    "findings_remain_unresolved_at_original_review": true,
-    "followup_resolution": {
-      "date": "2026-10-07",
-      "status": "CORRECTED_AND_SCOPED_REVIEWED_FOR_NEW_OPERATIONS",
-      "original_findings_preserved": true,
-      "replacements": [
-        "Lossless browser integer transport and parsing; 256 independently generated integer states, seven decimal-type cases and actual browser request/response comparisons.",
-        "Merged normalized path-tree collisions rejected before retrieval acceptance or journal pinning; case and Unicode collisions remain accounted. Historically frozen invalid imports require a new identified process.",
-        "Shared-copybook report attribution uses actual program invocation reachability; JSON, CSV, Excel and HTML reconcile.",
-        "Credits instructions use the local runner --measurement-file workflow. Work clocks have start/stop controls, pinned retry identities and server-confirmed feedback."
-      ],
-      "pre_extension_backend_review": {
-        "path": ".implementation/tmp/windows-independent-review/scoped-review.json",
-        "sha256": "154f5a003f6da17eeaecd587d0280522a45af0bb8ad0028a86af48ea577d181b"
-      },
-      "pre_extension_frontend_review": {
-        "path": ".implementation/tmp/frontend-independent-review/report.json",
-        "sha256": "9490c4c7400aaf3f02776c9555d7943a062649b2f8156930bfc0c8fbd05537aa"
-      },
-      "scope_note": "These receipts cover their stated snapshots and do not rewrite the original advisory review or immutable process evidence."
-    }
+    "backend_final_css_carry_forward": {
+      "path": ".implementation/tmp/program-comparison-independent-review/final-css-carryforward-verified.json",
+      "sha256": "dc325191e8461448a678bbffd63e51a1484e2140a3b7a07d39bf36519d02bf1a"
+    },
+    "frontend_receipt": {
+      "path": ".implementation/tmp/program-comparison-frontend-review/report.json",
+      "sha256": "3a7901b461ce9ada711b535aa20bb33ab0055592ea77b30eb43512e7bcfa220b"
+    },
+    "remaining_actionable_scoped_findings": 0,
+    "scope_note": "Current comparison scope only; historical reviews and native/live limits remain explicit."
   },
   "previous_revision_2026_10_07_before_windows11": {
     "date": "2026-10-07",
@@ -168021,6 +167954,526 @@
     }
   },
   "current_revision": {
+    "date": "2026-10-07",
+    "base_commit": "7738544d898731e16580fb8de2c1236150ee5ec1",
+    "scope": "Accepted per-program COBOL/Python comparison, exact frozen gap diagnostics, bounded read-only filtering and complete scalable downloadable reporting",
+    "functional_source_fingerprint": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+    "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
+    "source_and_asset_manifest": {
+      "path": ".implementation/tmp/program-comparison-ui/freeze-manifest-verified.json",
+      "sha256": "276255bcb48abf20299b47d69e520368d7edba924a2e8d50401ac5b03114779e"
+    },
+    "full_suite": {
+      "tests": 1881,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 182.46,
+      "source_before": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+      "source_after": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "a97e953430a289dceced7242892bfeb605dd32b4d348aac871a707252873749d",
+      "receipt": {
+        "path": ".implementation/tmp/program-comparison-ui/release-suite-verified-receipt.json",
+        "sha256": "e73e8f5cc5805c2884d6ede121786a8b8cb2d993e2fd5415c62ee353ad9b5cd4"
+      }
+    },
+    "original_named_checks": {
+      "schema_version": 1,
+      "created": "2026-10-07T16:48:52.146816+00:00",
+      "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
+      "source_fingerprint": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+      "source_unchanged": true,
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "execution_log_sha256": "25c2450c6d347ce34521f432895f508d9fd0e4868bf19ea224f971b20a400341",
+      "limitations": [
+        "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
+        "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
+      ],
+      "accepted": true,
+      "receipt": {
+        "path": ".implementation/tmp/program-comparison-ui/review500-verified/receipt.json",
+        "sha256": "203822574a276a3817543d3373de517c627cfd7bc09cc2da189ffd0d7d6d3fa5"
+      }
+    },
+    "expanded_named_checks": {
+      "schema_version": 1,
+      "created": "2026-10-07T16:49:43.627029+00:00",
+      "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
+      "source_fingerprint": "958eca1995a5417bc4910f3e46ee1b0814b067fde39111c3196fe5a1ec004e80",
+      "source_unchanged": true,
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "execution_log_sha256": "a24688685540ce14eb755b09fef945ebcdd1be03a3f46db1742c5749e15bfa04",
+      "limitations": [
+        "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
+        "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
+      ],
+      "accepted": true,
+      "receipt": {
+        "path": ".implementation/tmp/program-comparison-ui/review-expanded-verified/receipt.json",
+        "sha256": "aeb2befc5144589a345467fd0fd87b36e9ce56d7e9f2c2d252188b505d94eec3"
+      }
+    },
+    "named_check_ids": {
+      "first": "R001",
+      "last": "R1000",
+      "distinct_ids": 1000,
+      "each_executed_once_in_accepted_named_run": true,
+      "skips": 0,
+      "note": "Complete-suite tests also include these IDs; no assertion of only one invocation across all development verification."
+    },
+    "scenario_campaign": {
+      "method": "10 finite source families x 20 program variants x 1000 unique program/input scenarios; 800 valid and 200 invalid inputs per program; compiled once per concrete program; three-way comparison to independent hand-coded family expectations",
+      "seed": 20261003,
+      "requested": 200000,
+      "executed": 200000,
+      "passed": true,
+      "unique_scenarios": 200000,
+      "duplicate_executions": 0,
+      "valid_inputs": 160000,
+      "invalid_inputs": 40000,
+      "divergence_count": 0,
+      "branch_targets": 520,
+      "branches_observed": 512,
+      "elapsed_seconds": 2.369825,
+      "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
+      "source_unchanged_during_campaign": true,
+      "compiled_programs": 200,
+      "limitations": [
+        "Finite generated combinations, not 200000 independent reviews or exhaustive proof.",
+        "Only flat caller-owned LINKAGE JSON semantics; no native storage, files, decimal encoding, collation ordering, CICS, SQL, scheduler or mainframe execution.",
+        "Independent expected behavior is hand-coded for these ten families; target and reference still share the production source parser.",
+        "Decision outcomes include provably unreachable boundaries; missing outcomes remain explicit.",
+        "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
+      ],
+      "receipt": {
+        "path": ".implementation/tmp/program-comparison-ui/scenario-campaign-verified.json",
+        "sha256": "3c907e0dcf9c2b0e67f8c22190133d95ab36f0c6c110f12e50c8f88df3b75b6f"
+      }
+    },
+    "frontend": {
+      "tests": 112,
+      "failures": 0,
+      "skips": 0,
+      "typescript": "PASS",
+      "production_build": "PASS",
+      "ui_log": {
+        "path": ".implementation/tmp/program-comparison-ui/frontend-final-accepted.log",
+        "sha256": "1e9a72f5e79de48aa4fe5048ce6cc847e2f7a6190139b54eac600e146874439d"
+      },
+      "source_and_asset_manifest": {
+        "path": ".implementation/tmp/program-comparison-frontend-review/reviewed-files-manifest.json",
+        "sha256": "3427dd1aceabf999dddf6c4b53d76b74b955d983287b8bda91759ba36e0e6027"
+      },
+      "app_js_sha256": "80f8b946612e69640edb4a300b5e29d41078b2714805025714842f11ef88e00c",
+      "scope_note": "Main UI/source/test/built assets are unchanged after final renderer scale/CSS corrections; independent manifest and payload equality bind that carry-forward. No new dependencies."
+    },
+    "program_comparison": {
+      "ui_entry": "Evidence \u2192 Program comparison; Reports \u2192 Compare COBOL and Python",
+      "filters": [
+        "all",
+        "gaps",
+        "verified",
+        "selected No"
+      ],
+      "default_page_size": 25,
+      "maximum_page_size": 50,
+      "diagnostic_contract": 2,
+      "fields": [
+        "source program/rule/file/lines/version",
+        "actual Python mapping/file/lines/version",
+        "accepted status and scope",
+        "exact missing branch or distinct-state count",
+        "linked-file and mandatory-case gaps",
+        "differing case IDs and actual receipt locations",
+        "original SME answer/correction/reviewer and packet/return hashes",
+        "evidence needed for resolution"
+      ],
+      "source_scope": "Unique source-version units; shared copybook ownership overlaps program totals. Unclassified semantic rule counts remain unknown.",
+      "basis": "Accepted immutable source-derived report snapshot; filtering performs no target replay, ledger write, human-answer edit or verification-credit award.",
+      "excluded_reason": "Not converted because selected No in requirements.",
+      "downloads": "Registered/hash-baselined gate receipts only; preserved SME returns are inert local references with frozen return hashes.",
+      "static_report_scale": {
+        "author_red": {
+          "path": ".implementation/tmp/program-comparison-ui/html-scale-red-receipt.json",
+          "sha256": "f2210e4c03d9211930f60e623b84ab265bd283168b5731bfb6dce0cc59d8e1bf"
+        },
+        "author_corrected": {
+          "path": ".implementation/tmp/program-comparison-ui/html-scale-final-receipt.json",
+          "sha256": "66b4d49e311603851a6c419e21e21e620b529b21f996d1db2a00168ea2bf10e8"
+        },
+        "independent_current": {
+          "path": ".implementation/tmp/program-comparison-independent-review/render-scaling-publish.json",
+          "sha256": "eb3b16cad1d51e2c7d2b44519f23d309b7e8166c8a5d132a80db85d4f0e164df"
+        },
+        "scope": "Fictional presentation metadata only. Own deficits stay on their cards and complete program sections; whole-program/process facts appear once. Not semantic execution or a migration forecast."
+      }
+    },
+    "setup": {
+      "single_form_single_save": true,
+      "configuration_modes": {
+        "zowe": [
+          "off",
+          "existing",
+          "create",
+          "import"
+        ],
+        "db2": [
+          "off",
+          "existing",
+          "gateway"
+        ]
+      },
+      "prepared_files": [
+        ".migration/workstation.json",
+        ".migration/connections.json",
+        ".vscode/mcp.json",
+        "zowe.config.json",
+        "declared approved local Zowe schema",
+        ".migration/db2-config.json",
+        "certificates/DB2-CA.cert"
+      ],
+      "copilot_role": "retrieval_only",
+      "claude_mcp_servers": 0,
+      "save_cli_executions": 0,
+      "save_network_calls": 0,
+      "save_model_calls": 0,
+      "credentials": "Native Zowe secure store, private Db2 server terminal prompts and secure VS Code token input; no plaintext browser fields.",
+      "safety": "Existing approved servers/inputs preserved; conflicts, schema/alias/path failures and concurrent edits stop Save. Ordinary failed writes restore prior bytes. Not an atomic transaction across external clients or process crashes.",
+      "remaining_client_steps": [
+        "Install organization-approved Node/npm and Zowe when the selected route requires them",
+        "Enter Zowe credentials in its native secure store",
+        "For a local Db2 gateway, install approved pyodbc and IBM driver when unavailable and provide an approved CA",
+        "Run the displayed existing Db2 MCP server command and enter credentials/token privately in its terminal",
+        "Review/start the approved retrieval servers in VS Code and enter the same token at the secure prompt"
+      ],
+      "connectivity": "UNVERIFIED",
+      "focused_setup_checks": 173,
+      "new_configuration_regressions": 29,
+      "randomized_configuration_roundtrips": 20,
+      "roundtrip_note": "Configuration tests only; not semantic source-logic fixtures and not evidence of mainframe parity.",
+      "access_routes": {
+        "mainframe_source_and_dataset_metadata": "Zowe CLI",
+        "db2_catalog_and_data": "Approved typed read-only MCP",
+        "claude": "Local exports only, no MCP"
+      },
+      "db2_gateway": {
+        "fields": [
+          "host",
+          "service port",
+          "database",
+          "DDF location",
+          "registered IBM ODBC driver",
+          "approved CA path",
+          "loopback MCP port",
+          "read limit"
+        ],
+        "uses_existing_server": "tools/db2_mcp_server.py",
+        "save_prepares_nonsecret_files_only": true,
+        "pem_der_exact_bytes": true,
+        "tls_and_hostname_validation": true,
+        "typed_select_only": true,
+        "driver_and_certificate_checked_before_private_prompt": true,
+        "interactive_startup_query_executions": 0,
+        "actual_registered_driver_and_credentials_verified": false,
+        "source_selected_config_concurrent_changes_preserved": true,
+        "same_save_legacy_payload_compatibility": true
+      },
+      "prior_setup_checks_scope_note": "173 setup checks/29 configuration regressions and 20 configuration roundtrips belong to the preceding MCP/Zowe extension. The 15 new gateway tests and current 268 independent focused tests are recorded separately; no test counts are added together as distinct rule states.",
+      "new_db2_configuration_regressions": 15
+    },
+    "setup_scope_note": "Setup implementation unchanged; preceding setup reviews and native proof are preserved in previous_revision_2026_10_07_before_program_comparison. Current full suite rechecks integration.",
+    "independent_review": {
+      "backend": {
+        "status": "READY_WITHIN_REVIEWED_SCOPE",
+        "remaining_findings": 0,
+        "initial_scoped_receipt": {
+          "path": ".implementation/tmp/program-comparison-independent-review/scoped-review.json",
+          "sha256": "16525f857fceed38758ba0ca91a504b7d5325ad92672f47087534916436ac436"
+        },
+        "final_delta_receipt": {
+          "path": ".implementation/tmp/program-comparison-independent-review/scoped-delta-review-publish.json",
+          "sha256": "40732958612da7221cd70b12a7c00a99ead7f0496aee75426feaecaa34b54d1e"
+        },
+        "final_css_carry_forward": {
+          "path": ".implementation/tmp/program-comparison-independent-review/final-css-carryforward-verified.json",
+          "sha256": "dc325191e8461448a678bbffd63e51a1484e2140a3b7a07d39bf36519d02bf1a"
+        },
+        "source_manifest": {
+          "path": ".implementation/tmp/program-comparison-independent-review/delta-source-manifest-verified-css.json",
+          "sha256": "5ab9a6586f3b0e3b8660b4cb14707e864a1854a2bd26cad8f764b0f75e59e996"
+        },
+        "focused_tests": 52,
+        "focused_scope_note": "Final semantic/structural tests ran at d611a339; exact CSS-only byte proof and final renderer probes carry them to the publish fingerprint. Parent full suite reran on final source."
+      },
+      "frontend": {
+        "status": "READY_WITHIN_SCOPED_REVIEW",
+        "remaining_findings": 0,
+        "receipt": {
+          "path": ".implementation/tmp/program-comparison-frontend-review/report.json",
+          "sha256": "3a7901b461ce9ada711b535aa20bb33ab0055592ea77b30eb43512e7bcfa220b"
+        },
+        "source_manifest": {
+          "path": ".implementation/tmp/program-comparison-frontend-review/reviewed-files-manifest.json",
+          "sha256": "3427dd1aceabf999dddf6c4b53d76b74b955d983287b8bda91759ba36e0e6027"
+        },
+        "checks": [
+          {
+            "name": "Independent UI tests",
+            "pass": 112,
+            "fail": 0,
+            "skipped": 0,
+            "scope": "Private isolated outfile; exact unchanged112-test source. These are tests, not counts of newly discovered bugs."
+          },
+          {
+            "name": "TypeScript",
+            "passed": true,
+            "command": "frontend npm run typecheck",
+            "source_unchanged_since_check": true
+          },
+          {
+            "name": "Canonical shipping assets",
+            "pass": 6,
+            "details": "Independent esbuild write:false with exact build.mjs production/minify/bundle/external legal-comments options; JS/legal/CSS/HTML byte equal."
+          },
+          {
+            "name": "Pure projection/reporting probes",
+            "pass": 16,
+            "details": "Shared ownership, count/cap truth, escaped/full source evidence, historical diagnostics unknown, process/program scope; no code execution or target acceptance."
+          },
+          {
+            "name": "Actual Coordinator App browser assertion groups",
+            "pass": 43,
+            "fail": 0,
+            "details": "Actual320/768/1024/1440; direct navigation, filters/SelectedNo exact IDs and counts, failed/stale/no report credit, GET503 retry, keyboard, limited pages, SME local refs and scope facts. No external origins/nonGET."
+          },
+          {
+            "name": "Isolated ComparisonView previews",
+            "pass": 24,
+            "fail": 0,
+            "details": "Six declared small models across four measured widths; caps/clips explicit, source/target/full receipts accessible."
+          },
+          {
+            "name": "Final current static renderer and immutable attachment assertion groups",
+            "pass": 48,
+            "fail": 0,
+            "details": "Historical attachment filters preserved; current v2, shared counts, full evidence and eight current previews \u00d7 four measured widths with every details open, no text overflow and exact long identifiers. Old issued320 overflow classified separately."
+          },
+          {
+            "name": "Artifact links/hash guards",
+            "pass": true,
+            "registered_downloads": 9,
+            "all_status200": true,
+            "local_return_hash_matches": true,
+            "unregistered_input_rejection400_preserved": true
+          },
+          {
+            "name": "Source carryforward",
+            "pass": true,
+            "details": "All author18 hashes match; all52 files bound. UI/API/assets unchanged from0b1c App review. Six pure API projection outputs compare equal as JSON objects; only renderer/tests/technical contract changed."
+          },
+          {
+            "name": "Immutable reports",
+            "pass": true,
+            "file_count": 32,
+            "details": "Before/after SHA256 and byte sizes identical."
+          },
+          {
+            "name": "Repository and fixture layout",
+            "pass": true,
+            "issues": 0
+          }
+        ],
+        "immutable_report_files": 32,
+        "all_private_receipt_hashes": {
+          "path": ".implementation/tmp/program-comparison-frontend-review/evidence-hashes.json",
+          "sha256": "7fa1567944ede451a4df63d2e50f2e9eda88ab247a50dbd6f3ea35069a630929"
+        }
+      },
+      "scope_limit": "Independent scoped review and finite tests do not prove absence of all defects, observed mainframe parity or native Windows 11 desktop acceptance."
+    },
+    "windows_and_linux": {
+      "native_ci": {
+        "status": "PENDING_NEW_COMPARISON_REVISION",
+        "workflow": ".github/workflows/platform-smoke.yml",
+        "matrix": [
+          "windows-latest",
+          "ubuntu-latest"
+        ],
+        "expected_test_groups_per_os": 20,
+        "expected_tests_per_os": 341,
+        "scope": "Fresh native setup/offline checks will be recorded after actual CI completion."
+      },
+      "prior_accepted_native_ci": {
+        "verified_source_commit": "60dd45c65f52a8b19c1b38aa80c62a7ddab5b2e1",
+        "run_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37640785366",
+        "expected_tests_per_os": 318,
+        "scope": "Native locked setup plus 318 offline tests in 20 groups on each actual hosted Windows Server 2025/Linux runner. Windows 11 desktop, full queued-agent end-to-end acceptance, real IBM driver/credentials, VS Code activation and live mainframe/Db2 connectivity remain unverified.",
+        "run_receipt": {
+          "path": ".implementation/tmp/setup-ui-audit/native-clock-run-final.json",
+          "sha256": "248381935d116ef667826430a943bbbd87aae0c27032efebf27a3471d76bcd36"
+        }
+      },
+      "windows_11_desktop_verified": false,
+      "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."
+    },
+    "dependency_lock": {
+      "published_release_hashes_verified": 79,
+      "transitive_pins_verified": true,
+      "log": {
+        "path": ".implementation/tmp/setup-ui-audit/dependency-lock-check.log",
+        "sha256": "4ad43c8d36e7f5f19f6806a27cf4f988c7d2baaf3873e43cf93a10738d8699d7"
+      },
+      "dependencies_added": 0,
+      "scope": "Published cross-platform digests and closure, not latest-version or vulnerability certification.",
+      "optional_db2_driver_note": "No runtime dependency pins changed. Local Db2 gateway requires organization-approved pyodbc and an installed IBM ODBC driver; setup exposes missing prerequisites.",
+      "native_setup_installation_verified": [
+        "Windows Server 2025 via PowerShell",
+        "Linux via Bash"
+      ]
+    },
+    "operational_processes_converted": 0,
+    "actual_development_provider_credits": null,
+    "campaign_llm_calls": 0,
+    "preliminary_validation": {
+      "prior_full_receipts": [
+        {
+          "path": ".implementation/tmp/program-comparison-ui/release-suite-receipt.json",
+          "sha256": "fd6f99ba4f6bcf635dd01da436d3c2ac9e8d3de747d19dce150d46b449889553"
+        },
+        {
+          "path": ".implementation/tmp/program-comparison-ui/release-suite-final-receipt.json",
+          "sha256": "036b0c190b475972851a3c1c8c43cece74f6ab93fb033b238ea3453767743b6f"
+        },
+        {
+          "path": ".implementation/tmp/program-comparison-ui/release-suite-accepted-receipt.json",
+          "sha256": "09af433c8803086a0796f04a0fc4decc7ce1141628286e6e7530771ec08d2bc6"
+        },
+        {
+          "path": ".implementation/tmp/program-comparison-ui/release-suite-publish-receipt.json",
+          "sha256": "c1633a6f5cab2cbea054f64a8260eaa871adcd7093284ab4836a96a64aa514be"
+        }
+      ],
+      "scope_note": "Failed and earlier passing snapshots remain preliminary after subsequent corrections. Only the final verified receipt certifies current functional source. New feature checks are not counted as additional bugs."
+    },
+    "layout": "PASS",
+    "handoff": "PASS",
+    "factory_consistency": "PASS",
+    "diff_check": "PASS",
+    "fixture_cleanup": {
+      "path": ".implementation/tmp/program-comparison-ui/fixture-cleanup-final.json",
+      "sha256": "d932d77be5a200cbe61f723c54eeeeaabc0f16f2404551fdd35b41d1edd326ed"
+    },
+    "unlocked_fixture_preflight": {
+      "path": ".implementation/tmp/program-comparison-ui/preflight-unlocked-final.json",
+      "sha256": "65bd7bc1c43565d52d6e3270b79146407f37ec8d6251c3a7d486af47bee001c1"
+    },
+    "limitations": [
+      "No operational mainframe process was converted during this implementation; all regression/model fixtures are explicitly fictional.",
+      "Specific diagnostics absent from historical reports remain Unknown; historical source/issued report/human-return bytes are never rewritten.",
+      "Previously issued fictional fixture HTML retains its known narrow-screen overflow; current generated reports are corrected without rewriting issued evidence.",
+      "All required 20-state source/linked-file/target/adversarial gates remain unchanged. Finite tests are not exhaustive; eight modeled campaign outcomes remain unobserved.",
+      "Live Zowe/Db2 MCP credentials, driver/client/enterprise extension policy and Windows 11 desktop/PowerPoint acceptance remain unverified.",
+      "Full capacity/worst-case memory, complete screen-reader/zoom and internal design-system acceptance remain unverified.",
+      "Actual provider credits remain Unknown without attributed billing receipts; token counts are not converted to credits."
+    ]
+  },
+  "previous_revision_2026_10_07_before_db2_gateway": {
+    "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/9bf97385fd3f625129af606ec0a5977776112a79/docs/evidence.json",
+    "functional_source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+    "full_suite": {
+      "tests": 1833,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 182.638,
+      "source_before": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_after": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "74e65672dc91dd5b26f600dc53d7a6749d07867ecdf427f8bf91b5235d946579",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-suite-receipt.json",
+        "sha256": "3841c43c9cb4943c1c8c85b3caa706b0931c279c572c98f19d91bb695dc99a91"
+      }
+    },
+    "note": "Prior setup/reporting receipts remain historical evidence for their original source snapshots. Current Db2 gateway and Node fixture changes have fresh source-bound receipts below."
+  },
+  "previous_revision_2026_10_07_before_native_sqlite_lifecycle_fix": {
+    "commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/d44b02b1a5b61bcca3d6637e884d1a90f0216f8a/docs/evidence.json",
+    "functional_source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+    "full_suite": {
+      "tests": 1849,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 175.266,
+      "source_before": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_after": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "cd13b25ba44b314677be10800876ca87d2b92501ffc050ffc954ad10fa71e507",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-release-suite-receipt.json",
+        "sha256": "731d3ee060a9aec19ac6daa49b9459cd2251841bb79c34cd7d0b9a9d57668972"
+      }
+    },
+    "note": "1849 local tests and independent Db2/UI checks passed. Native run37633581857 passed309 Linux checks and exposed the inherited online SQLite handle leak on Windows; its separate reproduction/correction follows."
+  },
+  "previous_revision_2026_10_07_before_native_fixture_fix": {
+    "commit": "4a39e30b7e8e068abffffa1b17ad680b48acc043",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/4a39e30b7e8e068abffffa1b17ad680b48acc043/docs/evidence.json",
+    "functional_source_fingerprint": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
+    "full_suite": {
+      "tests": 1853,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 175.293,
+      "source_before": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
+      "source_after": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "5e42894c0aaed2449b8b4809ebfe5f4f387145914b097a9dd07578c343d39d0c",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-release-suite-receipt.json",
+        "sha256": "f79b264ce0ec418ac537646dd323e8f98b6e77eac2ad1a9157ebf08c425da782"
+      }
+    },
+    "note": "Native fourth matrix confirmed the SQLite correction and passed 313 Linux checks; 11 Windows validation checks stopped at a fixture newline/hash mismatch. Production integrity correctly rejected those changed fixture bytes."
+  },
+  "previous_revision_2026_10_07_before_native_clock_fix": {
+    "commit": "be9a158bee357e704d5e301b25e39d52879edfdd",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/be9a158bee357e704d5e301b25e39d52879edfdd/docs/evidence.json",
+    "functional_source_fingerprint": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
+    "full_suite": {
+      "tests": 1853,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 175.409,
+      "source_before": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
+      "source_after": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "64b453dc9c9c2e0357052443753597490d915a10301b7dd312e9f9019278af77",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/native-fixture-release-suite-receipt.json",
+        "sha256": "b855f3b61e1a16321133b9c208043b2c106fdad840aa16f3162eed9e8cada011"
+      }
+    },
+    "note": "Fifth native matrix executed every one of the 20 groups/3 gates: Linux313 passed; Windows313 ran with one short-clock error and one source-fixture newline mismatch. All other groups and all consistency gates passed."
+  },
+  "previous_revision_2026_10_07_before_program_comparison": {
     "date": "2026-10-07",
     "base_commit": "be9a158bee357e704d5e301b25e39d52879edfdd",
     "scope": "One-screen Db2 MCP/Zowe CLI setup, native Windows compatibility, deterministic online SQLite cleanup, exact-byte native fixtures and protected monotonic work receipts",
@@ -169446,92 +169899,90 @@
       "Native GitHub Actions matrix on the exact published code commit; preserve prior failures and actual per-platform log hashes."
     ]
   },
-  "previous_revision_2026_10_07_before_db2_gateway": {
-    "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
-    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/9bf97385fd3f625129af606ec0a5977776112a79/docs/evidence.json",
-    "functional_source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
-    "full_suite": {
-      "tests": 1833,
-      "failures": 0,
-      "errors": 0,
-      "skips": 0,
-      "elapsed_seconds": 182.638,
-      "source_before": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
-      "source_after": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
-      "source_unchanged": true,
-      "passed": true,
-      "log_sha256": "74e65672dc91dd5b26f600dc53d7a6749d07867ecdf427f8bf91b5235d946579",
-      "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-reporting-suite-receipt.json",
-        "sha256": "3841c43c9cb4943c1c8c85b3caa706b0931c279c572c98f19d91bb695dc99a91"
+  "previous_advisory_repository_review_2026_10_07": {
+    "date": "2026-10-07",
+    "kind": "advisory_repository_review",
+    "source_fingerprint": "d33672f50cfe29a9c73d47f616ef5ecb6bc5e165608dd8e2a0dd16718faccd20",
+    "findings": [
+      {
+        "priority": "P1",
+        "file": "frontend/src/online.tsx",
+        "line": 11,
+        "summary": "Browser Number conversion and response JSON parsing lose supported integer precision",
+        "suggestion": "Use exact integer transport and parsing at both browser boundaries; preserve the backend validated integer contract"
+      },
+      {
+        "priority": "P2",
+        "file": "workbench/retrieval.py",
+        "line": 275,
+        "summary": "Returned file/directory prefix collision is accepted and leaves irreversible IMPORTING recovery intent",
+        "suggestion": "Validate merged normalized path-tree conflicts before committing acceptance or discovery journal"
+      },
+      {
+        "priority": "P2",
+        "file": "workbench/rule_inventory.py",
+        "line": 174,
+        "summary": "Shared copybook rules create job/program pairs that never execute",
+        "suggestion": "Constrain report rows and counts by actual program invocation reachability"
+      },
+      {
+        "priority": "P3",
+        "file": "frontend/src/EconomicsPanel.tsx",
+        "line": 25,
+        "summary": "Receipt instructions still direct the agent to an MCP bridge absent from active retrieval-only workflow",
+        "suggestion": "Point Claude at local runner --measurement-file and keep Copilot retrieval-only"
       }
+    ],
+    "secondary_contract_observation": "The effort UI renders clock counts but no start/stop controls despite the documented effort-panel workflow; inspect UI/local-action integration before promising automatic clocks.",
+    "existing_checks": {
+      "python_tests": 1710,
+      "python_failures": 0,
+      "python_errors": 0,
+      "python_skips": 0,
+      "ui_tests": 57,
+      "typescript": "completed without errors",
+      "build": "all generated assets match committed bytes using write:false",
+      "named_checks": 1000,
+      "each_named_id_once": true,
+      "scenario_count": 200000,
+      "scenario_divergences": 0,
+      "layout": "valid",
+      "handoff": "valid",
+      "factory_consistency": "valid",
+      "diff_check": "no whitespace errors"
     },
-    "note": "Prior setup/reporting receipts remain historical evidence for their original source snapshots. Current Db2 gateway and Node fixture changes have fresh source-bound receipts below."
-  },
-  "previous_revision_2026_10_07_before_native_sqlite_lifecycle_fix": {
-    "commit": "d44b02b1a5b61bcca3d6637e884d1a90f0216f8a",
-    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/d44b02b1a5b61bcca3d6637e884d1a90f0216f8a/docs/evidence.json",
-    "functional_source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
-    "full_suite": {
-      "tests": 1849,
-      "failures": 0,
-      "errors": 0,
-      "skips": 0,
-      "elapsed_seconds": 175.266,
-      "source_before": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
-      "source_after": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
-      "source_unchanged": true,
-      "passed": true,
-      "log_sha256": "cd13b25ba44b314677be10800876ca87d2b92501ffc050ffc954ad10fa71e507",
-      "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-release-suite-receipt.json",
-        "sha256": "731d3ee060a9aec19ac6daa49b9459cd2251841bb79c34cd7d0b9a9d57668972"
-      }
-    },
-    "note": "1849 local tests and independent Db2/UI checks passed. Native run37633581857 passed309 Linux checks and exposed the inherited online SQLite handle leak on Windows; its separate reproduction/correction follows."
-  },
-  "previous_revision_2026_10_07_before_native_fixture_fix": {
-    "commit": "4a39e30b7e8e068abffffa1b17ad680b48acc043",
-    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/4a39e30b7e8e068abffffa1b17ad680b48acc043/docs/evidence.json",
-    "functional_source_fingerprint": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
-    "full_suite": {
-      "tests": 1853,
-      "failures": 0,
-      "errors": 0,
-      "skips": 0,
-      "elapsed_seconds": 175.293,
-      "source_before": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
-      "source_after": "e664556425abd58530848a8b0422bc2ee99a8e6225fc7052cacf9b378bce9029",
-      "source_unchanged": true,
-      "passed": true,
-      "log_sha256": "5e42894c0aaed2449b8b4809ebfe5f4f387145914b097a9dd07578c343d39d0c",
-      "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/online-sqlite-release-suite-receipt.json",
-        "sha256": "f79b264ce0ec418ac537646dd323e8f98b6e77eac2ad1a9157ebf08c425da782"
-      }
-    },
-    "note": "Native fourth matrix confirmed the SQLite correction and passed 313 Linux checks; 11 Windows validation checks stopped at a fixture newline/hash mismatch. Production integrity correctly rejected those changed fixture bytes."
-  },
-  "previous_revision_2026_10_07_before_native_clock_fix": {
-    "commit": "be9a158bee357e704d5e301b25e39d52879edfdd",
-    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/be9a158bee357e704d5e301b25e39d52879edfdd/docs/evidence.json",
-    "functional_source_fingerprint": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
-    "full_suite": {
-      "tests": 1853,
-      "failures": 0,
-      "errors": 0,
-      "skips": 0,
-      "elapsed_seconds": 175.409,
-      "source_before": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
-      "source_after": "9d50b81100e8398009a16c7d5b8006d89632f85ed4c3eb8f4d8abc1216301813",
-      "source_unchanged": true,
-      "passed": true,
-      "log_sha256": "64b453dc9c9c2e0357052443753597490d915a10301b7dd312e9f9019278af77",
-      "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-fixture-release-suite-receipt.json",
-        "sha256": "b855f3b61e1a16321133b9c208043b2c106fdad840aa16f3162eed9e8cada011"
-      }
-    },
-    "note": "Fifth native matrix executed every one of the 20 groups/3 gates: Linux313 passed; Windows313 ran with one short-clock error and one source-fixture newline mismatch. All other groups and all consistency gates passed."
+    "scope": [
+      "Lifecycle and retrieval/queue recovery",
+      "Parser, target, fixtures, coverage, requirement exclusions and rule reports",
+      "Frontend/API/runner contracts, credits display and setup",
+      "Private business context integrity, documentation/layout consistency and static bundle parity"
+    ],
+    "limitations": [
+      "No live mainframe, production data, actual Copilot/Claude enterprise-host integration or remote connector checks",
+      "No native Windows/Linux or real interactive browser execution this pass",
+      "Finite tests and scoped inspection do not establish exhaustive correctness; all findings remain unresolved"
+    ],
+    "publication_note": "The reviewed working tree is published on modernization-factory; remote main retains its distinct prior implementation. Passing existing checks does not clear these reproduced findings.",
+    "findings_remain_unresolved_at_original_review": true,
+    "followup_resolution": {
+      "date": "2026-10-07",
+      "status": "CORRECTED_AND_SCOPED_REVIEWED_FOR_NEW_OPERATIONS",
+      "original_findings_preserved": true,
+      "replacements": [
+        "Lossless browser integer transport and parsing; 256 independently generated integer states, seven decimal-type cases and actual browser request/response comparisons.",
+        "Merged normalized path-tree collisions rejected before retrieval acceptance or journal pinning; case and Unicode collisions remain accounted. Historically frozen invalid imports require a new identified process.",
+        "Shared-copybook report attribution uses actual program invocation reachability; JSON, CSV, Excel and HTML reconcile.",
+        "Credits instructions use the local runner --measurement-file workflow. Work clocks have start/stop controls, pinned retry identities and server-confirmed feedback."
+      ],
+      "pre_extension_backend_review": {
+        "path": ".implementation/tmp/windows-independent-review/scoped-review.json",
+        "sha256": "154f5a003f6da17eeaecd587d0280522a45af0bb8ad0028a86af48ea577d181b"
+      },
+      "pre_extension_frontend_review": {
+        "path": ".implementation/tmp/frontend-independent-review/report.json",
+        "sha256": "9490c4c7400aaf3f02776c9555d7943a062649b2f8156930bfc0c8fbd05537aa"
+      },
+      "scope_note": "These receipts cover their stated snapshots and do not rewrite the original advisory review or immutable process evidence."
+    }
   }
 }

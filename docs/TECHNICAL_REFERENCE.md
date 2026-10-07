@@ -745,6 +745,35 @@ chunks. Existing accepted executive models remain replayable. The Coordinator
 passes its already verified coverage model into reporting to avoid a second
 expensive target replay during the same report stage.
 
+`Coordinator.program_comparison` and read-only `GET /api/process/{id}/comparison`
+project only the accepted report generation, validating artifact/report hashes,
+exact parsed bytes, frozen executive context, identities, statuses, ownership and
+recomputed totals. Program keys bind name/path/source version; job-only and other
+unowned source stay selectable. Pages default to 25, maximum 50; every clipped
+excerpt, mapping, test, reason or gate preview exposes its count/completeness.
+Filters are all, gaps (identified/candidate/blocked), verified and selected No.
+They do not invoke source/target execution or change the ledger. Unique inventory,
+selected-program, matching-filter and page totals remain separate.
+
+Comparison diagnostic contract 2 freezes process integrity gates, exact SME
+item/answer/correction/reviewer and packet/return references, per-rule witness
+shortfalls, named branch gaps, differing case IDs and program review/test failures.
+Own-rule gates lead bounded previews, including shared copybook owners. Scope
+labels distinguish the affected source span from rule, whole-program and process
+causes. Successful local line reasons are never displayed as the failure cause
+of a process integrity gate. Process-only SME obligations remain in UI/HTML even
+when no individual rule gaps exist; guidance preserves the consumed single packet.
+Closure guidance is separate from evidence and cannot grant verification credit.
+Only registered receipts with hash baselines become artifact download links;
+preserved SME returns remain local references with their frozen return hash.
+Historical reports remain immutable: absent diagnostics stay Unknown; historical
+process details may be read only from accepted frozen coverage/context. The new
+`rules.html` renderer adds local filters without changing historical executive
+rendering or the inline executive report's script restrictions. Specific rule
+deficits remain on their cards; complete program gates appear once with local
+links, and shared process gates appear once. Gate details are indexed by rule to
+avoid quadratic duplication in large reports; the full inventory retains all facts.
+
 `workbench.backends` defines the versioned target boundary; only python-sqlite is
 registered. Future backends need generation/comparison implementations and the
 same coverage gates. SQLite currently stores comparison results; this is not
@@ -1036,8 +1065,9 @@ layouts, COPY/platform dependencies and job behavior require a verified redesign
 unknown semantics are never cleared by a No flag. Generated supported modules
 retain record validation, ordered effects, rule trace and source/requirements
 hashes. Real source-derived comparisons and adversarial mutation evidence remain
-mandatory; selected mode requires ten distinct valid states per applicable logic
-item plus the existing dependency/invalid/boundary witnesses. This is bounded
+mandatory; new selected-mode fixtures require at least 20 distinct valid randomized states
+per applicable logic item plus the existing dependency/invalid/boundary witnesses.
+Historical fixture contracts remain frozen. This is bounded
 semantic verification, not native mainframe parity or exhaustive proof.
 
 Coverage keeps every original line and marks explicit No rows with the exact
