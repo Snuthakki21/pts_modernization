@@ -176396,7 +176396,7 @@
     },
     "windows_and_linux": {
       "native_ci": {
-        "status": "PENDING_CURRENT_CODE_PUBLICATION",
+        "status": "PASS",
         "workflow": ".github/workflows/platform-smoke.yml",
         "expected_test_groups_per_os": 23,
         "extra_scopes": [
@@ -176404,7 +176404,164 @@
           "test_lineage_discovery.py",
           "test_discovery_workflow.py"
         ],
-        "expected_tests_per_os": 453
+        "expected_tests_per_os": 453,
+        "verified_source_commit": "4c28d60c1053adc3176550853d49356750da262b",
+        "run_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37668270589",
+        "run_receipt": {
+          "path": ".implementation/tmp/cics-native-correction/native-run-final.json",
+          "sha256": "002c25dd35b2d84e582c7dea8f926338409223a246a94084999bcbd5677c276c"
+        },
+        "actual_platform_results": {
+          "windows": {
+            "platform": {
+              "platform": "Windows-2025Server-10.0.26100-SP0",
+              "architecture": "AMD64",
+              "native_shell": "Windows PowerShell",
+              "scope": "offline native platform smoke; not Windows 11 desktop or live mainframe acceptance"
+            },
+            "job_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37668270589/job/112953039710",
+            "conclusion": "success",
+            "test_groups": 23,
+            "tests": 453,
+            "skips": 0,
+            "per_group_counts": [
+              37,
+              55,
+              13,
+              12,
+              8,
+              14,
+              12,
+              23,
+              7,
+              16,
+              12,
+              34,
+              17,
+              30,
+              25,
+              3,
+              16,
+              11,
+              19,
+              27,
+              29,
+              15,
+              18
+            ],
+            "locked_dependency_setup": "PASS",
+            "layout": "PASS",
+            "handoff": "PASS",
+            "factory_consistency": "PASS",
+            "scope_return_codes": {
+              "test_cics*.py": 0,
+              "test_lineage_discovery.py": 0,
+              "test_discovery_workflow.py": 0,
+              "test_layout.py": 0,
+              "test_runner.py": 0,
+              "test_zowe_setup.py": 0,
+              "test_native_cli.py": 0,
+              "test_preflight.py": 0,
+              "test_text_encoding.py": 0,
+              "test_platform*.py": 0,
+              "test_modernization_upgrade.py": 0,
+              "test_rule_inventory.py": 0,
+              "test_factory.py": 0,
+              "test_economics.py": 0,
+              "test_requirements_selection.py": 0,
+              "test_runtime_validation.py": 0,
+              "test_validation_policy.py": 0,
+              "test_orchestration_validation.py": 0,
+              "test_target_architecture.py": 0,
+              "test_workstation_setup.py": 0,
+              "test_connection_setup.py": 0,
+              "test_db2_connection_setup.py": 0,
+              "test_launch.py": 0,
+              "layout": 0,
+              "handoff": 0,
+              "factory": 0
+            },
+            "log": {
+              "path": ".implementation/tmp/cics-native-correction/native-windows-final.log",
+              "sha256": "8dd6bedd6b6222f3c7d68b9371905c9a6ddf1a0e84f16a84548c4f745c151849"
+            }
+          },
+          "linux": {
+            "platform": {
+              "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+              "architecture": "x86_64",
+              "native_shell": "bash",
+              "scope": "offline native platform smoke; not Windows 11 desktop or live mainframe acceptance"
+            },
+            "job_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37668270589/job/112953039189",
+            "conclusion": "success",
+            "test_groups": 23,
+            "tests": 453,
+            "skips": 0,
+            "per_group_counts": [
+              37,
+              55,
+              13,
+              12,
+              8,
+              14,
+              12,
+              23,
+              7,
+              16,
+              12,
+              34,
+              17,
+              30,
+              25,
+              3,
+              16,
+              11,
+              19,
+              27,
+              29,
+              15,
+              18
+            ],
+            "locked_dependency_setup": "PASS",
+            "layout": "PASS",
+            "handoff": "PASS",
+            "factory_consistency": "PASS",
+            "scope_return_codes": {
+              "test_cics*.py": 0,
+              "test_lineage_discovery.py": 0,
+              "test_discovery_workflow.py": 0,
+              "test_layout.py": 0,
+              "test_runner.py": 0,
+              "test_zowe_setup.py": 0,
+              "test_native_cli.py": 0,
+              "test_preflight.py": 0,
+              "test_text_encoding.py": 0,
+              "test_platform*.py": 0,
+              "test_modernization_upgrade.py": 0,
+              "test_rule_inventory.py": 0,
+              "test_factory.py": 0,
+              "test_economics.py": 0,
+              "test_requirements_selection.py": 0,
+              "test_runtime_validation.py": 0,
+              "test_validation_policy.py": 0,
+              "test_orchestration_validation.py": 0,
+              "test_target_architecture.py": 0,
+              "test_workstation_setup.py": 0,
+              "test_connection_setup.py": 0,
+              "test_db2_connection_setup.py": 0,
+              "test_launch.py": 0,
+              "layout": 0,
+              "handoff": 0,
+              "factory": 0
+            },
+            "log": {
+              "path": ".implementation/tmp/cics-native-correction/native-linux-final.log",
+              "sha256": "da1fe0c90d959bd3081df4f48996b9c8e6614fcd6d18c6702edb39c02e14d345"
+            }
+          }
+        },
+        "scope": "Native locked setup plus 453 offline tests in 23 groups on each actual hosted Windows Server/Linux runner. Windows 11 desktop, full queued-agent end-to-end acceptance, real IBM driver/credentials, VS Code activation and live mainframe/Db2 connectivity remain unverified."
       },
       "previous_accepted_native_ci": {
         "status": "PASS",
@@ -176633,7 +176790,15 @@
       "Static/finite domains, malformed/dynamic map identities, unsupported operands and required dependency exclusions stay explicit gaps.",
       "Real SME return required; locally tested candidate is not approval.",
       "Windows 11 desktop and real Copilot/Claude VS Code/live host acceptance remain unverified."
-    ]
+    ],
+    "implementation_commit": "4c28d60c1053adc3176550853d49356750da262b",
+    "publication": {
+      "branch": "modernization-factory",
+      "implementation_commit": "4c28d60c1053adc3176550853d49356750da262b",
+      "url": "https://github.com/Snuthakki21/pts_modernization/commit/4c28d60c1053adc3176550853d49356750da262b",
+      "method": "ordinary fast-forward git push",
+      "force": false
+    }
   },
   "previous_revision_2026_10_07_before_db2_gateway": {
     "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
