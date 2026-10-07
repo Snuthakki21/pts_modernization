@@ -178,14 +178,54 @@ def _locked_requirements(path):
     return selected
 
 
-def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coordinator_owned=False, source_folder=None, process_notes=None):
+def check_environment():
+    """Inspect only the locked interpreter/dependencies, without workspace or source reads."""
+    compatible = sys.version_info[:2] == (3, 12) and platform.python_implementation() == 'CPython'
+    problems = []
+    if not compatible:
+        problems.append('CPython 3.12 is required by the release lock.')
+    dependencies_ready = False
+    try:
+        locked = _locked_requirements(REPOSITORY / 'requirements.lock')
+        dependency_problems = []
+        for name, expected in locked:
+            try:
+                if metadata.version(name) != expected:
+                    dependency_problems.append(name + ' version differs from the lock')
+            except metadata.PackageNotFoundError:
+                dependency_problems.append(name + ' is missing')
+        for module in ('fastapi', 'uvicorn', 'openpyxl', 'docx', 'pptx'):
+            try:
+                importlib.import_module(module)
+            except Exception:
+                dependency_problems.append(module + ' cannot be imported')
+        require(not dependency_problems, '; '.join(dependency_problems))
+        dependencies_ready = True
+        dependency_message = str(len(locked)) + ' installed dependency versions match the release lock; core imports succeeded.'
+    except (ValidationError, OSError, UnicodeError) as exc:
+        dependency_message = str(exc)
+        problems.append(dependency_message)
+    return {'ready': compatible and dependencies_ready, 'problems': problems,
+            'python_ready': compatible, 'dependencies_ready': dependencies_ready,
+            'dependency_message': dependency_message}
+
+
+def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coordinator_owned=False, source_folder=None, process_notes=None, workstation_defaults=True):
     """Return setup readiness separately from conversion support and live connectivity.
 
     This is a point-in-time diagnostic. It deliberately does not call connectors,
     generate evidence, import SME answers, or acquire a persistent writer lock.
     """
-    env = dict(os.environ if environ is None else environ)
     root = Path(workspace).absolute()
+    env = dict(os.environ if environ is None else environ)
+    # Saved form values are local defaults, not new connectivity or approval.
+    # Preserve explicit CLI arguments and the existing offline diagnostic boundary.
+    if workstation_defaults and root.is_dir() and not any(p.is_symlink() for p in (root,*root.parents)):
+        from .setup import intake_defaults, workstation_environment
+        defaults = intake_defaults(root)
+        if source_folder is None:source_folder = defaults['source_folder']
+        if process_notes is None:process_notes = defaults['process_notes']
+        env = workstation_environment(root, env)
     checks = []
     result = {'status':'READY', 'conversion_status':'UNVERIFIED', 'checks':checks,
               'conversion_blockers':[], 'network_requests':0, 'metrics':deterministic_metrics(),
@@ -194,23 +234,13 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
     def add(name, status, message, action=''):
         checks.append({'id':name, 'status':status, 'message':message, 'action':action})
 
-    compatible = sys.version_info[:2] == (3, 12) and platform.python_implementation() == 'CPython'
-    add('python', 'READY' if compatible else 'BLOCKED', 'CPython 3.12 is required by the release lock.',
-        '' if compatible else 'Run scripts/Setup.ps1 or bash scripts/setup.sh with CPython 3.12 installed.')
-    try:
-        locked = _locked_requirements(REPOSITORY / 'requirements.lock')
-        problems = []
-        for name, expected in locked:
-            try:
-                if metadata.version(name) != expected: problems.append(name + ' version differs from the lock')
-            except metadata.PackageNotFoundError: problems.append(name + ' is missing')
-        for module in ('fastapi', 'uvicorn', 'openpyxl', 'docx', 'pptx'):
-            try: importlib.import_module(module)
-            except Exception: problems.append(module + ' cannot be imported')
-        require(not problems, '; '.join(problems))
-        add('dependencies', 'READY', str(len(locked)) + ' installed dependency versions match the release lock; core imports succeeded.')
-    except (ValidationError, OSError, UnicodeError) as exc:
-        add('dependencies', 'BLOCKED', str(exc), 'Run the setup script using the release requirements.lock and its verified wheels.')
+    environment = check_environment()
+    add('python', 'READY' if environment['python_ready'] else 'BLOCKED',
+        'CPython 3.12 is required by the release lock.',
+        '' if environment['python_ready'] else 'Run scripts/Setup.ps1 or bash scripts/setup.sh with CPython 3.12 installed.')
+    add('dependencies', 'READY' if environment['dependencies_ready'] else 'BLOCKED',
+        environment['dependency_message'],
+        '' if environment['dependencies_ready'] else 'Run the setup script using the release requirements.lock and its verified wheels.')
     try:
         frontend = all((STATIC_ROOT / name).is_file() and not (STATIC_ROOT / name).is_symlink()
                        and (STATIC_ROOT / name).stat().st_size > 0 for name in ('index.html', 'app.js', 'style.css'))

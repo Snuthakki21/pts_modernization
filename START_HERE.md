@@ -11,27 +11,36 @@ adapters; a plan cannot be marked converted.
 
 Use CPython **3.12** and a writable folder on your local disk.
 
-- **Windows:** run `./scripts/Setup.ps1`, then `./scripts/Start.ps1` in PowerShell.
-- **Linux/macOS:** run `bash scripts/setup.sh`, then `.venv/bin/python -m workbench`.
+- **Windows:** run `./scripts/Start.ps1` in PowerShell.
+- **Linux/macOS:** run `bash scripts/start.sh`.
 
-Open **http://127.0.0.1:8765**. Setup installs the locked dependencies. The UI
-is included; operators do not need Node. Follow any named setup error before
-continuing. Native Windows execution still needs a workstation smoke test.
+The launcher installs the locked environment when needed, starts the existing
+workbench and opens **http://127.0.0.1:8765** after startup. Keep the terminal
+open. Use `-NoBrowser` on Windows or `--no-browser` on Linux/macOS when needed.
+The UI is included; operators do not need Node. Follow any named setup error
+before continuing. CPython 3.12 must already be installed; native Windows and
+Linux launch still need workstation acceptance.
 
-## 2. Answer six setup questions
+## 2. Enter your settings and save once
 
-The UI guides you through source location, manifest, Zowe, Db2, Copilot Chat
-and reviewer availability. Choose “needs setup” when unsure; it gives the next
-action. No passwords are entered in this questionnaire. Configuration does not
-mean a live connection has been verified. The guide uses no LLM tokens.
+The first visit opens **Workspace setup**. Choose your local source export folder,
+or choose to upload files when adding a process. Optionally enter your process
+notes Markdown path. Click **Save setup**. The screen checks the local paths,
+saves your settings and shows **Setup is done** when those checks pass. Click
+**Add a process** to continue. The same values are reused after a restart; no
+manifest or reviewer questionnaire is needed to finish setup.
 
-For connections, set private shell variables from `.env.example` **before**
-launch. That file is a template, not automatically loaded. You can begin with
-local source and deterministic analysis. Copilot Chat needs your normal VS Code
-Copilot access, not an LLM endpoint/token. Copy [examples/mcp.json](examples/mcp.json)
-to `.vscode/mcp.json`, start the UI, enable the workbench tools in workspace
-Copilot Chat with the retrieval prompt below. Preserve already approved server
-bindings; the workbench template selects retrieval-only tools. Claude Code has no
+Optional settings let you enter exact WEDLX and Tran Repository folders,
+already approved Zowe profile aliases and a Db2 metadata endpoint. They provide
+retrieval context for Copilot; setup performs no network or model calls.
+Passwords and tokens stay in the approved secure tools or private launch
+environment. Source snapshots, requirements Save and the real SME return keep
+their existing gates. The form never marks a connection or migration verified.
+
+Copilot Chat uses your normal VS Code Copilot access and already approved MCP
+connections. If your organization approves the optional workbench retrieval
+bridge, [examples/mcp.json](examples/mcp.json) is its template; preserve existing
+approved server bindings. The bridge exposes retrieval-only tools. Claude Code has no
 MCP setup: its approved VS Code extension reads the retrieved local files.
 Use standard VS Code workspace chat for Copilot; input prompts are not supported
 by every agent harness.

@@ -51,7 +51,10 @@ def start_process(coordinator, manifest_path, assistant_mode=None, source_folder
         manifest_integrity(coordinator, existing, raw)
         coordinator.sources(existing)  # Never credit a modified input snapshot.
         return coordinator.start(existing['id']) if existing['status'] == 'READY' else existing
-    doc = coordinator.create(text,assistant_mode=assistant_mode,source_folder=source_folder,process_notes=process_notes,requirements_selection=requirements_selection)
+    options={'assistant_mode':assistant_mode,'requirements_selection':requirements_selection}
+    if source_folder is not None:options['source_folder']=source_folder
+    if process_notes is not None:options['process_notes']=process_notes
+    doc = coordinator.create(text,**options)
     return coordinator.start(doc['id'])
 
 

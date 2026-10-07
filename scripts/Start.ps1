@@ -1,8 +1,21 @@
+param(
+    [ValidateRange(1, 65535)][int]$Port = 8765,
+    [switch]$NoBrowser
+)
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath (Split-Path $PSScriptRoot -Parent)
-if (-not (Test-Path '.venv/Scripts/python.exe')) { throw 'Run scripts/Setup.ps1 first' }
-& .venv/Scripts/python.exe -m workbench.preflight --workspace (Get-Location).Path --port 8765
-if ($LASTEXITCODE -ne 0) { throw 'Startup checks found blockers. Follow the diagnostic actions above, then run Start.ps1 again.' }
-Write-Host 'When the Workbench address appears below, open http://127.0.0.1:8765 in your browser. Keep this window open; Ctrl+C stops the server safely.'
-& .venv/Scripts/python.exe -m workbench --root (Get-Location).Path
-if ($LASTEXITCODE -ne 0) { throw 'Workbench stopped with an error. Preserve the workspace and inspect its diagnostic before restarting.' }
+$venvPython = Join-Path (Get-Location).Path '.venv/Scripts/python.exe'
+$needsSetup = -not (Test-Path -LiteralPath $venvPython -PathType Leaf)
+if (-not $needsSetup) {
+    & $venvPython -m workbench.launch --check-environment
+    $needsSetup = $LASTEXITCODE -ne 0
+}
+if ($needsSetup) {
+    Write-Host 'Preparing the locked Python environment. This is only needed on first launch or when dependencies change.'
+    & (Join-Path $PSScriptRoot 'Setup.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'Environment setup failed. Follow the diagnostics above, then run Start.ps1 again.' }
+}
+$launchArguments = @('-m', 'workbench.launch', '--port', "$Port")
+if ($NoBrowser) { $launchArguments += '--no-browser' }
+& $venvPython @launchArguments
+if ($LASTEXITCODE -ne 0) { throw 'Workbench stopped with an error. Follow its diagnostics, preserve the workspace, then launch again.' }

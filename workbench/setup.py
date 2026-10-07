@@ -148,3 +148,188 @@ def save_setup(workspace, answers, *, environ=None):
         result = _view(path.parent.parent, current, dict(os.environ if environ is None else environ))
         atomic_json(path, {'version':1, 'answers':current})
         return result
+
+# Keep the historical questionnaire contract intact. These actual workstation
+# values are a separate, ignored local document and never carry credentials.
+MAX_WORKSTATION_BYTES = 16384
+_WORKSTATION_FIELDS = ('source_mode', 'source_folder', 'process_notes', 'wedlx_folder',
+                       'tran_repository_folder', 'zowe_profile', 'zowe_zosmf_profile',
+                       'db2_metadata_url')
+_CONNECTION_FIELDS = {'zowe_profile': 'WB_ZOWE_PROFILE',
+                      'zowe_zosmf_profile': 'WB_ZOWE_ZOSMF_PROFILE',
+                      'db2_metadata_url': 'WB_DB2_MCP_URL'}
+
+
+def _workstation_path(workspace):
+    root=_state_path(workspace).parent.parent
+    return safe_path(root,'.migration/workstation.json')
+
+
+def _local_path(root, value, field, *, check_links=True):
+    require(isinstance(value, str) and 0 < len(value) <= 2048 and value == value.strip()
+            and not any(ord(c) < 32 or ord(c) == 127 for c in value),
+            field + ': supply a local path without control characters')
+    path = Path(value)
+    if not path.is_absolute():
+        path = root / path
+    path = path.absolute()
+    if check_links:
+        require(not any(p.is_symlink() for p in (path, *path.parents)),
+                field + ': use the direct path rather than a symlink')
+        return str(path.resolve())
+    return str(path)
+
+
+def _validate_workstation(root, settings, *, partial=False, local_safety=True):
+    from .connectors import endpoint, ZoweReader
+    from urllib.parse import urlsplit
+    require(isinstance(settings, dict) and bool(settings) and set(settings) <= set(_WORKSTATION_FIELDS)
+            and (partial or set(settings) == set(_WORKSTATION_FIELDS)),
+            'Supply only the supported nonsecret workstation settings')
+    result = dict(settings)
+    for field, value in result.items():
+        if field == 'source_mode':
+            require(value in ('folder', 'upload') and isinstance(value, str),
+                    'source_mode: choose folder or upload')
+        elif value is not None:
+            require(isinstance(value, str), field + ': supply text or null to clear it')
+            if field in _CONNECTION_FIELDS:
+                if field == 'db2_metadata_url':
+                    endpoint(value)
+                    require(not urlsplit(value).query,
+                            'db2_metadata_url: omit URL queries; keep authentication in the approved secure store')
+                else:
+                    require(not value.startswith('-'),field + ': choose a profile alias rather than a command option')
+                    ZoweReader(value)
+            else:
+                result[field] = _local_path(root, value, field, check_links=local_safety)
+    return result
+
+
+def load_workstation_settings(workspace):
+    """Return typed local defaults, without reading source/notes or contacting a host."""
+    path = _workstation_path(workspace)
+    root = path.parent.parent
+    defaults = dict.fromkeys(_WORKSTATION_FIELDS)
+    defaults['source_mode'] = 'folder' if safe_path(root, 'Endeavor').is_dir() else 'upload'
+    if defaults['source_mode'] == 'folder':
+        defaults['source_folder'] = str(root / 'Endeavor')
+    if not path.exists():
+        return defaults
+    require(path.is_file() and path.stat().st_size <= MAX_WORKSTATION_BYTES,
+            'Workstation settings must be a regular bounded JSON file')
+    with path.open('rb') as stream:
+        document = decode(stream.read(MAX_WORKSTATION_BYTES + 1), MAX_WORKSTATION_BYTES)
+    require(isinstance(document, dict) and set(document) == {'version', 'settings'}
+            and type(document['version']) is int and document['version'] == 1,
+            'Unsupported workstation settings; preserve the file and correct its format')
+    result = _validate_workstation(root, document['settings'], local_safety=False)
+    require(result['source_mode'] != 'upload' or result['source_folder'] is None,
+            'Upload setup must not retain a source folder')
+    return result
+
+
+def workstation_environment(workspace, environ=None):
+    """Overlay explicit saved nonsecret choices without mutating process environment."""
+    env = dict(os.environ if environ is None else environ)
+    if _workstation_path(workspace).exists():
+        settings = load_workstation_settings(workspace)
+        for field, variable in _CONNECTION_FIELDS.items():
+            if settings[field] is None:
+                env.pop(variable, None)
+            else:
+                env[variable] = settings[field]
+    return env
+
+
+def _workstation_view(root, settings, *, saved):
+    checks = []
+    def add(field, status, message, action=''):
+        checks.append({'id': field, 'status': status, 'message': message, 'action': action})
+    if settings['source_mode'] == 'folder':
+        folder=Path(settings['source_folder']) if settings['source_folder'] else None
+        present=bool(folder and not any(p.is_symlink() for p in (folder,*folder.parents)) and folder.is_dir())
+        add('source_folder', 'READY' if present else 'BLOCKED',
+            'Local export folder is available; its content is checked at intake.' if present else 'Select an existing source export folder.',
+            '' if present else 'Enter the direct path to the complete local Endeavor export.')
+    else:
+        add('source_folder', 'READY', 'Upload source files when starting each process.')
+    for field, label in (('process_notes', 'Process notes'), ('wedlx_folder', 'WEDLX folder'),
+                         ('tran_repository_folder', 'Tran Repository folder')):
+        value = settings[field]
+        if value is None:
+            add(field, 'NOT_CONFIGURED', label + ' is optional.')
+        else:
+            path=Path(value)
+            safe=not any(p.is_symlink() for p in (path,*path.parents))
+            available=safe and (path.is_file() if field == 'process_notes' else path.is_dir())
+            add(field, 'READY' if available else 'BLOCKED',
+                label + ' is available; business readiness remains unverified.' if available else label + ' is no longer available.',
+                '' if available else 'Correct this path or clear the optional value and save.')
+    require(settings['zowe_profile'] is not None or settings['zowe_zosmf_profile'] is None,
+            'zowe_zosmf_profile: also select the approved base profile')
+    for field, label in (('zowe_profile', 'Zowe profile'), ('db2_metadata_url', 'Db2 metadata endpoint')):
+        add(field, 'UNVERIFIED' if settings[field] else 'NOT_CONFIGURED',
+            label + ' is saved for approved Copilot retrieval; no connection was attempted.' if settings[field]
+            else label + ' is optional; use existing approved Copilot connections when needed.')
+    remaining = [c['id'] for c in checks if c['status'] == 'BLOCKED']
+    if not saved:
+        remaining.insert(0, 'save')
+    return {'version': 1, 'saved': saved, 'settings': dict(settings), 'checks': checks,
+            'readiness': {'status': 'NEEDS_SETUP' if remaining else 'READY_FOR_INTAKE',
+                          'remaining': remaining, 'connectivity_verified': False,
+                          'source_verified': False, 'conversion_verified': False},
+            'workflow': {'assistant_mode': 'claude_files', 'copilot_role': 'retrieval_only',
+                         'claude_mcp_servers': 0}, 'metrics': deterministic_metrics()}
+
+
+def inspect_workstation(workspace, *, environ=None):
+    """Read the single form's values. Environment fallbacks are nonsecret and bounded."""
+    with _LOCK:
+        path = _workstation_path(workspace)
+        settings = load_workstation_settings(workspace)
+        if not path.exists():
+            env = dict(os.environ if environ is None else environ)
+            for field, variable in _CONNECTION_FIELDS.items():
+                value = env.get(variable)
+                if value:
+                    try:
+                        settings[field] = _validate_workstation(path.parent.parent, {field: value}, partial=True)[field]
+                    except ValidationError:
+                        pass  # Never echo a credential-bearing legacy URL or malformed alias.
+            if settings['zowe_profile'] is None:
+                settings['zowe_zosmf_profile'] = None
+        return _workstation_view(path.parent.parent, settings, saved=path.exists())
+
+
+def save_workstation(workspace, settings, *, environ=None):
+    """One atomic save; setup does not alter exports, catalog bindings or process evidence."""
+    with _LOCK:
+        path = _workstation_path(workspace)
+        root = path.parent.parent
+        update = _validate_workstation(root, settings, partial=True)
+        current = inspect_workstation(root, environ=environ)['settings']
+        current.update(update)
+        if current['source_mode'] == 'upload':
+            current['source_folder'] = None
+        current = _validate_workstation(root, current)
+        if current['process_notes'] is not None:
+            from .process_context import read_markdown
+            require(Path(current['process_notes']).suffix.lower() == '.md',
+                    'process_notes: select a Markdown .md file')
+            read_markdown(current['process_notes'])
+        view = _workstation_view(root, current, saved=True)
+        require(not view['readiness']['remaining'],
+                '; '.join(c['id'] + ': ' + c['message'] for c in view['checks'] if c['status'] == 'BLOCKED'))
+        from .domain import encode
+        document = {'version': 1, 'settings': current}
+        encode(document, MAX_WORKSTATION_BYTES)
+        atomic_json(path, document)
+        return view
+
+
+def intake_defaults(workspace):
+    """Only future intake uses these mutable preferences; frozen runs stay unchanged."""
+    settings = load_workstation_settings(workspace)
+    return {'source_folder': settings['source_folder'] if settings['source_mode'] == 'folder' else None,
+            'process_notes': settings['process_notes']}

@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "date": "2026-10-06",
+  "date": "2026-10-07",
   "scope": "Copilot-only retrieval through approved MCP, Claude Code analysis/development/testing/review from local files with no MCP, immutable request/return/Continue recovery through the existing Coordinator, and source-backed inventory plus consolidated program documentation. Existing 20-state verification and human gates remain. No operational migration or live host integration is certified. Latest increment retains user business context privately and verifies frozen context integrity before local analysis; no referral-matching semantics inferred.",
   "baseline": {
     "local_commit": "7430836ea27f79fab276b8d0333eb181fbb7834d",
@@ -30778,7 +30778,7 @@
     "The latest five referenced screenshots did not have readable image attachments/file references in this conversation. No claims are based on inspection of those screenshots.",
     "Copilot runs through the IDE host and its normal workspace tool permissions. The UI service cannot independently invoke Copilot Chat. Actual token usage/model identity are Unknown without host evidence."
   ],
-  "historical_receipts_note": "Only current_revision describes the current checked functional fingerprint. Earlier receipts remain historical and do not certify later code or live mainframe/agent-host connectivity.",
+  "historical_receipts_note": "Earlier review and revision receipts are preserved. current_revision identifies the accepted setup revision; prior receipts do not certify changed code. Named IDs are counted once per accepted run; repeats are not additional distinct checks.",
   "previous_revision_2026_10_04": {
     "date": "2026-10-04",
     "baseline_local_commit": "7651f0103e2f5901d3dfe194332820ecf0a08384",
@@ -51292,7 +51292,7 @@
       "local_links_resolve": true
     }
   },
-  "current_revision": {
+  "previous_revision_2026_10_07_before_setup": {
     "date": "2026-10-06",
     "functional_source_fingerprint": "d33672f50cfe29a9c73d47f616ef5ecb6bc5e165608dd8e2a0dd16718faccd20",
     "full_suite": {
@@ -167714,5 +167714,228 @@
       "Finite tests and scoped inspection do not establish exhaustive correctness; all findings remain unresolved"
     ],
     "publication_note": "The reviewed working tree is published on modernization-factory; remote main retains its distinct prior implementation. Passing existing checks does not clear these reproduced findings."
+  },
+  "current_revision": {
+    "date": "2026-10-07",
+    "functional_source_fingerprint": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
+    "full_suite": {
+      "tests": 1755,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 158.924,
+      "source_before": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
+      "source_after": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "1c12a779736e624309ca192a08a80a785a754b3323985fcd178159d72d698879"
+    },
+    "original_named_checks": {
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "accepted": true,
+      "source_fingerprint": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
+      "source_unchanged": true,
+      "execution_log_sha256": "813706b77fafbf2fe11dee7777707b7ace845cdf811405670f9555c5acc46a4b"
+    },
+    "expanded_named_checks": {
+      "planned": 500,
+      "executed": 500,
+      "passed": 500,
+      "unverified": 0,
+      "accepted": true,
+      "source_fingerprint": "12930fa35ccb67bcd734abb2fcbbf76b2bc56a88f665079b86aa601c4d7d48b7",
+      "source_unchanged": true,
+      "execution_log_sha256": "2ac92567250af80633652e46fe28c08c9c6de8fcea54cc230aa76291139c4881"
+    },
+    "named_check_ids": {
+      "first": "R001",
+      "last": "R1000",
+      "distinct_ids": 1000,
+      "each_executed_once_in_accepted_named_run": true,
+      "skips": 0
+    },
+    "scenario_campaign": {
+      "method": "10 finite source families x 20 program variants x 1000 unique program/input scenarios; 800 valid and 200 invalid inputs per program; compiled once per concrete program; three-way comparison to independent hand-coded family expectations",
+      "seed": 20261003,
+      "requested": 200000,
+      "executed": 200000,
+      "passed": true,
+      "unique_scenarios": 200000,
+      "duplicate_executions": 0,
+      "valid_inputs": 160000,
+      "invalid_inputs": 40000,
+      "divergence_count": 0,
+      "branch_targets": 520,
+      "branches_observed": 512,
+      "elapsed_seconds": 2.221953,
+      "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
+      "source_unchanged_during_campaign": true,
+      "limitations": [
+        "Finite generated combinations, not 200000 independent reviews or exhaustive proof.",
+        "Only flat caller-owned LINKAGE JSON semantics; no native storage, files, decimal encoding, collation ordering, CICS, SQL, scheduler or mainframe execution.",
+        "Independent expected behavior is hand-coded for these ten families; target and reference still share the production source parser.",
+        "Decision outcomes include provably unreachable boundaries; missing outcomes remain explicit.",
+        "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
+      ]
+    },
+    "frontend": {
+      "tests": 73,
+      "failures": 0,
+      "skips": 0,
+      "typescript": "PASS",
+      "production_build": "PASS",
+      "independent_write_false_bundle_comparison": {
+        "files": 6,
+        "all_match": true
+      },
+      "ui_log_sha256": "84aa3687afa4b238c9ed0843cc443343fb0e4e7dda879760148099cfa60c79e0",
+      "typecheck_log_sha256": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73"
+    },
+    "features": [
+      "One workspace setup form with real paths and one Save; first visits open it directly.",
+      "Saved source and notes apply to future intake immediately and after restart; uploads and explicit null overrides remain distinct.",
+      "Optional exact WEDLX/Tran Repository folders and approved profile/endpoint hints are preserved as bounded local retrieval context.",
+      "Copilot display/copy envelopes expose current hints beside immutable requests; Claude has zero MCP servers.",
+      "Windows/POSIX launchers reuse the locked installer only when needed, run preflight, open the browser after binding and keep one Coordinator.",
+      "Normal Ctrl+C closes the Coordinator and stops without an error traceback."
+    ],
+    "changes": {
+      "python_regressions_added": 45,
+      "frontend_checks_added": 16,
+      "dependencies_added": 0,
+      "local_settings": ".migration/workstation.json",
+      "legacy_setup_contract": "Version-1 enum endpoint and existing setup.json preserved"
+    },
+    "independent_review": {
+      "role": "Independent adversarial review; no implementation authorship",
+      "scope": "Single form workstation settings, future intake defaults, Copilot retrieval hints, one Coordinator local launch, supporting tests and docs",
+      "outcome": "NO_REMAINING_CONCRETE_SCOPED_FINDINGS",
+      "corrected_reproductions": [
+        {
+          "concern": "Bash CPython literal shell quoting blocked fresh/repair installation",
+          "fixed": "Python inner double quote literal and extraction/runtime expression regression"
+        },
+        {
+          "concern": "Saved external export incorrectly advertised workspace Endeavor availability",
+          "fixed": "Separate root local_source_export and saved_folder_available; real ASGI probe verifies distinction"
+        },
+        {
+          "concern": "Saved retrieval values lost by Copilot endpoint and copied UI prompt",
+          "fixed": "Bounded current retrieval_context returned to Copilot endpoint, mutable copy envelope added without changing frozen request"
+        },
+        {
+          "concern": "Normal Ctrl+C printed traceback and failure status",
+          "fixed": "Catch KeyboardInterrupt after Coordinator cleanup; real SIGINT and lock recovery regressions"
+        }
+      ],
+      "checks": {
+        "workstation_tests": 27,
+        "launcher_tests": 18,
+        "ui_tests": 73,
+        "typescript": "PASS",
+        "real_loopback_startup_and_shutdown": "PASS",
+        "source_and_retrieval_context_probe": "PASS",
+        "immutable_evidence_and_bundle_comparison": "PASS"
+      },
+      "hashes": {
+        "workbench/setup.py": "12ff093fbbbb70bf8a2775212e9d64d0037fb82a4e6691a465f3ffd76118f8b2",
+        "workbench/api.py": "8e7687dcf742f07860cd948facbddb9f3238feeac224cc6ac47c469bdff3e1af",
+        "workbench/coordinator.py": "889b5804c25229a2386ab2da59dc56eaf424a5c1ce86ba6e7c4b0ca34efb050a",
+        "workbench/locations.py": "c2978b1272661dd0b6c13081ba9631bf86f106034c13bd173de0b7a05d1b5e48",
+        "workbench/preflight.py": "44d97d791d636b43c75e67b875cb16f1c10c9baec9cb60ffddf1d73787e247f5",
+        "workbench/runner.py": "73c20e77396425c505bc0567b4adf857eb2748d44c3305e1910265131fe77b5c",
+        "workbench/launch.py": "7956a974f87912ee6c44656e9db58bd112773524fec60cfa433035a1949d34b9",
+        "frontend/src/WorkspaceSetup.tsx": "f7d9399c322737c329f8e507b07b18305431869c2ff2a2078f0e6a1199814089",
+        "frontend/src/main.tsx": "e7dcb91c3f5702262f673b054e0a187a8d5a8f0fc5c02a8a044711360bc68b5b",
+        "frontend/src/CopilotPanel.tsx": "8431bc351a0cbabb7275316b22286d4a4eb07315b8f11d550021b5f194979437",
+        "frontend/src/SetupDiagnostics.tsx": "2c9b0c2ad384a0da0944cf3b5d0c4e783b549bc40feb49daf84f941ed8183b82",
+        "frontend/src/style.css": "2a03c9798cdc511d24da4f5677a2cc3a6fbb74e2f399513fdf6a8aeef46d77f0",
+        "frontend/test-ui.mjs": "796b34f5d1176987765e9b9b6b62fb0dc211e16847e01f9551e0d409d0faaae5",
+        "scripts/setup.sh": "1892e8a47094037b04bc3afd5e64865f0936f5eeeacd588e72c3af9d771632dc",
+        "scripts/start.sh": "45d9919b1f4908042b85c0e528ec43ae13fd59417a35301816d040f4c3d86157",
+        "scripts/Setup.ps1": "59a4c02d20e954862e3441817682576ffa5676d93f992faa5c878b80a557a3f9",
+        "scripts/Start.ps1": "afd475e267d082798a3ba748d5f71c7dc2a74be0893c3a19c0ee85f5b7f8f106",
+        "tests/test_workstation_setup.py": "9abbbe30a8818e9864db41c5f2e852de158bbb8ffe4dda7b3a73a79f697c35b9",
+        "tests/test_launch.py": "1ed50457b6a4eb6829029bdfde5a69c220ebc6cf109ceab69a82ec8c35693f64",
+        ".github/workflows/platform-smoke.yml": "04a5d75fc7244752cb4ffc05f4f011bdb75e9ed38ea4c5216e27224726b03f3c",
+        "workbench/static/app.js": "382cf88963a8811293cbc198adec64007e03f5ac73fa69cb3548625e35017384",
+        "workbench/static/style.css": "2a03c9798cdc511d24da4f5677a2cc3a6fbb74e2f399513fdf6a8aeef46d77f0"
+      },
+      "review_receipt_sha256": "d29d8a322f373fe24dba98819e65a13f1bd282abeb900cf742bc45b20b1f2c49",
+      "incremental_receipt_sha256": "fa854f7410f2a274a070372f1cbeefcbb505be156112689a9531483433bf5b48",
+      "limits": [
+        "All unchanged setup/intake/handoff/frontend checks remain bound by the prior receipt; root complete suite and campaign reported separately.",
+        "Native Windows PowerShell console events and Linux operator acceptance remain unverified on this macOS reviewer; Windows test uses real Python interrupt handler through a local control thread.",
+        "Prior four repository findings outside setup scope remain unresolved."
+      ]
+    },
+    "browser": {
+      "scope": "Fictional local preview only; no operational process or mainframe access",
+      "checks": {
+        "first_visit_opens_setup": true,
+        "single_save_reports_done": true,
+        "missing_path_reports_error": true,
+        "failed_save_suppresses_ready": true,
+        "accepted_settings_survive_server_restart": true,
+        "intake_uses_saved_external_folder": true,
+        "unavailable_workspace_endeavor_choice_disabled": true,
+        "narrow_viewport_no_horizontal_overflow": true,
+        "desktop_viewport_no_horizontal_overflow": true
+      },
+      "viewports": [
+        {
+          "width": 390,
+          "height": 844,
+          "document_width": 390
+        },
+        {
+          "width": 1280,
+          "height": 900,
+          "document_width": 1280
+        }
+      ],
+      "screenshot_sha256": "57cff0664017d7f1a9c571024cf1b531c0598d53254058611a20009baea4e246",
+      "limitations": [
+        "No native Windows/Linux run",
+        "No live host authentication or MCP/read access",
+        "No complete screen-reader/zoom accessibility certification"
+      ]
+    },
+    "preliminary_validation": {
+      "failed_full_suite_attempt_retained": true,
+      "reason": "Default macOS temporary-directory alias has a symlink parent; required workspace safety checks rejected those test workspaces. Accepted full run uses required .implementation/tmp scratch. No assertions or production safety gates were relaxed.",
+      "failed_receipt_sha256": "6d12582dd2fc68d5f44bd06ac5c58b99ff858e0d20874dc229b81bc390a77da2",
+      "failed_log_sha256": "239c9da68bb85d5b6c399572f6080b732ed6b8645c94cfc38377209854b0b8ad",
+      "initial_launcher_defects_reproduced_before_correction": true
+    },
+    "limitations": [
+      "Native Windows PowerShell and Linux operator acceptance are unverified; CI now includes setup and launch regression patterns.",
+      "No live mainframe, host authentication or actual Copilot/Claude host acceptance performed.",
+      "The four earlier repository review findings remain unresolved outside this setup change.",
+      "Finite tests do not prove every mainframe scenario, zero defects or observed mainframe parity.",
+      "Setup verifies local settings only; optional connector hints do not prove installation, authentication or connectivity.",
+      "Actual development provider credits remain Unknown without attributed receipts."
+    ],
+    "fingerprint_scope_note": "The existing functional fingerprint includes knowledge files, including the ignored local business-context inbox. No private context content is published.",
+    "operational_processes_converted": 0,
+    "layout": "PASS",
+    "handoff": "PASS",
+    "factory_consistency": "PASS",
+    "diff_check": "PASS",
+    "verification_commands": [
+      "TMPDIR=.implementation/tmp .venv/bin/python -m unittest discover -s tests",
+      "node frontend/test-ui.mjs",
+      "npm --prefix frontend run typecheck",
+      "npm --prefix frontend run build",
+      ".venv/bin/python tools/review500.py --output PRIVATE_DIRECTORY",
+      ".venv/bin/python tools/review_expanded.py --output PRIVATE_DIRECTORY",
+      "PYTHONPATH=. .venv/bin/python tools/scenario_campaign.py --total-scenarios 200000 --output PRIVATE_JSON",
+      ".venv/bin/python -m workbench.layout --workspace WORKSPACE",
+      ".venv/bin/python tools/check_handoff.py",
+      ".venv/bin/python tools/check_factory.py"
+    ]
   }
 }

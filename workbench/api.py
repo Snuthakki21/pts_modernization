@@ -80,11 +80,14 @@ def create_app(root, origin='http://127.0.0.1:8765'):
     async def state():
         from .provider import empty_usage_summary
         from .inventory import load_inventory
+        from .setup import workstation_environment, intake_defaults
+        environment=workstation_environment(c.root)
+        source_folder=intake_defaults(c.root)['source_folder']
         return {'processes':[display_process(p) for p in c.ledger.list(True)],'portfolio':portfolio(c.ledger),'token':token,
                 'inventory_baseline':load_inventory(c.root),
                 'provider_usage':c.provider.usage_summary() if c.provider else empty_usage_summary(),
                 'capability':'Local job-led discovery, Claude analysis and Copilot file retrieval; executable credit requires verified semantic adapters.',
-                'connections':{'zowe_profile_configured':bool(__import__('os').environ.get('WB_ZOWE_PROFILE')),'db2_endpoint_configured':bool(__import__('os').environ.get('WB_DB2_MCP_URL')),'llm_configured':bool(c.provider),'local_source_export':(c.root/'Endeavor').is_dir()}}
+                'connections':{'zowe_profile_configured':bool(environment.get('WB_ZOWE_PROFILE')),'db2_endpoint_configured':bool(environment.get('WB_DB2_MCP_URL')),'llm_configured':bool(c.provider),'local_source_export':(c.root/'Endeavor').is_dir(),'saved_folder_available':bool(source_folder and Path(source_folder).is_dir())}}
     @app.get('/api/session-token')
     async def session_token():
         # Developer-role mutations need CSRF material, not the operational state.
@@ -100,6 +103,16 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         b=await body(request,MAX_SETUP_BYTES)
         require(set(b)=={'answers'},'Supply only the nonsecret setup answers object')
         return save_setup(c.root,b['answers'])
+    @app.get('/api/setup/workstation')
+    async def workstation_setup():
+        from .setup import inspect_workstation
+        return await asyncio.to_thread(inspect_workstation,c.root)
+    @app.post('/api/setup/workstation')
+    async def update_workstation_setup(request:Request):
+        from .setup import MAX_WORKSTATION_BYTES, save_workstation
+        b=await body(request,MAX_WORKSTATION_BYTES)
+        require(set(b)=={'settings'},'Supply only the nonsecret workstation settings object')
+        return await asyncio.to_thread(c.configure_workstation,b['settings'])
     @app.get('/api/templates/intake')
     async def template():
         path=Path(__file__).parent.parent/'examples/intake-template.xlsx'
@@ -132,7 +145,11 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         if sources is not None:
             require(isinstance(sources,dict) and all(isinstance(v,str) for v in sources.values()),'Uploaded sources must be text files')
             require(sum(len(v.encode('utf-8')) for v in sources.values())<=MAX_UI_SOURCE_BYTES,'Browser source upload exceeds 32 MiB; retain the complete repository in local Endeavor instead')
-        return await asyncio.to_thread(c.create,b['manifest'],sources,False,b.get('prompt',''),b.get('assistant_mode','claude_files'),b.get('source_folder'),b.get('process_notes'),True)
+        from .setup import intake_defaults
+        defaults=intake_defaults(c.root)
+        source_folder=b.get('source_folder',defaults['source_folder']) if sources is None else b.get('source_folder')
+        process_notes=b.get('process_notes',defaults['process_notes'])
+        return await asyncio.to_thread(c.create,b['manifest'],sources,False,b.get('prompt',''),b.get('assistant_mode','claude_files'),source_folder,process_notes,True)
 
     @app.get('/api/process/{pid}/requirements/source')
     async def requirements_source(pid:str,path:str):
@@ -209,6 +226,7 @@ def create_app(root, origin='http://127.0.0.1:8765'):
     async def retrieval_task(pid:str):
         view=await asyncio.to_thread(c.local_agent_view,pid)
         return {'process_id':pid,'retrieval':view['retrieval'],'retrieval_state':view['retrieval_state'],
+                'retrieval_context':view.get('retrieval_context'),
                 'instruction':'Copilot retrieves requested files to the exact local inbox only. Claude owns analysis, development, testing and review without MCP.'}
 
     @app.get('/api/process/{pid}/development')

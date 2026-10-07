@@ -41,20 +41,40 @@ No source-system writes, mainframe execution or synthetic uploads are permitted.
 Do not use an agent's answer as SME approval. Source-derived comparisons are
 not observed mainframe results. No claim of perfect software is supported.
 
-## Guided setup and credentials
+## Workspace setup and credentials
 
-The UI asks six questions: where the export is, whether the manifest is ready,
-whether Zowe and Db2 are needed/configured, whether Copilot Chat is
-wanted, and whether a reviewer is available. Answers are saved locally as typed
-choices. The guide performs zero network/model calls. Configuration, successful
-connection, supported conversion and verified business acceptance are separate.
+The first UI visit opens one settings form. Choose a local source folder or
+upload-at-intake mode, optionally set a process Markdown file, then Save setup.
+Optional fields hold exact WEDLX/Tran Repository folder bindings and already
+approved Zowe base/service aliases and Db2 metadata URL. These values are
+operator-provided retrieval context, not installed connections or access proof.
+Copilot receives that context beside its immutable request and in the copyable
+prompt; changes never rewrite the original request, hash or frozen prompt. The existing
+Coordinator validates and saves local settings; new intake uses these defaults
+immediately and after restart. Explicit source uploads override the saved
+source folder. Existing process snapshots and accepted evidence are unchanged.
+
+`GET /api/setup/workstation` and CSRF-protected
+`POST /api/setup/workstation` use a bounded nonsecret `settings` object. Settings
+live only in ignored `.migration/workstation.json`. Invalid paths or fields
+produce actionable errors and preserve the last accepted settings. The legacy
+`/api/setup` six-choice endpoint and `.migration/setup.json` remain available
+for historical clients; they no longer drive the active setup screen.
+
+The default workflow is Claude Code with local files and Copilot for approved
+retrieval. No model endpoint/token, manifest-ready declaration or reviewer
+availability answer is required to finish workstation setup. Saved readiness
+means local settings are usable. Source validation, successful connection,
+supported conversion and the actual human return remain separate gates. No
+network/model request or mainframe execution occurs during setup. Authentication
+stays in existing approved secure tools or private environment variables.
 
 ## What you provide once
 
 | Input | Put it here / action | Why it is needed |
 |---|---|---|
 | Workstation | CPython 3.12, local writable disk, setup script; use the committed UI bundle | Installs locked dependencies and avoids a Node requirement for operators. Native Windows execution still needs a workstation smoke test. |
-| Application export | `WORKSPACE/Endeavor/` | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
+| Application export | Source folder chosen in Workspace setup, `WORKSPACE/Endeavor/`, or files uploaded at intake | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
 | Initial process | Markdown following `examples/process-input.md`, or the UI Excel template | Ordered jobs, steps, program/utility names, input/output groups and conditions. A new source version uses a new process ID. |
 | Custom knowledge | `WORKSPACE/knowledge/application-knowledge.json`; start with `examples/application-knowledge.json` | Application/vendor utilities, aliases, semantics, evidence, record layouts, control-card behavior and known dependencies. The standard catalog is visible in `knowledge/mainframe-catalog.json`. |
 | Background articles | `WORKSPACE/knowledge/inbox/`, up to 20 Markdown documents, 1 MiB combined | Devin/application notes. Treated as unverified evidence, never executable instructions or approval. |
@@ -64,15 +84,18 @@ connection, supported conversion and verified business acceptance are separate.
 | Claude Code | Organization-approved VS Code extension or other approved host; local framework and approved exports | Local analysis, rules, development, testing and review. No MCP servers. `examples/claude-mcp.json` is empty; no setup or connection required. Local runner commands preserve the single Coordinator. |
 | Actual SME return | One issued checklist, completed by the real reviewer; import once with attribution | Confirms or corrects interpretations. Unanswered/No/corrected items remain unresolved; no second questionnaire is generated. |
 
-Private environment variables are set in your shell before launch. `.env.example`
-is an example, not an auto-loaded credential file. Do not paste credentials into
+Nonsecret workstation defaults are saved through the UI. Authentication
+variables, when needed by approved tools, stay private in the launch shell.
+`.env.example` is an example, not an auto-loaded credential file. Do not paste credentials into
 source, knowledge, intake or review files. The `runner agent` command uses a
 local command inbox when the UI owns the workspace. Other direct-writer CLI
 commands require stopping the UI first.
 
 ### Connection configuration
 
-Set private variables in the launch shell. Root `.env.example` is not auto-loaded; the Db2 server reads only its fixed `tools/dq3g_mcp/.env`.
+Save optional nonsecret retrieval values in Workspace setup. Private credentials
+remain in approved secure tools or the launch shell. Root `.env.example` is not
+auto-loaded; the Db2 server reads only its fixed `tools/dq3g_mcp/.env`.
 The UI never asks you to paste credentials into a form or source file.
 
 | Connection | Variables / prerequisite | Actual implemented behavior |
@@ -157,9 +180,12 @@ availability. Layout, cutoff/completeness and business readiness remain unknown.
 
 ### Runtime and recovery
 
-Use CPython 3.12 and the SHA256-locked wheels. `scripts/Setup.ps1` and
-`scripts/setup.sh` stop on install/preflight failure. Operators use the committed
-React bundle; Node 22+ is needed only to develop the UI. Keep the workspace on
+Use CPython 3.12 and the SHA256-locked wheels. `scripts/Start.ps1` and
+`scripts/start.sh` reuse the existing installer when the environment is missing
+or its locked dependencies are incomplete. They stop on install/preflight
+failure and open the browser after service startup. `-NoBrowser` /
+`--no-browser` suppress browser opening. The launch path owns one Coordinator.
+Operators use the committed React bundle; Node 22+ is needed only to develop the UI. Keep the workspace on
 local disk, back up the whole workspace, and run one Coordinator at a time.
 Stop the UI before using the CLI on the same workspace. Never delete a lock or
 recalculate frozen hashes to get past a blocker. Restart/Resume preserves stage,
@@ -359,7 +385,7 @@ research remain in Git history at published commit
 
 ## Interface and accessibility contract
 
-One primary next action; a five-stage progress guide; six setup questions;
+One primary next action; a five-stage progress guide; one workstation settings form;
 plain-language statuses; evidence behind disclosure controls; one executive
 report link. Workbench actions are not fabricated modernization progress.
 Use semantic controls, persistent labels, keyboard focus, status/alert regions,
@@ -370,10 +396,11 @@ Public Wells Fargo homepage CSS supplies red `#d71e28`, yellow `#ffcd41`, charco
 `#3b3331` and neutral `#f4f0ed`. Use system fonts, not unlicensed brand fonts or
 invented corporate marks. This is public-style alignment; internal Wells Fargo
 design-system approval is not available. WCAG 2.2 AA is the accessibility target,
-not a claim that automated checks constitute certification. The cloud browser
-could not reach this release's local preview, so full visual/manual accessibility
-verification is pending. Native Windows, native PowerPoint and live source
-connections also require the target-workstation acceptance check.
+not a claim that automated checks constitute certification. The current local
+browser check covers setup Save, rejected paths, restart and intake defaults at
+390px and 1280px without horizontal overflow. Complete keyboard, zoom and
+screen-reader acceptance is pending. Native Windows/Linux, native PowerPoint and
+live source connections require target-workstation acceptance.
 
 ## Efficient engineering and evidence
 

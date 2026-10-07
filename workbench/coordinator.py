@@ -18,6 +18,9 @@ from .limits import (MAX_SOURCE_FILES, MAX_SOURCE_ENTRIES, MAX_SOURCE_FILE_BYTES
                      MAX_SOURCE_BYTES, MAX_SOURCE_LINES, source_line_count)
 
 
+_UNSET = object()
+
+
 class StageInterrupted(Exception):
     pass
 
@@ -33,6 +36,8 @@ class Coordinator:
             self.ledger=Ledger(self.root)
             from .provider import configured_provider
             self.provider=configured_provider()
+            from .setup import load_workstation_settings
+            self.workstation_settings=load_workstation_settings(self.root)
             for p in self.ledger.list(True):
                 prior_artifacts=len(p['artifacts'])
                 hashes=p.get('artifact_hashes') or {}
@@ -69,10 +74,21 @@ class Coordinator:
             finally:self.instance.close()
             raise
 
+    def configure_workstation(self,settings):
+        from .setup import save_workstation
+        with self.lock:
+            result=save_workstation(self.root,settings)
+            self.workstation_settings=result['settings']
+            return result
+
     def process_root(self,pid):return safe_path(self.root,'processes/'+identity(pid))
 
-    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=None, process_notes=None, requirements_selection=False):
+    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=_UNSET, process_notes=_UNSET, requirements_selection=False):
         require_layout(self.root)
+        from .setup import intake_defaults
+        defaults=intake_defaults(self.root)
+        if source_folder is _UNSET:source_folder=defaults['source_folder'] if source_files is None else None
+        if process_notes is _UNSET:process_notes=defaults['process_notes']
         manifest=parse_manifest(manifest_text)
         require(type(requirements_selection) is bool,'Requirements selection mode must be a boolean')
         require(source_folder is None or isinstance(source_folder,(str,Path)) and bool(str(source_folder).strip()),'Source folder must be a nonempty path')
@@ -425,7 +441,12 @@ class Coordinator:
             request=None
             if doc.get('retrieval_request'):
                 request=decode(self.artifact(pid,doc['retrieval_request']['artifact']).read_bytes())
-            return {'process_id':pid,'status':doc['status'],'host_roles':{
+            from .setup import inspect_workstation
+            current_setup=inspect_workstation(self.root)['settings']
+            retrieval_context={key:current_setup[key] for key in ('zowe_profile','zowe_zosmf_profile','db2_metadata_url')}
+            retrieval_context.update(status='CONFIGURATION_ONLY',connectivity_verified=False,
+                                     role='Copilot approved retrieval only; never Claude MCP access')
+            return {'process_id':pid,'status':doc['status'],'retrieval_context':retrieval_context,'host_roles':{
                 'retrieval':'GitHub Copilot, approved MCP retrieval into the request inbox only',
                 'analysis':'Claude Code, local files only; no MCP'},
                 'task_file':str(self.artifact(pid,doc['copilot_task_artifact'])) if doc.get('copilot_task_artifact') else None,

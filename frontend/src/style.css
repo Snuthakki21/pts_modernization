@@ -13,3 +13,7 @@
 .table-scroll .requirements-table{min-width:840px;table-layout:fixed}.requirements-table th:first-child,.requirements-table td:first-child{width:100px}.requirements-table th:nth-child(2){width:32%}.requirements-table th:nth-child(3){width:180px}.requirements-table select{min-width:80px;width:80px;padding:10px 8px;margin:0}.requirements-table th[scope=row]{font-weight:500}.requirements-table th small{display:block;margin-top:6px;font-weight:400;color:var(--muted)}.requirements-table details{border:0;padding:0;margin:0}.requirements-table summary{padding:0;min-height:44px;overflow-wrap:anywhere}.requirements-table pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
 
 .development-receipt{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.workstation-setup .setup-source{margin:22px 0}.workstation-setup .setup-source legend{font-size:14px}.workstation-setup>form>label{margin:22px 0}.workstation-setup input[type=text],.workstation-setup input[type=url]{font-weight:400}.optional-label{font-size:11px;font-weight:400;color:var(--muted);margin-left:6px}.setup-advanced{margin:24px 0}.setup-advanced .fields{margin-top:18px}.setup-advanced .fields>label{min-width:0}.setup-workflow{margin-top:22px}.setup-result{margin-top:20px;scroll-margin-top:24px}.setup-result:empty{margin:0}.setup-result h3{font-size:19px;margin:8px 0}.setup-result p{margin-bottom:14px}.setup-scope{margin-bottom:0}
+
+.retrieval-prompt textarea{height:220px}

@@ -31,7 +31,7 @@ jobs:
           os.environ['TMPDIR'] = str(scratch)
           os.environ['TEMP'] = str(scratch)
           os.environ['TMP'] = str(scratch)
-          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py'):
+          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_launch.py'):
               subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
           subprocess.run([sys.executable, '-m', 'workbench.layout', '--workspace', '.'], check=True)
           subprocess.run([sys.executable, 'tools/check_handoff.py'], check=True)
