@@ -88,3 +88,87 @@ class DiscoveryWorkflowTests(unittest.TestCase):
         doc=self.create();self.c.start(doc['id']);result=self.c.advance(doc['id'])
         self.assertEqual(result['status'],'WAITING_COPILOT')
         self.assertEqual(result['inventory_baseline']['document']['declared_total'],1829)
+
+
+class CicsRetrievalWorkflowTests(unittest.TestCase):
+    def test_new_packet_uses_explicit_transports_and_historical_packet_is_unchanged(self):
+        from workbench.retrieval import build_request, validate_binding
+        doc={'id':'retrieval-audit','source_files':{}}
+        needs=[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Observed columns and original DDL needed'}]
+        old=build_request(doc,needs)
+        validate_binding(old,doc)
+        self.assertEqual(old['schema_version'],1)
+        self.assertNotIn('Mandatory transport boundary',old['copilot_prompt'])
+        new=build_request({**doc,'cics_contract_version':1},needs)
+        validate_binding(new,{**doc,'cics_contract_version':1})
+        self.assertEqual(new['schema_version'],2)
+        self.assertIn('Zowe CLI',new['copilot_prompt']);self.assertIn('db2_describe_table',new['copilot_prompt'])
+        self.assertIn('Claude Code has no MCP access',new['copilot_prompt'])
+        self.assertIn('Do not invent DDL',new['copilot_prompt'])
+        self.assertIn(new['return_folder'],new['copilot_prompt'])
+        self.assertNotEqual(new['request_id'],old['request_id'])
+
+    def test_catalog_return_validates_outer_provenance_hash_and_stays_inside_process_sources(self):
+        from workbench.retrieval import build_request, write_request, inspect_response
+        from test_lineage_discovery import Db2CatalogReceiptTests
+        from unittest.mock import patch
+        receipt=Db2CatalogReceiptTests().receipt();raw=encode(receipt)
+        with tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
+            root=Path(temp);doc={'id':'retrieval-audit','source_files':{},'cics_contract_version':1}
+            request=build_request(doc,[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Table description needed'}]);write_request(root,request)
+            inbox=root/request['return_folder'];path='db2/APP.CUSTOMER.json.txt';(inbox/'files/db2').mkdir()
+            (inbox/'files'/path).write_bytes(raw)
+            response={'request_id':request['request_id'],'items':[{'need_id':request['needs'][0]['need_id'], 'status':'FOUND',
+                'path':path,'sha256':sha(raw),'provenance':receipt['provenance']}]}
+            (inbox/'response.json').write_bytes(encode(response))
+            with patch('subprocess.Popen',side_effect=AssertionError('Retrieval import must not contact a service')):
+                result=inspect_response(root,request,{})
+            self.assertTrue(result['complete']);self.assertEqual(result['entries'][0]['text'],raw.decode())
+            self.assertEqual(result['entries'][0]['source_hash'],sha(raw))
+            self.assertFalse((root/'processes/retrieval-audit/input/sources'/path).exists())
+            response['items'][0]['provenance']={**receipt['provenance'],'tool':'zowe'}
+            (inbox/'response.json').write_bytes(encode(response))
+            with self.assertRaisesRegex(ValidationError,'typed read-only Db2 MCP'):inspect_response(root,request,{})
+            self.assertFalse((root/'processes/retrieval-audit/input/sources'/path).exists())
+
+    def test_schema_two_db2_needs_and_schema_declarations_require_typed_mcp(self):
+        from workbench.retrieval import build_request,write_request,inspect_response
+        for kind,source,path in (('db2_table','CREATE TABLE APP.CUSTOMER (ID CHAR(9));','CUSTOMER.sql'),
+                                 ('db2_stored_procedure','CREATE PROCEDURE APP.P() LANGUAGE SQL;','PROC.txt'),
+                                 ('unknown_dependency','CREATE TABLE APP.CUSTOMER (ID CHAR(9));','CUSTOMER.txt'),
+                                 ('unknown_dependency','CREATE\nTABLE APP.CUSTOMER (ID CHAR(9));','MULTILINE.txt')):
+            for origin,tool in (('zowe_cli','zowe files view ds'),('configured_mcp','shell'),('configured_mcp','db2_sample_rows')):
+                with self.subTest(kind=kind,path=path,origin=origin,tool=tool),tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
+                    root=Path(temp);doc={'id':'transport-audit','source_files':{},'cics_contract_version':1}
+                    request=build_request(doc,[{'kind':kind,'name':'APP.CUSTOMER','reason':'Actual schema needed'}]);write_request(root,request)
+                    inbox=root/request['return_folder'];(inbox/'files'/path).write_text(source)
+                    provenance={'origin':origin,'tool':tool,'locator':'APP.CUSTOMER','retrieved_at':'2026-10-07T16:00:00Z'}
+                    item={'need_id':request['needs'][0]['need_id'],'status':'FOUND','path':path,'sha256':sha(source),'provenance':provenance}
+                    (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[item]}))
+                    with self.assertRaisesRegex(ValidationError,'typed read-only Db2 MCP'):inspect_response(root,request)
+                    self.assertFalse((root/'processes/transport-audit/input/sources'/path).exists())
+                    item['provenance']={**provenance,'origin':'configured_mcp','tool':'db2_describe_table'}
+                    (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[item]}))
+                    self.assertTrue(inspect_response(root,request)['complete'])
+
+    def test_shared_source_cannot_bypass_db2_transport_on_second_need(self):
+        from workbench.retrieval import build_request,write_request,inspect_response
+        with tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
+            root=Path(temp);doc={'id':'transport-audit','source_files':{},'cics_contract_version':1}
+            request=build_request(doc,[{'kind':'copybook','name':'CUSTOMER','reason':'Original source'},
+                                       {'kind':'db2_table','name':'APP.CUSTOMER','reason':'Actual catalog'}]);write_request(root,request)
+            inbox=root/request['return_folder'];raw='01 CUSTOMER.\n05 ID PIC X(9).\n';path='CUSTOMER.cpy';(inbox/'files'/path).write_text(raw)
+            items=[{'need_id':need['need_id'],'status':'FOUND','path':path,'sha256':sha(raw),'provenance':
+                    {'origin':'zowe_cli','tool':'zowe files view ds','locator':'APP.COPY(CUSTOMER)','retrieved_at':'2026-10-07T16:00:00Z'}} for need in request['needs']]
+            (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':items}))
+            with self.assertRaisesRegex(ValidationError,'typed read-only Db2 MCP'):inspect_response(root,request)
+
+    def test_schema_one_preserves_historical_transport_acceptance(self):
+        from workbench.retrieval import build_request,write_request,inspect_response
+        with tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
+            root=Path(temp);request=build_request({'id':'historical','source_files':{}},[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Existing contract'}]);write_request(root,request)
+            inbox=root/request['return_folder'];raw='CREATE TABLE APP.CUSTOMER (ID CHAR(9));';path='CUSTOMER.sql';(inbox/'files'/path).write_text(raw)
+            item={'need_id':request['needs'][0]['need_id'],'status':'FOUND','path':path,'sha256':sha(raw),'provenance':
+                  {'origin':'zowe_cli','tool':'zowe files view ds','locator':'APP.DDL(CUSTOMER)','retrieved_at':'2026-10-07T16:00:00Z'}}
+            (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[item]}))
+            self.assertEqual(request['schema_version'],1);self.assertTrue(inspect_response(root,request)['complete'])

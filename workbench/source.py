@@ -307,10 +307,36 @@ def analyze_sources(files, manifest):
         validate_snapshot(manifest['mainframe_knowledge'])
         classifications=classify_files(files,manifest,manifest['mainframe_knowledge'])
         findings=utility_findings(manifest,manifest['mainframe_knowledge'],files)
+    cics_version=manifest.get('cics_contract_version')
+    require(cics_version is None or type(cics_version) is int and cics_version==1, 'Unsupported frozen CICS screen contract')
+    catalog_evidence={}
+    if cics_version==1:
+        from .db2_catalog import table_description
+        for path,text in files.items():
+            descriptor=table_description(text)
+            if descriptor is not None:
+                catalog_evidence[path]=descriptor
+                if classifications is not None:
+                    classifications[path]={'kind':'db2_catalog_evidence','confidence':'observed_metadata','candidate_kinds':['db2_catalog_evidence'],
+                        'evidence':[{'line':1,'reason':'Validated typed Db2 MCP table-description receipt; metadata is not executable SQL'}],
+                        'evidence_truncated':False,'conflicts':[],'utility_ids':[],'conversion_support':'not_established'}
     programs={};assets=[];blockers=[]
     for path,text in sorted(files.items()):
         require(isinstance(text,str) and len(text.encode('utf-8'))<=MAX_SOURCE_FILE_BYTES,'Source file too large')
         lower=path.lower();stem=path.rsplit('/',1)[-1].rsplit('.',1)[0].upper();h=sha(text)
+        if path in catalog_evidence:
+            descriptor=catalog_evidence[path]
+            assets.append({'id':sha('db2_catalog_evidence:'+path+':'+h),'kind':'db2_catalog_evidence','name':descriptor['schema']+'.'+descriptor['table'],
+                'path':path,'source_hash':h,'source_text':text,'catalog_evidence':descriptor,'executable_source':False,
+                'tables':[descriptor['schema']+'.'+descriptor['table']], 'loc':{'physical':len(text.splitlines()),'code':0},
+                'selected':path in selected_scope,'scope_disposition':'selected' if path in selected_scope else 'out_of_scope',
+                'scope_reason':'Observed typed Db2 catalog evidence, retained for local analysis; no executable database replacement is inferred'})
+            if path in selected_scope:
+                for obligation in descriptor['missing_semantics']:
+                    blockers.append({'kind':'db2_catalog_semantics_gap','path':path,'lines':list(range(1,len(text.splitlines())+1)),
+                        'object':descriptor['schema']+'.'+descriptor['table'],'obligation':obligation,
+                        'message':'Db2 '+descriptor['schema']+'.'+descriptor['table']+': '+obligation+' is not established by this typed catalog receipt. Retain actual DDL/keys/indexes/triggers and implement/test database, transaction, type and authorization semantics before conversion credit; metadata alone is not executable support.'})
+            continue
         classification=classifications[path] if classifications is not None else None
         classified_kind=classification['kind'] if classification is not None else None
         is_program=classified_kind=='cobol_program' if classification is not None else lower.endswith(('.cbl','.cob','.cobol'))
@@ -344,7 +370,7 @@ def analyze_sources(files, manifest):
                 if classification is not None:asset['table_evidence_basis']='STATIC_UNQUOTED_REFERENCES_NOT_CATALOG_INVENTORY'
             if kind=='bms_map':
                 asset['screens']=re.findall(r'^(\w+)\s+DFHMDI\b',text,re.M|re.I)
-                if path in selected_scope:blockers.append({'kind':'unsupported_source','message':'BMS/CICS behavior requires source-supported action mapping; no replacement screen is credited.','path':path})
+                if path in selected_scope and cics_version!=1:blockers.append({'kind':'unsupported_source','message':'BMS/CICS behavior requires source-supported action mapping; no replacement screen is credited.','path':path})
             assets.append(asset)
     for finding in findings:
         if 'lineage_scope' in manifest and finding.get('source_refs') and not any(r.get('path') in selected_scope for r in finding['source_refs']):continue
@@ -402,12 +428,21 @@ def analyze_sources(files, manifest):
     selected_paths={p['path'] for p in scoped.values()} | {d['path'] for p in scoped.values() for d in p['dependencies']}
     for p in scoped.values():blockers+=p['blockers']
     for asset in assets:
-        asset['selected']=asset['path'] in selected_scope if 'lineage_scope' in manifest else asset['path'] in selected_paths or asset['kind'] in ('jcl_job','bms_map','sql','other_source')
+        asset['selected']=asset['path'] in selected_scope if 'lineage_scope' in manifest else asset['path'] in selected_paths or asset['kind'] in ('jcl_job','bms_map','sql','other_source','db2_catalog_evidence')
         asset['scope_disposition']='selected' if asset['selected'] else 'out_of_scope'
         asset['scope_reason']='Selected manifest program, resolved dependency, or additional process export requiring accountability' if asset['selected'] else 'Not called by the selected manifest and not a resolved COPY dependency'
     scoped_assets=assets
     result={'programs':scoped,'assets':scoped_assets,'rules':[r for p in scoped.values() for r in p['rules']], 'graph':graph,'blockers':blockers,'source_snapshot':sha('\n'.join(k+':'+sha(v) for k,v in sorted(files.items()))),'source_accounting':{p['name']:p['coverage'] for p in scoped.values()}, 'relationships':[r for p in scoped.values() for r in p['relationships']], 'evidence_basis':'SOURCE_DERIVED_EXPECTED'}
     if classifications is not None:result.update({'classifications':classifications,'utility_findings':findings})
+    if cics_version==1:
+        from .cics import analyze_cics
+        result['cics_contract_version']=1
+        result['cics']=analyze_cics(files,manifest,scoped,classifications)
+        result['blockers'].extend(result['cics']['gaps'])
+        for asset in result['assets']:
+            if asset['kind']=='bms_map':
+                asset['screens']=[screen['map'] for screen in result['cics']['screens'] if screen['source_path']==asset['path']]
+        result['db2_catalog_evidence']=[{'source_path':path,**descriptor} for path,descriptor in sorted(catalog_evidence.items())]
     if manifest.get('requirements'):
         from .requirements import project
         result=project(result,manifest['requirements'],manifest.get('jobs',[]))

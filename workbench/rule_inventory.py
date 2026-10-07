@@ -86,6 +86,9 @@ def build_rule_inventory(doc, coverage, root=None):
         for rule in program['rules']+program.get('omitted_rules',[]):
             key = (program['path'], rule['id']); identified[key] = rule
             for number in range(rule['source_start'], rule['source_end'] + 1): modeled[program['path'], number] = key
+    cics_units={}
+    for descriptor in (doc.get('analysis') or {}).get('cics',{}).get('units',[]):
+        for number in range(descriptor['start_line'],descriptor['end_line']+1):cics_units[descriptor['source_path'],number]=descriptor
     groups = {}; last_unknown = {}; target_cache = {}; jcl_context = {}
     for row in coverage['rows']:
         path=row['source_path']
@@ -102,6 +105,9 @@ def build_rule_inventory(doc, coverage, root=None):
             category = classifications.get(rule['id'], {}).get('category', default)
             description = rule['plain']; identity = rule['id']
             basis = classifications.get(rule['id'], {}).get('reason', 'Historical business-rule designation' if default == 'business_rule' else 'Classification not yet evidenced')
+        elif (path,number) in cics_units:
+            descriptor=cics_units[path,number];identity='cics:'+str(descriptor['start_line'])+':'+descriptor['kind'];key=(path,identity)
+            category='technical_logic';description=descriptor['description'];basis='Source-bound BMS field/layout or native controller obligation; controller behavior is never inferred from layout verification'
         elif row.get('requirements_excluded'):
             key=(path,row['requirement_id']);category='technical_logic' if row.get('requirement_kind') in ('data_layout','copybook','terminal') else 'unclassified';identity=row['requirement_id']
             description='Excluded source unit';basis='Explicit operator scope in saved requirements Markdown'
@@ -124,6 +130,16 @@ def build_rule_inventory(doc, coverage, root=None):
             'program': by_path.get(path, (None,))[0], 'source_path': path, 'source_version': row['source_hash'],
             'requirements_excluded':row.get('requirements_excluded',False), 'source': [], 'targets': [], 'tests': set(), 'evidence': [], 'reasons': set(), '_gap_reasons':set(), '_dispositions': [],
             'memberships': [{'job': j, 'step': s, 'program': p} for j, s, p in sorted(memberships[path]) if path not in jcl_context or j.upper()==jcl_context[path]]})
+        descriptor=cics_units.get((path,number))
+        if descriptor:
+            if descriptor['kind']=='screen_action':
+                bindings=descriptor.get('bindings',[descriptor])
+                screens=[screen for screen in doc['analysis']['cics']['screens'] if descriptor.get('program') in screen['owners'] and any(binding.get('mapset')==screen['mapset'] and binding.get('map')==screen['map'] for binding in bindings)]
+            else:
+                screens=[screen for screen in doc['analysis']['cics']['screens'] if screen['source_path']==path and (not descriptor.get('map') or screen['map']==descriptor['map'])]
+            item['cics_screens']=sorted({screen['mapset']+'/'+screen['map'] for screen in screens})
+            item['cics_programs']=([descriptor['program']] if descriptor.get('program') else sorted({owner for screen in screens for owner in screen['owners']}))
+            if descriptor.get('program'):item['program']=descriptor['program']
         item['source'].append({'line': number, 'text': row['source_text']})
         item['_dispositions'].append(row['disposition']); item['tests'].update(row['tests']); item['reasons'].add(row['reason'])
         if row['disposition'] not in VERIFIED:item['_gap_reasons'].add(row['reason'])
@@ -169,7 +185,9 @@ def build_rule_inventory(doc, coverage, root=None):
         owned={p['path']} | {d['path'] for d in p.get('dependencies',[]) if d.get('path')}
         for field in p.get('fields',{}).values():
             if field.get('source_ref'):owned.add(field['source_ref'].rsplit(':',1)[0])
-        selected=[r for path in sorted(owned) for r in rules_by_path[path]]
+        if (doc.get('analysis') or {}).get('cics_contract_version')==1:
+            owned.update(screen['source_path'] for screen in doc['analysis']['cics']['screens'] if name in screen['owners'])
+        selected=[r for path in sorted(owned) for r in rules_by_path[path] if (doc.get('analysis') or {}).get('cics_contract_version')!=1 or (name in r['cics_programs'] if 'cics_programs' in r else r.get('program') in (None,name))]
         row=rollup({'program':name,'source_path':p['path'],'source_version':p['source_hash']},selected)
         reached=program_memberships[p['path'],name]
         row['invocation_memberships']=sum(sum((m['job'],m['step'],m['program']) in reached for m in r['memberships']) for r in selected)
@@ -186,10 +204,14 @@ def build_rule_inventory(doc, coverage, root=None):
                 job_programs.append(row)
     from .requirements import comparison
     from .comparison import freeze_program_gates, freeze_process_gates
-    return {'comparison_contract_version':2, 'process_gates':freeze_process_gates(doc,coverage), 'program_gates':freeze_program_gates(doc,program_rows), 'requirements_comparison':comparison(doc,coverage), 'schema_version': 1, 'process_id': doc['id'], 'rules': rules, 'job_programs':job_programs, 'summary': _counts(rules),
+    result = {'comparison_contract_version':2, 'process_gates':freeze_process_gates(doc,coverage), 'program_gates':freeze_program_gates(doc,program_rows), 'requirements_comparison':comparison(doc,coverage), 'schema_version': 1, 'process_id': doc['id'], 'rules': rules, 'job_programs':job_programs, 'summary': _counts(rules),
             'jobs': job_rows, 'programs': program_rows,
             'unassigned_rule_ids': [r['id'] for r in rules if not r['memberships']],
             'basis': 'Unique source-version rule occurrences; job totals deduplicate repeated invocations. Unclassified spans are obligations, not a known count of semantic rules. Selected No units remain in original totals and are excluded from requested-scope conversion percentages. Verification inherits replayed whole-program coverage. Source-derived evidence is not observed mainframe parity.'}
+    if (doc.get('analysis') or {}).get('cics_contract_version')==1:
+        result['cics_contract_version']=1
+        result['basis']=result['basis'].replace('Verification inherits replayed whole-program coverage.', 'Record logic inherits replayed whole-program coverage; BMS character layouts have separately replayed unit, randomized, mutation and FastAPI gates. Layout credit does not verify native controller or data behavior.')
+    return result
 
 
 def _cell(value):

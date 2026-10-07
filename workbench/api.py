@@ -58,10 +58,25 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         result['blockers']=doc.get('blockers',[])[:50]
         result['blockers_truncated']=result['blocker_count']>50
         result['runs']=[{k:v for k,v in run.items() if k!='programs'}|{'programs':{name:{k:v for k,v in r.items() if k not in ('actual','differences')}|{'case_count':len(r['actual']),'difference_count':len(r['differences'])} for name,r in run['programs'].items()}} for run in doc['runs']]
+        if doc.get('cics_contract_version')==1:
+            for projected,run in zip(result['runs'],doc['runs']):
+                projected['screens']={ident:{key:value for key,value in receipt.items() if key not in ('actual','differences','coverage','adversarial','linked_controller_witness')}|
+                    {'case_count':len(receipt.get('actual',[])),'difference_count':len(receipt.get('differences',[])),
+                     'coverage_complete':receipt.get('coverage',{}).get('complete'),
+                     'adversarial_passed':receipt.get('adversarial',{}).get('passed'),
+                     'mutation_count':len(receipt.get('adversarial',{}).get('mutations',[]))} for ident,receipt in run.get('screens',{}).items()}
+            result.pop('screen_versions',None);result['screen_target_count']=len(doc.get('screen_versions',{}))
+            if doc.get('logic_validation'):
+                result['logic_validation']={key:value for key,value in doc['logic_validation'].items() if key!='screen_layouts'}
+                result['logic_validation']['screen_layout_count']=len(doc['logic_validation'].get('screen_layouts',[]))
         if doc.get('analysis'):
             accounting=doc['analysis'].get('source_accounting')
             result['analysis']={k:v for k,v in doc['analysis'].items() if k not in ('programs','source_accounting')}
             result['analysis']['assets']=[{k:v for k,v in asset.items() if k not in ('source_text','coverage','rules','fields')} for asset in doc['analysis'].get('assets',[])]
+            if doc['analysis'].get('cics_contract_version')==1:
+                cics=doc['analysis']['cics']
+                result['analysis']['cics']=({key:cics.get(key) for key in ('schema_version','profile','native_cics_verified','limitations')}|
+                    {'screen_count':len(cics['screens']),'unit_count':len(cics['units']),'gap_count':len(cics['gaps'])})
             result['analysis']['rule_count']=len(doc['analysis'].get('rules',[]))
             result['analysis']['rules']=doc['analysis'].get('rules',[])[:50]
             result['analysis']['rules_truncated']=result['analysis']['rule_count']>50
@@ -158,8 +173,10 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return Response(sources[path],media_type='text/plain',headers={'Content-Disposition':"attachment; filename=\"source.txt\"; filename*=UTF-8''"+quote(Path(path).name,safe='')})
 
     @app.get('/api/process/{pid}/requirements')
-    async def requirements(pid:str,after:int=0,path:str|None=None):
-        return await asyncio.to_thread(c.requirements_view,pid,after,path)
+    async def requirements(pid:str,request:Request,after:int=0,path:str|None=None,program:str|None=None,screen:str|None=None,kind:str|None=None):
+        allowed={'after','path','program','screen','kind'}
+        require(set(request.query_params)<=allowed and all(len(request.query_params.getlist(k))==1 for k in request.query_params),'Unknown or duplicate requirements filter')
+        return await asyncio.to_thread(c.requirements_view,pid,after,path,program,screen,kind)
 
     @app.post('/api/process/{pid}/requirements')
     async def save_requirements(pid:str,request:Request):

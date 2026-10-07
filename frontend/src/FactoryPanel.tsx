@@ -3,7 +3,7 @@ import {artifactUrl} from './workflow';
 import {ProgramKnowledge} from './ProgramInsights';
 export {ProgramKnowledge} from './ProgramInsights';
 
-type ValidationView={minimum_distinct_records_per_logic:number;fixture_contract_version:number;seed:string|null;status:'NOT_RUN'|'PASSED'|'RECORDED_PASS'|'GAPS';program_count:number;unit_tests_run:number;unit_tests_passed:boolean|null;job_cases:number|null;evidence:string|null};
+type ValidationView={screen_layout_count?:number;minimum_distinct_records_per_logic:number;fixture_contract_version:number;seed:string|null;status:'NOT_RUN'|'PASSED'|'RECORDED_PASS'|'GAPS';program_count:number;unit_tests_run:number;unit_tests_passed:boolean|null;job_cases:number|null;evidence:string|null};
 type ArchitectureView={title:string;rationale:string;status:string;active_backend:{name:string;implemented:boolean};candidates:{name:string;title:string;selectable:boolean;implementation_status:string;scope:string;rationale:string}[];evidence:{kind:string;path:string;start_line:number;end_line:number;source_hash:string;reason:string;object?:string}[];evidence_count:number;evidence_complete:boolean;obligations:{id:string;title:string;status:string;required_evidence:string[];reference_ids:string[]}[];references:{id:string;title:string;url:string}[];service_design:{default:string;extraction_requires:string[]}};
 const validationLabel={NOT_RUN:'Not run yet',PASSED:'Supported scope passed',RECORDED_PASS:'Recorded pass · not freshly verified',GAPS:'Validation gaps remain'};
 
@@ -12,7 +12,7 @@ export function FactoryAssurance({view}:{view:{process_id?:string;validation?:Va
  const validation=view.validation,architecture=view.target_architecture;
  return <>{validation&&<div className="run-summary">
   <h3>Logic validation</h3>
-  <p><strong>{validationLabel[validation.status]}</strong> · {validation.program_count} programs in the recorded run</p>
+  <p><strong>{validationLabel[validation.status]}</strong> · {validation.program_count} programs{validation.screen_layout_count!==undefined?` · ${validation.screen_layout_count} character layouts`:''} in the recorded run</p>
   <dl className="usage-grid">
    <div><dt>Minimum distinct valid states per logic item</dt><dd>{validation.minimum_distinct_records_per_logic>0?validation.minimum_distinct_records_per_logic:'Historical contract'}</dd></div>
    <div><dt>Generated unit tests executed</dt><dd>{validation.unit_tests_run} · {validation.unit_tests_passed===null?'Not run':validation.unit_tests_passed?'Passed':'Failed'}</dd></div>
@@ -59,7 +59,7 @@ export function FactoryPanel({processId,status}:{processId:string,status:string}
    <FactoryAssurance view={view}/>
    {view.program_insights&&<ProgramKnowledge view={view.program_insights} onPage={setProgramCursor} busy={loading}/>}
    <div className="table-scroll"><table><caption>Mainframe capability evidence</caption><thead><tr><th scope="col">Capability</th><th scope="col">Evidence state</th><th scope="col">Sources</th><th scope="col">Gaps</th></tr></thead><tbody>{view.capabilities.map((item:any)=><tr key={item.id}><th scope="row">{item.label}</th><td>{item.state.replaceAll('_',' ')}</td><td>{item.source_count}</td><td>{item.gap_count}</td></tr>)}</tbody></table></div>
-   {view.transactions.map((tx:any)=><p key={tx.id}><strong>{tx.id} → {tx.program}</strong>: {tx.state.replaceAll('_',' ')} {tx.api||''}. Native CICS equivalence unverified.</p>)}
+   {view.transactions.map((tx:any)=><p key={tx.id}><strong>{tx.id} → {tx.program}</strong>: {tx.state.replaceAll('_',' ')} {tx.api||tx.screen_apis?.join(' · ')||''}. Native CICS equivalence unverified.</p>)}
    <details><summary>Open obligations ({view.total})</summary>{view.obligations.length===0?<p>No obligations are recorded in this view. The verification and report gates still apply.</p>:view.obligations.map((item:any)=><p key={item.id}><strong>{item.kind}</strong>: {item.requirement}</p>)}<p>Showing {view.obligations.length?cursor+1:0}–{cursor+view.obligations.length} of {view.total}</p><button disabled={cursor===0} onClick={()=>setCursor(Math.max(0,cursor-50))}>Previous obligations</button> <button disabled={!view.has_more} onClick={()=>setCursor(view.next_after)}>Next obligations</button></details>
    {view.consistency.length>0&&<div role="alert" className="error">{view.consistency.map((finding:any)=><p key={finding.id}>{finding.message}</p>)}</div>}
   </>}

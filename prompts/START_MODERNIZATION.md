@@ -267,6 +267,16 @@ service only with evidenced responsibility, data ownership and transaction
 boundaries. Local record-API/form candidates do not replace unimplemented CICS,
 BMS, native persistence, identity or recovery behavior. Continue those adapter
 obligations rather than interpreting candidate generation as completed migration.
+For CICS, present source-bound definition/field/action checkboxes and program,
+mapset/map and component filters. The operator's explicit Save pins the existing
+process requirements Markdown; read that exact version when converting. Gather
+full programs, BMS, symbolic copies, CSD resources and linked interfaces into the
+process's validated inputs. Mainframe exports use Zowe CLI; Db2 metadata/DDL use
+typed approved MCP only through Copilot retrieval. Missing metadata stays named.
+Compare BMS fields and CICS action spans with actual Python/FastAPI mappings,
+unit/randomized/adversarial/HTTP receipts and precise gaps. Layout-only candidates
+must disable controller execution and never receive native CICS/controller parity
+credit. Do not count an identity witness as executed linked controller behavior.
 Run `python tools/check_factory.py` after implementation changes, focused boundary
 regressions and the mandated release checks. Native platform CI and real agent-host
 acceptance must actually run before claiming those environments verified.

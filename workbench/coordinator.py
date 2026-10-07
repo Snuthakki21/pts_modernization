@@ -144,6 +144,7 @@ class Coordinator:
                 doc['development_contract_version']=2 if local_files else 1
                 if local_files:doc['agent_transport']='local_files'
                 if agent_mode or manifest.get('transactions'):doc['factory_contract_version']=1
+                if manifest.get('transactions'):doc['cics_contract_version']=1
                 doc['target_backend']={'name':'python-sqlite','contract_version':1}
                 doc['process_context']=context_snapshot
                 write_new(base/'analysis'/'process-context.json',encode(context_snapshot))
@@ -439,18 +440,30 @@ class Coordinator:
         self.checkpoint(doc)
         self.recover_discovered_sources(doc)
 
-    def requirements_view(self,pid,after=0,path=None):
+    def requirements_view(self,pid,after=0,path=None,program=None,screen=None,kind=None):
         from .requirements import catalog,verify_snapshot
         with self.lock:
             doc=self.ledger.get(pid);require(doc.get('analysis'),'Analysis is being prepared; refresh when the requirements stage is ready')
             if doc.get('requirements'):verify_snapshot(doc,self.root)
             model=catalog(doc['analysis']);require(path is None or path in {f['path'] for f in model['files']},'Unknown source file');require(type(after) is int and after>=0,'Invalid requirements cursor')
+            def memberships(row,key,single):
+                values=row.get(key)
+                return values if isinstance(values,list) else [row[single]] if row.get(single) else []
+            filters={'programs':sorted({v for row in model['items'] for v in memberships(row,'programs','program')}),
+                     'screens':sorted({v for row in model['items'] for v in memberships(row,'screens','screen')}),
+                     'kinds':sorted({row['kind'] for row in model['items']})}
+            for value,key in ((program,'programs'),(screen,'screens'),(kind,'kinds')):
+                require(value is None or isinstance(value,str) and value in filters[key],'Unknown requirements '+key+' filter')
             excluded=set((doc.get('requirements') or {}).get('excluded_ids',doc.get('requirements_draft_exclusions',[])))
-            rows=[{**r,'selected':r['id'] not in excluded} for r in model['items'] if path is None or r['source_path']==path]
+            rows=[{**r,'selected':r['id'] not in excluded} for r in model['items']
+                  if (path is None or r['source_path']==path)
+                  and (program is None or program in memberships(r,'programs','program'))
+                  and (screen is None or screen in memberships(r,'screens','screen'))
+                  and (kind is None or r['kind']==kind)]
             require(after<=len(rows),'Invalid requirements cursor')
             return {'process_id':pid,'status':doc['status'],'catalog_hash':model['hash'],'source_snapshot':model['source_snapshot'],
                 'revision':(doc.get('requirements') or {}).get('revision',doc.get('requirements_revision',0)),'files':model['files'],
-                'items':rows[after:after+50],'total':len(rows),'next_after':after+len(rows[after:after+50]),'has_more':after+50<len(rows),
+                'filters':filters,'inventory_total':len(model['items']),'items':rows[after:after+50],'total':len(rows),'next_after':after+len(rows[after:after+50]),'has_more':after+50<len(rows),
                 'excluded_ids':sorted(excluded),'editable':not doc['packet_issued'] and doc['status'] in ('WAITING_REQUIREMENTS','WAITING_COPILOT'),
                 'markdown':doc.get('requirements_artifact'),'boundary':'Requirements select conversion scope. Default Yes is not SME approval. Every Yes needs verified implementation; every No remains source-accounted.'}
 
@@ -1092,6 +1105,9 @@ class Coordinator:
             self.checkpoint(doc)
             run['programs'][name]=result
             if result['differences'] or not result['coverage']['complete'] or not adversarial['passed']:doc['blockers'].append({'kind':'verification_gap','program':name,'message':'Mismatch, uncovered branch or adversarial witness gap remains'})
+        if doc.get('cics_contract_version') == 1:
+            from .screen_delivery import verify_layouts
+            verify_layouts(self,doc,run)
         # Real local target database records actual computed outputs; never a source Db2 database.
         dbpath=root/'target'/run_id/'target.sqlite';dbpath.parent.mkdir(parents=True,exist_ok=True)
         db=sqlite3.connect(dbpath)
@@ -1116,11 +1132,17 @@ class Coordinator:
             unsupported=len(doc['analysis']['blockers'])
             summary={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'programs':logic_summaries,'unsupported_obligations':unsupported,'complete':bool(logic_summaries) and not unsupported and all(s.get('complete') for s in logic_summaries),'basis':'SOURCE_DERIVED_EXPECTED','observed_legacy_parity':False}
             if doc.get('fixture_contract_version')==4:
+                if doc.get('cics_contract_version')==1:
+                    summary['screen_layouts']=[{'screen_id':ident,'coverage':value['coverage'],'target_matched':not value['differences'],
+                        'adversarial_passed':value['adversarial']['passed'],'unit_test_count':value['unit_tests']['tests_run'],
+                        'local_layout_passed':value['passed'] and value['adversarial']['passed'] and value['unit_tests']['passed'],
+                        'native_controller_verified':False,'http_evidence':'target/'+run_id+'/online/verification.json'} for ident,value in run.get('screens',{}).items()]
                 summary.update(fixture_contract_version=4,seed=doc['authorization']['seed'],jobs=job_validation,
-                               unit_test_count=sum(r.get('unit_tests',{}).get('tests_run',0) for r in run['programs'].values()))
+                               unit_test_count=sum(r.get('unit_tests',{}).get('tests_run',0) for r in run['programs'].values())+sum(r.get('unit_tests',{}).get('tests_run',0) for r in run.get('screens',{}).values()))
                 summary['complete']=summary['complete'] and (not doc['jobs'] or bool(job_validation and job_validation['complete']))
             relative=f'synthetic/{run_id}/logic-validation.json';write_new(output_path(self.root,pid,relative),encode(summary));self.register(doc,relative)
             doc['logic_validation']={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'validated_programs':len(logic_summaries),'unsupported_obligations':unsupported,'complete':summary['complete'],'evidence':relative}
+            if doc.get('cics_contract_version')==1:doc['logic_validation']['screen_layouts']=summary.get('screen_layouts',[])
             if doc.get('fixture_contract_version')==4:
                 doc['logic_validation'].update(fixture_contract_version=4,seed=doc['authorization']['seed'],unit_test_count=summary['unit_test_count'],job_cases=result.get('integration_cases') if job_validation else None)
             if not summary['complete']:doc['blockers'].append({'kind':'logic_validation_gap','message':'Every applicable source logic item requires distinct records and reproducible target evidence; unsupported, unreachable or undersampled obligations remain unverified'})

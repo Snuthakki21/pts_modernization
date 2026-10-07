@@ -9,10 +9,11 @@ import uuid
 from contextlib import closing
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 
-def create_app(programs, spec, database, token, clock=time.time, ttl=900):
+def create_app(programs, spec, database, token, clock=time.time, ttl=900, screens=None):
+    screens = screens or {}
     if not isinstance(token,str) or len(token)<32:raise ValueError('Set a private ONLINE_TOKEN of at least 32 characters')
     if not 1<=ttl<=86400:raise ValueError('Invalid session lifetime')
     database=Path(database)
@@ -58,6 +59,7 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
     async def session(request:Request):
         authorize(request);data=await body(request)
         if set(data)!={'transaction'} or not isinstance(data['transaction'],str) or data['transaction'] not in spec:raise HTTPException(422,'Unknown transaction')
+        if spec[data['transaction']].get('record_supported') is False:raise HTTPException(409,'CICS controller is unverified; layout rendering does not execute a transaction')
         db=connect()
         try:
             db.execute('BEGIN IMMEDIATE');db.execute('DELETE FROM sessions WHERE expires<=?',(clock(),))
@@ -75,6 +77,7 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
     async def execute(transaction:str,request:Request):
         authorize(request)
         if transaction not in spec:raise HTTPException(404,'Unknown transaction')
+        if spec[transaction].get('record_supported') is False:raise HTTPException(409,'CICS controller is unverified; layout rendering does not execute a transaction')
         sid=request.headers.get('x-session-id','');key=request.headers.get('idempotency-key','')
         if not sid or not 1<=len(key)<=128 or not key.isascii():raise HTTPException(422,'Session and bounded idempotency key required')
         data=await body(request)
@@ -101,6 +104,18 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
         except sqlite3.OperationalError:db.rollback();raise HTTPException(503,'Local persistence temporarily unavailable')
         except Exception:db.rollback();raise HTTPException(500,'Target execution failed; transaction rolled back')
         finally:db.close()
+    @app.post('/api/screens/{transaction}/{screen_id}')
+    async def render_screen(transaction:str,screen_id:str,request:Request):
+        authorize(request)
+        item = spec.get(transaction)
+        if not item or not any(screen['id']==screen_id for screen in item.get('screens',[])) or screen_id not in screens:
+            raise HTTPException(404,'Screen is not in this transaction contract')
+        data=await body(request)
+        if set(data)!={'values'}:raise HTTPException(422,'Exactly one values object is required')
+        try:result=screens[screen_id](data['values'])
+        except Exception:raise HTTPException(500,'Screen target execution failed')
+        return JSONResponse({'result':result,'evidence_basis':'SOURCE_DERIVED_EXPECTED','native_controller_verified':False},
+                            status_code=200 if result.get('input_status')=='ACCEPT_INPUT' else 422)
     # Publish the same source field constraints enforced by generated programs.
     schema=app.openapi()
     schema.setdefault('components',{}).setdefault('securitySchemes',{})['LocalBearer']={'type':'http','scheme':'bearer'}
@@ -111,17 +126,27 @@ def create_app(programs, spec, database, token, clock=time.time, ttl=900):
             properties[name]={'type':'integer','minimum':0,'maximum':field['max']} if field['type']=='integer' else {'type':'string','minLength':field['width'],'maxLength':field['width']}
         record={'type':'object','properties':properties,'required':list(properties),'additionalProperties':False}
         schema['components'].setdefault('schemas',{})[tx+'Record']=record
-        records.append({'$ref':'#/components/schemas/'+tx+'Record'})
+        if item.get('record_supported') is not False:records.append({'$ref':'#/components/schemas/'+tx+'Record'})
     for path,operations in schema['paths'].items():
         if path=='/health':continue
         for operation in operations.values():
             operation['security']=[{'LocalBearer':[]}]
             operation.setdefault('responses',{})['401']={'description':'Local bearer authorization required'}
     operation=schema['paths']['/api/transactions/{transaction}']['post']
-    operation['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','additionalProperties':False,'required':['record','revision'],'properties':{'record':{'anyOf':records},'revision':{'type':'integer','minimum':0}}}}}}
+    operation['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','additionalProperties':False,'required':['record','revision'],'properties':{'record':({'anyOf':records} if records else {'not':{}}),'revision':{'type':'integer','minimum':0}}}}}}
     operation['parameters'] += [{'in':'header','name':'X-Session-ID','required':True,'schema':{'type':'string'}},{'in':'header','name':'Idempotency-Key','required':True,'schema':{'type':'string','minLength':1,'maxLength':128}}]
     operation['parameters'][0]['schema']['enum']=list(spec)
     operation['responses'].update({str(code):{'description':description} for code,description in [(409,'Stale revision or conflicting idempotency key'),(410,'Session absent or expired'),(413,'Request exceeds 64 KiB'),(422,'Invalid record'),(429,'Session request capacity reached'),(503,'Persistence unavailable')]})
     schema['paths']['/api/sessions']['post']['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','required':['transaction'],'additionalProperties':False,'properties':{'transaction':{'type':'string','enum':list(spec)}}}}}}
+    screen_records=[]
+    for tx,item in spec.items():
+        for screen in item.get('screens',[]):
+            properties={field['id']:{'type':'string','minLength':field['width'],'maxLength':field['width'],'pattern':'^[ -~]*$'} for field in screen['fields'] if field['editable']}
+            name=tx+'_'+screen['id']+'Values'
+            schema['components']['schemas'][name]={'type':'object','additionalProperties':False,'required':list(properties),'properties':properties}
+            screen_records.append({'$ref':'#/components/schemas/'+name})
+    operation=schema['paths']['/api/screens/{transaction}/{screen_id}']['post']
+    operation['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','additionalProperties':False,'required':['values'],'properties':{'values':{'anyOf':screen_records} if screen_records else {'not':{}}}}}}}
+    operation['responses'].update({'404':{'description':'Screen is not bound to transaction'},'413':{'description':'Request exceeds 64 KiB'},'422':{'description':'Rejected source-owned screen input'}})
     app.openapi_schema=schema
     return app

@@ -416,9 +416,32 @@ program and map bindings when available. Missing identities stay discovery gaps.
 Evidence → **Factory** shows capability coverage, transaction/API candidates and
 paged obligations. The final report links the same factory detail and Excel sheets.
 
-A supported, tested business module can produce a local API and React form in
-`target/RUN/online/`. This is a candidate interface, not a verified CICS/BMS
-replacement. Native session, AID, security and database differences remain visible.
+For CICS intake, include the transaction/program/map table in your process Markdown,
+then supply that file and your export folder through the existing Start flow.
+Copilot retrieves full CICS programs, BMS maps, symbolic COPY dependencies and
+resource definitions with Zowe CLI; Db2 descriptions/DDL use the approved Db2 MCP
+connection. Returns go into the exact process/request inbox, then Claude reads
+validated local exports. Missing, dynamic or conflicting dependencies stop discovery.
+
+In **Select requirements**, filter by program, mapset/map and component. Each field
+and `EXEC CICS` action has a default-Yes checkbox and its exact original source span.
+Save pins the process's requirements Markdown. Safe constant labels can be omitted;
+excluding a required buffer, map or action keeps a specific dependency gap and does
+not authorize a redesign. Every No retains the exact requirements omission reason.
+
+The supported literal BMS character profile generates Python layout code and a
+FastAPI rendering route in `target/RUN/online/`. Its form shows source positions,
+input widths, protected defaults and the actual API layout result. Generated unit
+cases, at least 20 distinct randomized valid input/layout states, malformed requests
+and adversarial mutations are compared before layout credit. Static-only or small
+finite domains retain their test-state deficit. **Program comparison** shows original
+BMS/CICS and Python/FastAPI spans, with Gaps only and Selected No filters.
+
+Layout conversion does not implement native `SEND`/`RECEIVE`, symbolic buffers, AID,
+controller flow, sessions, security or database effects. Those remain named,
+source-specific obligations. A layout-only package disables transaction execution.
+Supported record modules can also expose the existing tested record API. Neither
+candidate is a claim of full CICS replacement or observed mainframe parity.
 The package includes OpenAPI, HTTP comparisons and Windows/POSIX launchers. Use
 the existing Python environment, set a private `ONLINE_TOKEN` (32+ characters),
 and run `python application.py` from the package directory. Open localhost:8766.
@@ -435,6 +458,11 @@ Add this to the initial prompt above:
 > boundaries. Keep SQLite and explicitly account for incompatible semantics.
 > Check consistency after each change and workflow stage. Continue independent
 > work, verify actual exported interfaces, and keep native CICS/BMS gaps visible.
+> Use my process Markdown and export folder. Present the program/screen/component
+> checkboxes, pin my explicit Save to the process requirements Markdown, and compare
+> original BMS fields and CICS actions with actual Python/FastAPI code and receipts.
+> Gather missing dependencies through the exact Copilot retrieval inbox; Claude uses
+> local exports only. Keep layout verification separate from controller/data parity.
 
 ## Pilot effort, AI credits and the remaining estate
 

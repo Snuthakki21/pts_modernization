@@ -72,6 +72,10 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
         result['declared_online_transactions']=len(doc['transactions'])
         result['target_online_api_candidates']=len((doc.get('online_delivery') or {}).get('transactions',{}))
         result['verified_native_cics_replacements']=0
+        if doc.get('cics_contract_version')==1:
+            delivered=(doc.get('online_delivery') or {}).get('transactions',{}).values()
+            result['target_online_api_candidates']=sum(bool(item.get('api')) for item in delivered)
+            result['target_screen_layout_candidates']=sum(len(item.get('screen_apis',[])) for item in delivered)
     with ledger.lock:documents=ledger.list()
     result['estate_inventory_json']=json.dumps(report_inventory(doc,documents,coverage),ensure_ascii=False,sort_keys=True)
     result['adapter_priorities_json']=json.dumps([{key:value for key,value in group.items() if key!='source_paths'} | {'source_files':len(group['source_paths']),'evidence':'coverage.json summary.adapter_groups'} for group in summary.get('adapter_groups',[])],ensure_ascii=False,sort_keys=True)
@@ -228,7 +232,7 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
         sheet=book.create_sheet('Factory capabilities');sheet.append(['Capability','State','Source count','Gap count'])
         for item in factory['capabilities']:sheet.append([item['label'],item['state'],item['source_count'],item['gap_count']])
         sheet=book.create_sheet('Online transactions');sheet.append(['Transaction','Program','Mapset','Map','API candidate','State','Native CICS verified'])
-        for item in factory['transactions']:sheet.append([item['id'],item['program'],item['mapset'],item['map'],item['api'],item['state'],False])
+        for item in factory['transactions']:sheet.append([item['id'],item['program'],item['mapset'],item['map'],item['api'] or ', '.join(item.get('screen_apis',[])),item['state'],False])
     book.save(root/'metrics.xlsx');book.close()
     prs=Presentation();prs.slide_width=Inches(13.333);prs.slide_height=Inches(7.5)
     def slide(title,rows,note,headers=None):

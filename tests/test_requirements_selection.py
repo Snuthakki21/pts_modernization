@@ -227,3 +227,107 @@ class SavedRequirementsTests(unittest.TestCase):
         self.assertEqual(len(items),len({r['id'] for r in items}));self.assertEqual(sum(r['kind']=='rule' for r in items),57)
         last=items[-2];self.save(model,[last['id']]);self.c.advance('process-a')
         self.assertFalse(any(r['id']==last['rule_id'] for r in self.c.ledger.get('process-a')['analysis']['rules']))
+
+class ScreenRequirementsTests(unittest.TestCase):
+    """Scope metadata tests; screen recognition is never controller verification."""
+    BMS='''ELIGSET DFHMSD TYPE=MAP,MODE=INOUT,LANG=COBOL,STORAGE=AUTO,TIOAPFX=YES
+ELIGMAP DFHMDI SIZE=(24,80),LINE=1,COLUMN=1
+AGEFLD DFHMDF POS=(3,10),LENGTH=3,ATTRB=(UNPROT,NUM),INITIAL='000'
+        DFHMDF POS=(1,1),LENGTH=11,ATTRB=(PROT),INITIAL='Eligibility'
+ACTFLD DFHMDF POS=(4,10),LENGTH=1,ATTRB=(UNPROT),INITIAL='Y'
+        DFHMSD TYPE=FINAL
+'''
+
+    def analysis(self,modern=True):
+        from workbench.intake import parse_manifest
+        from workbench.source import analyze_sources
+        from workbench.domain import sha
+        analysis=analyze_sources({'ELIGIBLE.cbl':COBOL,'ELIGSET.bms':self.BMS},parse_manifest(MANIFEST))
+        path='ELIGSET.bms';source_hash=sha(self.BMS)
+        # Exact fictional source descriptor fixtures, independent of target code.
+        units=[]
+        for number,kind,component,required in [(1,'screen_definition','ELIGSET',True),(2,'screen_definition','ELIGMAP',True),(3,'screen_field','AGEFLD',True),(4,'screen_field','Static eligibility label',False),(5,'screen_field','ACTFLD',True),(6,'screen_definition','Mapset terminator',True)]:
+            units.append({'kind':kind,'program':None,'source_path':path,'source_hash':source_hash,'start_line':number,'end_line':number,'description':'Fictional source '+component,'replacement':'Candidate character layout; native controller remains unverified','mapset':'ELIGSET','map':'ELIGMAP' if number not in (1,6) else None,'field':component if kind=='screen_field' else None,'operation':None,'component':component,'required':required,'support':'layout_supported','diagnostics':[]})
+        analysis['cics']={'schema_version':1,'profile':'BMS_CHARACTER_LAYOUT_V1','units':units,'screens':[{'mapset':'ELIGSET','map':'ELIGMAP','owners':['ELIGIBLE','SHARED']}],'gaps':[{'kind':'cics_controller','message':'Fictional controller remains unverified'}]}
+        if modern:analysis['cics_contract_version']=1
+        return analysis
+
+    def select(self,analysis,excluded):
+        from workbench.requirements import catalog
+        model=catalog(analysis)
+        return {'schema_version':1,'process_id':'process-a','source_snapshot':analysis['source_snapshot'],'catalog_hash':model['hash'],'revision':1,'excluded_ids':excluded,'saved_at':'2026-10-07T00:00:00+00:00','saved_by':'Fictional screen scope operator'}
+
+    def test_historical_catalog_ignores_unissued_screen_descriptors(self):
+        from copy import deepcopy
+        from workbench.requirements import catalog,render_markdown
+        analysis=self.analysis(False);without=deepcopy(analysis);without.pop('cics')
+        legacy=catalog(without);self.assertEqual(catalog(analysis),legacy)
+        selection=self.select(without,[])
+        self.assertEqual(render_markdown(selection,legacy),render_markdown(selection,catalog(analysis)))
+        self.assertNotIn('Program / screen / component',render_markdown(selection,legacy))
+
+    def test_source_bound_screen_units_have_shared_program_and_screen_memberships(self):
+        from workbench.requirements import catalog
+        analysis=self.analysis();model=catalog(analysis)
+        units=[row for row in model['items'] if row['source_path']=='ELIGSET.bms']
+        self.assertEqual(len(units),6);self.assertEqual([row['start_line'] for row in units],[1,2,3,4,5,6])
+        self.assertEqual(len({row['id'] for row in units}),6)
+        self.assertTrue(all(row['programs']==['ELIGIBLE','SHARED'] and row['screens']==['ELIGSET/ELIGMAP'] for row in units))
+        self.assertEqual([row['not_required'] for row in units],[False,False,False,True,False,False])
+        self.assertTrue(any(b['kind']=='unsupported_source' for b in analysis['blockers']))
+        rule=next(row for row in model['items'] if row['kind']=='rule');self.assertEqual(rule['programs'],['ELIGIBLE'])
+
+    def test_optional_cosmetic_field_no_is_pinned_without_waiving_controller_gap(self):
+        from workbench.requirements import catalog,project,render_markdown,parse_markdown,NO_REASON
+        analysis=self.analysis();unit=next(r for r in catalog(analysis)['items'] if r.get('component')=='Static eligibility label')
+        selection=self.select(analysis,[unit['id']]);chosen=project(analysis,selection)
+        self.assertEqual(chosen['requirements']['excluded_units'][0]['id'],unit['id'])
+        self.assertFalse(any(b['kind']=='requirements_dependency' for b in chosen['blockers']))
+        self.assertEqual(chosen['cics']['gaps'],analysis['cics']['gaps']);self.assertTrue(any(b['kind']=='unsupported_source' for b in chosen['blockers']))
+        markdown=render_markdown(selection,catalog(analysis)).encode();self.assertEqual(parse_markdown(markdown,catalog(analysis)),selection)
+        self.assertIn(NO_REASON.encode(),markdown);self.assertIn(b'ELIGSET/ELIGMAP',markdown);self.assertIn(unit['source_hash'].encode(),markdown)
+
+    def test_required_screen_buffer_no_blocks_owner_programs(self):
+        from workbench.requirements import catalog,project,NO_REASON
+        analysis=self.analysis();unit=next(r for r in catalog(analysis)['items'] if r.get('component')=='AGEFLD')
+        chosen=project(analysis,self.select(analysis,[unit['id']]))
+        gaps=[b for b in chosen['blockers'] if b['kind']=='requirements_dependency']
+        self.assertEqual(len(gaps),1);self.assertIn(NO_REASON,gaps[0]['message']);self.assertEqual(gaps[0]['lines'],[3])
+        self.assertTrue(any(b['kind']=='requirements_dependency' for b in chosen['programs']['ELIGIBLE']['blockers']))
+
+    def test_unverified_or_unknown_optional_flag_cannot_waive_layout_dependencies(self):
+        from workbench.requirements import catalog,project
+        analysis=self.analysis();field=next(row for row in analysis['cics']['units'] if row['required'] is False);field['support']='unverified_controller'
+        unit=next(r for r in catalog(analysis)['items'] if r.get('component')==field['component'])
+        self.assertFalse(unit['not_required']);chosen=project(analysis,self.select(analysis,[unit['id']]))
+        self.assertTrue(any(b['kind']=='requirements_dependency' for b in chosen['blockers']))
+
+    def test_screen_action_retains_command_span_and_exclusion_dependency(self):
+        from workbench.requirements import catalog,project
+        from workbench.domain import sha
+        from workbench.source import analyze_sources
+        from workbench.intake import parse_manifest
+        source=COBOL.replace('  GOBACK.','  EXEC CICS SEND\n    MAP("ELIGMAP") MAPSET("ELIGSET")\n  END-EXEC\n  GOBACK.')
+        analysis=analyze_sources({'ELIGIBLE.cbl':source,'ELIGSET.bms':self.BMS},parse_manifest(MANIFEST))
+        screen=self.analysis()['cics'];analysis['cics_contract_version']=1;analysis['cics']=screen
+        lines=source.splitlines();start=next(i for i,line in enumerate(lines,1) if 'EXEC CICS SEND' in line)
+        analysis['cics']['units'].append({'kind':'screen_action','program':'ELIGIBLE','source_path':'ELIGIBLE.cbl','source_hash':sha(source),'start_line':start,'end_line':start+2,'description':'Send ELIGSET/ELIGMAP','replacement':'Unverified HTTP response mapping','mapset':'ELIGSET','map':'ELIGMAP','field':None,'operation':'SEND MAP','component':'SEND MAP ELIGMAP','required':True,'support':'unverified_controller','diagnostics':[{'message':'Native MAPFAIL handling still needs an adapter'}]})
+        unit=next(r for r in catalog(analysis)['items'] if r['kind']=='screen_action')
+        self.assertEqual(unit['start_line'],start);self.assertEqual(unit['end_line'],start+2);self.assertIn('END-EXEC',unit['source_excerpt']);self.assertEqual(unit['programs'],['ELIGIBLE'])
+        chosen=project(analysis,self.select(analysis,[unit['id']]))
+        self.assertEqual(len(chosen['rules']),len(analysis['rules']))
+        self.assertTrue(any(b['kind']=='requirements_dependency' and b['lines']==[start,start+1,start+2] for b in chosen['programs']['ELIGIBLE']['blockers']))
+
+    def test_conflicting_spans_hashes_and_rule_overlap_are_rejected(self):
+        from copy import deepcopy
+        from workbench.requirements import catalog
+        for mutate in ('overlap','source_hash','source_span','rule_overlap','contract_flag'):
+            analysis=self.analysis()
+            if mutate=='overlap':analysis['cics']['units'].append(deepcopy(analysis['cics']['units'][0]))
+            elif mutate=='source_hash':analysis['cics']['units'][0]['source_hash']='0'*64
+            elif mutate=='source_span':analysis['cics']['units'][0]['end_line']=999
+            elif mutate=='contract_flag':analysis['cics_contract_version']=True
+            else:
+                rule=analysis['rules'][0];row=analysis['cics']['units'][0];row.update(source_path='ELIGIBLE.cbl',source_hash=analysis['programs']['ELIGIBLE']['source_hash'],start_line=rule['source_start'],end_line=rule['source_end'])
+            with self.subTest(mutate=mutate):
+                with self.assertRaises(ValidationError):catalog(analysis)

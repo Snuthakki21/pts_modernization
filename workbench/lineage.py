@@ -6,6 +6,7 @@ Only missing objects in the selected job closure are offered to a read-only
 resolver. Every original export remains in the inventory, including unknowns.
 """
 from collections import defaultdict, deque
+from bisect import bisect_right
 from pathlib import PurePosixPath, Path
 import re
 
@@ -74,6 +75,86 @@ def _evidence(path, line, text, origin='source', **extra):
     return {'path': path, 'line': line, 'text': text[:1000], 'origin': origin, **extra}
 
 
+
+def _cics_blocks(lines):
+    """Bounded complete EXEC CICS spans; literals/comments cannot create commands."""
+    by_line = dict(lines)
+    text = '\n'.join(by_line.get(n, '') for n in range(1, max(by_line, default=0) + 1))
+    masked = _mask_literals(text)
+    starts = list(re.finditer(r'\bEXEC\s+CICS\b', masked, re.I))
+    line_breaks = [-1, *[match.start() for match in re.finditer('\n', text)]]
+    result = []
+    for index, match in enumerate(starts):
+        stop = starts[index + 1].start() if index + 1 < len(starts) else len(text)
+        end = re.search(r'\bEND-EXEC\b', masked[match.end():stop], re.I)
+        finish = match.end() + end.end() if end else stop
+        first = bisect_right(line_breaks, match.start())
+        last = bisect_right(line_breaks, finish)
+        bounded = finish - match.start() <= 65536 and last - first <= 500
+        result.append({'line': first, 'end_line': last,
+                       'text': text[match.start():min(finish, match.start() + 65536)],
+                       'complete': bool(end) and bounded})
+    return result
+
+
+def _cics_operands(block):
+    """Return typed literal/dynamic lookup obligations without inferring state semantics."""
+    text = block['text']; masked = _mask_literals(text)
+    if not block['complete']:
+        return [('unknown_dependency', '<INCOMPLETE OR OVERSIZED EXEC CICS>', 'cics_command', True, None)]
+    command = re.match(r'EXEC\s+CICS\s+([A-Z]+)(?:\s+(TS|TD))?\b', masked, re.I)
+    if not command:return [('unknown_dependency', '<UNKNOWN EXEC CICS COMMAND>', 'cics_command', True, None)]
+    verb = command[1].upper(); queue_type = (command[2] or '').upper()
+    operands = {}; top_level = list(masked); depth = 0
+    for offset, char in enumerate(masked):
+        if depth:top_level[offset] = ' '
+        if char == '(':depth += 1
+        elif char == ')':depth = max(0, depth - 1)
+    option_text = ''.join(top_level)
+    form = re.match(r'\s+(MAP|TEXT|CONTROL)\b', masked[command.end():], re.I)
+    for match in re.finditer(r'(?<![A-Z0-9@$#_-])(PROGRAM|MAP|MAPSET|FILE|DATASET|QUEUE|QNAME|TRANSID|CHANNEL|CONTAINER|SYSID)\s*\(', option_text, re.I):
+        # Command options are top-level; names inside FROM/INTO expressions are data.
+        value, quoted = _operand(text, match.end())
+        name = value.upper()
+        valid = quoted and len(name) <= 128 and bool(re.fullmatch(NAME, name, re.I))
+        if len(name) > 128:name = '<CICS ' + match[1].upper() + ' OPERAND EXCEEDS 128 CHARACTERS>'
+        key = {'DATASET': 'FILE', 'QNAME': 'QUEUE'}.get(match[1].upper(), match[1].upper())
+        operands.setdefault(key, []).append((name or '<UNKNOWN ' + match[1].upper() + '>', not valid))
+    out = []
+    specs = {'PROGRAM': ('program', 'cics_link'), 'FILE': ('cics_file_definition', 'cics_file'),
+             'TRANSID': ('cics_transaction', 'cics_transaction'),
+             'CHANNEL': ('cics_channel', 'cics_channel'), 'CONTAINER': ('cics_container', 'cics_container'),
+             'SYSID': ('cics_system', 'cics_remote_system')}
+    for key, (kind, relationship) in specs.items():
+        for name, dynamic in operands.get(key, []):out.append((kind, name, relationship, dynamic, None))
+    mapsets = operands.get('MAPSET', [])
+    mapset_tokens = list(re.finditer(r'(?<![A-Z0-9@$#_-])MAPSET(?![A-Z0-9@$#_-])', option_text, re.I))
+    malformed_mapset = len(mapset_tokens) != len(mapsets)
+    if malformed_mapset:
+        out.append(('unknown_dependency', '<CICS ' + verb + ' MALFORMED MAPSET>', 'cics_command', True, None))
+    for name, dynamic in mapsets:out.append(('bms_mapset', name, 'uses_mapset', dynamic, None))
+    for name, dynamic in operands.get('MAP', []):
+        # A dynamic mapset cannot be ignored even when one map name is unique locally.
+        library = mapsets[0][0] if len(mapsets) == 1 and not mapsets[0][1] else None
+        if not mapsets and not malformed_mapset and verb in ('SEND', 'RECEIVE'):
+            # IBM SEND/RECEIVE MAP defaults the mapset to the MAP operand, not a
+            # locally unique matching map or the process manifest's preferred mapset.
+            library = name if not dynamic else None
+            out.append(('bms_mapset', name, 'uses_default_mapset', dynamic, None))
+        out.append(('bms_map', name, 'uses_map', dynamic or malformed_mapset or bool(mapsets and library is None), library))
+    for name, dynamic in operands.get('QUEUE', []):
+        kind = 'cics_tdqueue_definition' if queue_type == 'TD' else 'cics_tsqueue' if queue_type == 'TS' else 'cics_queue'
+        out.append((kind, name, 'cics_queue', dynamic or not queue_type, None))
+    required = {'LINK': 'PROGRAM', 'XCTL': 'PROGRAM', 'START': 'TRANSID',
+                'READ': 'FILE', 'WRITE': 'FILE', 'REWRITE': 'FILE', 'DELETE': 'FILE',
+                'STARTBR': 'FILE', 'READNEXT': 'FILE', 'READPREV': 'FILE', 'ENDBR': 'FILE',
+                'READQ': 'QUEUE', 'WRITEQ': 'QUEUE', 'DELETEQ': 'QUEUE'}
+    if verb in ('SEND', 'RECEIVE') and form and form[1].upper() == 'MAP':required[verb] = 'MAP'
+    if verb in required and not operands.get(required[verb]):
+        out.append(('unknown_dependency', '<CICS ' + verb + ' MISSING ' + required[verb] + '>', 'cics_command', True, None))
+    # Commands without lookup operands stay source-semantic obligations in analysis.
+    return out
+
 def map_lineage(files, manifest, knowledge=None, resolver=None):
     """Return deterministic JSON metadata for the selected job object closure.
 
@@ -97,6 +178,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             'Lineage export exceeds the source line bound')
     knowledge = knowledge if knowledge is not None else load_knowledge(Path(__file__).resolve().parent.parent)
     validate_snapshot(knowledge)
+    cics_v1 = manifest.get('cics_contract_version') == 1
     inventory_paths = sorted(files); sources = dict(files); classifications = classify_files(sources, manifest, knowledge)
     original_scope = manifest.get('original_source_files', manifest.get('authorization', {}).get('scope', files))
     require(isinstance(original_scope, (dict, list, tuple)) and set(original_scope).issubset(files),
@@ -149,10 +231,25 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         parsed.add(path); members[PurePosixPath(path).stem.upper()].append(path)
         text = sources[path]; file_id = 'source_file:' + path; current_mapset = None
         classification = classifications[path]
+        catalog_receipt = None
+        if cics_v1:
+            from .db2_catalog import table_description
+            catalog_receipt = table_description(text, provenance.get(path))
+            if catalog_receipt:classification = {**classification, 'kind': 'db2_catalog_evidence', 'conflicts': []};classifications[path] = classification
         node('source_file', path, evidence=_evidence(path, None, 'Source export inventory'),
              classification=classification['kind'], source_hash=sha(text),
              provenance=provenance.get(path, {'origin': 'local_repository_export', 'path': path}))
+        if catalog_receipt:
+            table_name = catalog_receipt['schema'] + '.' + catalog_receipt['table']
+            table_id = declaration(path, 'db2_table', table_name, 1, 'Observed typed Db2 MCP table catalog receipt', False)
+            nodes[table_id].update(catalog_evidence=catalog_receipt, executable_source=False, conversion_support='UNVERIFIED')
+            # Table identity is observed even with partial columns. Full column/DDL
+            # semantics remain named obligations in source analysis; they are not
+            # a synthetic object kind no retrieval can ever declare.
+            return
         lines = _lines(text); originals = text.splitlines(); declared = []; owner = file_id; jcl_owner = file_id; step = None; proc_stack = []
+        if cics_v1 and classification['kind'] == 'unknown' and any(re.match(r'^\s*(?:DEFINE|ALTER)\s+(?:TDQUEUE|TSMODEL)\s*\(', _mask_literals(raw), re.I) for _, raw in lines):
+            classification = {**classification, 'kind': 'cics_definition'};classifications[path] = classification;nodes[file_id]['classification'] = 'cics_definition'
         # Copybooks and fragments have dependency evidence rather than named declarations.
         role = FILE_ROLES.get(classification['kind'])
         if role in {'copybook', 'jcl_include', 'control_member'}:
@@ -237,27 +334,29 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                 ident = declaration(path, kind, bms[1], number, raw); declared.append(ident)
                 if kind == 'bms_mapset': current_mapset = bms[1].upper()
                 else: nodes[ident]['mapset'] = current_mapset
-            cics = re.match(r'^\s*(?:DEFINE|ALTER)\s+(TRANSACTION|PROGRAM|MAPSET|FILE)\s*\(\s*(' + NAME + r')\s*\)', masked, re.I)
+            resource_types = 'TRANSACTION|PROGRAM|MAPSET|FILE|TDQUEUE|TSMODEL' if cics_v1 else 'TRANSACTION|PROGRAM|MAPSET|FILE'
+            cics = re.match(r'^\s*(?:DEFINE|ALTER)\s+(' + resource_types + r')\s*\(\s*(' + NAME + r')\s*\)', masked, re.I)
             if cics:
-                kind = {'TRANSACTION': 'cics_transaction', 'PROGRAM': 'cics_program_definition', 'MAPSET': 'cics_mapset_definition', 'FILE': 'cics_file_definition'}[cics[1].upper()]
+                kind = {'TRANSACTION': 'cics_transaction', 'PROGRAM': 'cics_program_definition', 'MAPSET': 'cics_mapset_definition', 'FILE': 'cics_file_definition', 'TDQUEUE': 'cics_tdqueue_definition', 'TSMODEL': 'cics_tsmodel_definition'}[cics[1].upper()]
                 ident = declaration(path, kind, cics[2], number, raw, False); declared.append(ident)
                 binding = re.search(r'\bPROGRAM\s*\(\s*(' + NAME + r')\s*\)', masked[cics.end():], re.I)
-                if binding: reference(ident, 'program', binding[1], 'binds_program', ev)
+                if binding and not cics_v1: reference(ident, 'program', binding[1], 'binds_program', ev)
                 if kind == 'cics_mapset_definition': reference(ident, 'bms_mapset', cics[2], 'defines_mapset', ev)
-            for command in re.finditer(r'\b(?:LINK|XCTL)\s+PROGRAM\s*\(', masked, re.I):
-                value, quoted = _operand(raw, command.end()); name, library = _member_identity(value)
-                reference(owner, 'program', name or '<unknown>', 'cics_link', ev, not quoted or not bool(re.fullmatch(NAME, name, re.I)), library)
-            if re.search(r'\bEXEC\s+CICS\s+(?:LINK|XCTL)\b', masked, re.I) and not re.search(r'\bPROGRAM\s*\(', masked, re.I):
-                reference(owner, 'program', '<continued CICS PROGRAM operand>', 'cics_link', ev, True)
-            for command in re.finditer(r'\b(?:SEND|RECEIVE)\s+MAP\s*\(', masked, re.I):
-                value, quoted = _operand(raw, command.end()); name, _ = _member_identity(value)
-                mapset = re.search(r'\bMAPSET\s*\(', masked[command.end():], re.I)
-                mapset_name = None
-                if mapset:
-                    mapset_value, mapset_quoted = _operand(raw, command.end() + mapset.end()); mapset_name, _ = _member_identity(mapset_value)
-                    reference(owner, 'bms_mapset', mapset_name, 'uses_mapset', ev, not mapset_quoted)
-                reference(owner, 'bms_map', name or '<unknown>', 'uses_map', ev,
-                          not quoted or not bool(re.fullmatch(NAME, name, re.I)), mapset_name)
+            if not cics_v1:
+                for command in re.finditer(r'\b(?:LINK|XCTL)\s+PROGRAM\s*\(', masked, re.I):
+                    value, quoted = _operand(raw, command.end()); name, library = _member_identity(value)
+                    reference(owner, 'program', name or '<unknown>', 'cics_link', ev, not quoted or not bool(re.fullmatch(NAME, name, re.I)), library)
+                if re.search(r'\bEXEC\s+CICS\s+(?:LINK|XCTL)\b', masked, re.I) and not re.search(r'\bPROGRAM\s*\(', masked, re.I):
+                    reference(owner, 'program', '<continued CICS PROGRAM operand>', 'cics_link', ev, True)
+                for command in re.finditer(r'\b(?:SEND|RECEIVE)\s+MAP\s*\(', masked, re.I):
+                    value, quoted = _operand(raw, command.end()); name, _ = _member_identity(value)
+                    mapset = re.search(r'\bMAPSET\s*\(', masked[command.end():], re.I)
+                    mapset_name = None
+                    if mapset:
+                        mapset_value, mapset_quoted = _operand(raw, command.end() + mapset.end()); mapset_name, _ = _member_identity(mapset_value)
+                        reference(owner, 'bms_mapset', mapset_name, 'uses_mapset', ev, not mapset_quoted)
+                    reference(owner, 'bms_map', name or '<unknown>', 'uses_map', ev,
+                              not quoted or not bool(re.fullmatch(NAME, name, re.I)), mapset_name)
             schedule = re.match(r'^\s*(?:JOB|LJOB|LQ|LPRRN)\s*,\s*JOB\s*=\s*(' + NAME + r')', masked, re.I)
             if schedule:
                 ident = declaration(path, 'ca7_definition', schedule[1], number, raw, False); declared.append(ident)
@@ -280,23 +379,64 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                 ident = declaration(path, 'db2_table', table[1] or table[2], number, raw, False); declared.append(ident)
             # Only SQL files and actual EXEC SQL regions can supply table references.
             sql_parts.append((number, raw, masked, owner))
+        raw_text = '\n'.join(raw for _, raw in lines)
         source_masked = '\n'.join(_mask_literals(raw) for _, raw in lines)
         offsets = [number for number, _ in lines]
         # CSD resource operands commonly occupy several physical records.
+        if cics_v1:
+            program_owners = [d for d in declared if nodes[d]['kind'] == 'program']
+            program_lines = [nodes[d]['evidence'][0]['line'] for d in program_owners]
+            for block in _cics_blocks(lines):
+                owner_index = bisect_right(program_lines, block['line']) - 1
+                command_owner = program_owners[owner_index] if owner_index >= 0 else file_id
+                ev = _evidence(path, block['line'], block['text'], end_line=block['end_line'])
+                for kind, name, relationship, dynamic, library in _cics_operands(block):
+                    reference(command_owner, kind, name, relationship, ev, dynamic, library)
         resource_commands = list(re.finditer(r'(?m)^\s*(?:DEFINE|ALTER|DELETE|LIST)\s+\w+\s*\(', source_masked, re.I))
         for position, command in enumerate(resource_commands):
             finish = resource_commands[position + 1].start() if position + 1 < len(resource_commands) else len(source_masked)
             segment = source_masked[command.start():finish]
+            if cics_v1:
+                resource = re.match(r'\s*(?:DEFINE|ALTER)\s+(FILE|TDQUEUE)\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
+                if resource:
+                    start_index = source_masked.count('\n', 0, command.start())
+                    number = offsets[start_index]
+                    kind = 'cics_file_definition' if resource[1].upper() == 'FILE' else 'cics_tdqueue_definition'
+                    resource_id = declaration(path, kind, resource[2], number, originals[number - 1], False)
+                    attributes = {'DSNAME': ('dataset', 'cics_dataset'), 'INDIRECTNAME': ('cics_tdqueue_definition', 'cics_indirect_queue')}
+                    for attribute, (target_kind, relation) in attributes.items():
+                        match = re.search(r'\b' + attribute + r'\s*\(', segment, re.I)
+                        if match:
+                            value, _ = _operand(raw_text, command.start() + match.end())
+                            valid = bool(re.fullmatch(QUALIFIED if target_kind == 'dataset' else NAME, value, re.I))
+                            reference(resource_id, target_kind, value or '<UNKNOWN ' + attribute + '>', relation,
+                                      _evidence(path, number, originals[number - 1], end_line=offsets[source_masked.count('\n', 0, command.start() + match.end())]), not valid)
             transaction = re.match(r'\s*(?:DEFINE|ALTER)\s+TRANSACTION\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
-            binding = re.search(r'\bPROGRAM\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
-            if transaction and binding:
+            if cics_v1 and transaction:
+                bindings = list(re.finditer(r'\bPROGRAM\s*\(', segment, re.I))
                 start_index = source_masked.count('\n', 0, command.start())
-                end_index = source_masked.count('\n', 0, command.start() + binding.end())
-                if start_index != end_index:
-                    number = offsets[start_index]; end_number = offsets[end_index]
-                    ident = declaration(path, 'cics_transaction', transaction[1], number, originals[number - 1], False)
-                    reference(ident, 'program', binding[1], 'binds_program',
-                              _evidence(path, number, originals[number - 1], end_line=end_number))
+                number = offsets[start_index]
+                ident = declaration(path, 'cics_transaction', transaction[1], number, originals[number - 1], False)
+                for binding in bindings:
+                    end_index = source_masked.count('\n', 0, command.start() + binding.end())
+                    value, _ = _operand(raw_text, command.start() + binding.end())
+                    valid = bool(re.fullmatch(NAME, value, re.I)) and len(value) <= 128
+                    reference(ident, 'program', value or '<UNKNOWN CSD PROGRAM>', 'binds_program',
+                              _evidence(path, number, originals[number - 1], end_line=offsets[end_index]), not valid)
+                if len(bindings) > 1:
+                    reference(ident, 'unknown_dependency', '<TRANSACTION ' + transaction[1].upper() + ' DUPLICATE PROGRAM BINDING>',
+                              'requires_transaction_binding', _evidence(path, number, originals[number - 1],
+                              end_line=offsets[source_masked.count('\n', 0, command.start() + bindings[-1].end())]), True)
+            else:
+                binding = re.search(r'\bPROGRAM\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
+                if transaction and binding:
+                    start_index = source_masked.count('\n', 0, command.start())
+                    end_index = source_masked.count('\n', 0, command.start() + binding.end())
+                    if start_index != end_index:
+                        number = offsets[start_index]; end_number = offsets[end_index]
+                        ident = declaration(path, 'cics_transaction', transaction[1], number, originals[number - 1], False)
+                        reference(ident, 'program', binding[1], 'binds_program',
+                                  _evidence(path, number, originals[number - 1], end_line=end_number))
         if role in {'job', 'proc', 'program', 'bms_mapset'} and not any(nodes[d]['kind'] == role for d in declared):
             # A conflicting suffix never manufactures a declaration.
             pass
@@ -411,6 +551,23 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         root = node('manifest_transaction', tx['id'], evidence=ev, resolution='manifest_declaration')
         root_nodes.append(root)
         reference(root, 'program', tx['program'], 'transaction_entry', ev)
+        if cics_v1:
+            resources = index['cics_transaction', tx['id']]
+            entries = index['program', tx['program']]
+            actual_cics = any(_cics_blocks(_lines(sources[nodes[d]['path']])) for d in entries)
+            if resources or tx.get('mapset') or actual_cics:
+                reference(root, 'cics_transaction', tx['id'], 'transaction_resource', ev)
+            bindings = [ref for resource in resources for ref in references[resource]
+                        if ref['relationship'] == 'binds_program']
+            if resources and (not bindings or any(ref['name'] != tx['program'] for ref in bindings)):
+                binding_evidence = bindings[0]['evidence'] if bindings else nodes[resources[0]]['evidence'][0]
+                reference(root, 'unknown_dependency', '<TRANSACTION ' + tx['id'] + ' PROGRAM BINDING CONFLICT>',
+                          'requires_transaction_binding', _evidence(binding_evidence['path'], binding_evidence['line'],
+                          'Manifest ' + tx['id'] + ' -> ' + tx['program'] + '; resource bindings: '
+                          + (', '.join(ref['name'] for ref in bindings) if bindings else 'no static PROGRAM binding'),
+                          'manifest_and_source', expected_program=tx['program'],
+                          observed_programs=[ref['name'] for ref in bindings],
+                          binding_source_refs=[ref['evidence'] for ref in bindings] or [binding_evidence]), True)
         if tx.get('mapset'):
             reference(root, 'bms_mapset', tx['mapset'], 'transaction_mapset', ev)
             reference(root, 'bms_map', tx['map'], 'transaction_map', ev, library=tx['mapset'])

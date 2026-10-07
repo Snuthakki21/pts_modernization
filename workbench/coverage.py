@@ -296,8 +296,15 @@ def build_coverage(doc, workspace_root, checkpoint=None):
     states = {name:_program_evidence(doc, root, base, name, p, errors, checkpoint) for name,p in programs.items()}
     integrity = list(errors)+[s['error'] for s in states.values() if s.get('error')]
     job_state = _job_evidence(doc, root, base, errors, checkpoint)
-    if not job_state['verified']:
+    if not job_state['verified'] and not (doc.get('cics_contract_version')==1 and not doc.get('jobs')):
         integrity.append('Job integration: '+job_state['reason'])
+    screen_states={}; cics_units={}
+    if analysis.get('cics_contract_version')==1:
+        from .screen_delivery import replay_layouts
+        screen_states=replay_layouts(doc,root,base,errors,checkpoint)
+        integrity.extend(state['error'] for state in screen_states.values() if state.get('error'))
+        for descriptor in analysis.get('cics',{}).get('units',[]):
+            for number in range(descriptor['start_line'],descriptor['end_line']+1):cics_units[descriptor['source_path'],number]=descriptor
     by_path = {p['path']:(name,p) for name,p in programs.items()}
     coverage_by_path = {p['path']:{row['line']:row for row in p.get('coverage',[])} for p in programs.values()}
     rules_by_path = {p['path']:{rule['id']:rule for rule in p.get('rules',[])} for p in programs.values()}
@@ -395,12 +402,35 @@ def build_coverage(doc, workspace_root, checkpoint=None):
                     reason=job_state['reason']+' This maps only the declared run unit; no external scheduler/submission/restart parity is claimed.'
                 elif ' JOB' in card: reason = 'Unsupported native job scheduling/submission parameters have no verified replacement adapter.'
                 else: reason = 'Unsupported JCL card or clause; no scheduler or I/O replacement is inferred.'
-            elif kind == 'bms_map': reason = 'BMS/CICS screen behavior requires concrete action and screen mapping plus verification; no business UI replacement exists.'
+            elif kind == 'bms_map':
+                descriptor=cics_units.get((path,line_no))
+                if descriptor:
+                    start=descriptor['start_line'];end=descriptor['end_line'];unit='screen:'+path+':'+str(start)
+                    candidates=[screen for screen in analysis['cics']['screens'] if screen['source_path']==path and (not descriptor.get('map') or descriptor['map']==screen['map'])]
+                    related=[screen_states[screen['id']] for screen in candidates]
+                    key=descriptor.get('field') or 'layout'
+                    mappings=[state['mappings'][key] for state in related if key in state['mappings']]
+                    tests=[test for state in related for test in state['tests']];evidence=[ref for state in related for ref in state['evidence']]
+                    replacement=descriptor['replacement'];reason='; '.join(dict.fromkeys(state['reason'] for state in related)) or '; '.join(g['message'] for g in descriptor.get('diagnostics',[])) or 'Source layout has no verified screen/controller binding.'
+                    if descriptor.get('component') in {'assembler_end','mapset_final'} and descriptor['support']=='layout_supported':
+                        disposition='non_executable';reason='Retained assembler layout closure; no independent runtime behavior.';mappings=[];tests=[]
+                    elif mappings:
+                        disposition='platform_replaced_verified' if all(state['verified'] for state in related) and len(mappings)==len(related) else 'platform_replaced_unverified'
+                else:reason='BMS source is outside the supported literal character layout profile; a verified source-specific adapter is required.'
+            elif kind == 'db2_catalog_evidence' and asset.get('executable_source') is False:
+                disposition='non_executable'
+                obligations=(asset.get('catalog_evidence') or {}).get('missing_semantics',[])
+                reason='Retained observed Db2 catalog context; this JSON is not executable source or a database replacement. Unverified metadata/native obligations: '+', '.join(obligations)
             elif kind == 'sql': reason = 'Source SQL/database effects have no executable target mapping or verified database adapter.'
             elif kind == 'other_source' and path in analysis.get('classifications',{}):
                 classification=analysis['classifications'][path]
                 reason='Classified as '+classification['kind']+'; recognition is not executable conversion. Source behavior requires a supported adapter and verification evidence.'
                 if classification.get('conflicts'):reason+=' Conflicting evidence: '+ '; '.join(classification['conflicts'])
+            descriptor=cics_units.get((path,line_no))
+            if descriptor and descriptor['kind']=='screen_action' and disposition=='blocked':
+                start=descriptor['start_line'];end=descriptor['end_line'];unit='screen_action:'+path+':'+str(start)
+                reason='; '.join(g['message'] for g in descriptor['diagnostics']) or descriptor['description']
+                replacement=descriptor['replacement']
             if state and mapping_key:
                 m = state['mappings'].get(mapping_key)
                 if m: mappings = [m]

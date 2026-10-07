@@ -24,6 +24,9 @@ export async function callOnline(path:string,token:string,options:{body?:unknown
  if(body!==undefined)parseOnlineJSON(body,65536);
  const response=await fetcher(path,{method:options.method||(body===undefined?'GET':'POST'),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...options.headers},body});
  const data=parseOnlineJSON(await response.text());
- if(!response.ok)throw new OnlineHttpError(response.status,typeof data.detail==='string'?data.detail:stringifyOnlineJSON(data.detail??data));
+ if(!response.ok){
+  const errors=data.result?.input_status==='REJECT_INPUT'&&Array.isArray(data.result.errors)&&data.result.errors.every((value:unknown)=>typeof value==='string')?data.result.errors:null;
+  throw new OnlineHttpError(response.status,typeof data.detail==='string'?data.detail:data.detail!==undefined?stringifyOnlineJSON(data.detail):errors?.length?errors.join('; '):stringifyOnlineJSON(data));
+ }
  return data;
 }

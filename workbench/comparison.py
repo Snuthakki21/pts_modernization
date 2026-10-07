@@ -18,6 +18,10 @@ BASIS = ('Frozen at accepted report generation. Verification inherits whole-prog
          'filtering does not rerun tests or establish observed mainframe parity.')
 
 
+def evidence_basis(model):
+    return ('Frozen accepted evidence. Record logic uses whole-program checks; BMS character layout uses separately replayed source, unit, randomized, mutation and FastAPI checks. Layout credit does not verify native controller or data behavior. Source-derived tests do not establish observed mainframe parity.' if model.get('cics_contract_version')==1 else BASIS)
+
+
 def program_key(program):
     return 'PROGRAM_' + sha(encode([program['program'], program['source_path'], program['source_version']]))[:24]
 
@@ -265,6 +269,7 @@ def comparison_page(model, *, program='', status='all', after=0, limit=25):
         for field, cap in (('tests',20), ('evidence',12), ('reasons',8), ('memberships',12)):
             item[field]=rule[field][:cap]; item[field+'_count']=len(rule[field]); item[field+'_complete']=len(rule[field])<=cap
         item['programs']=[p['program'] for p in owners[rule['id']]]
+        if 'cics_screens' in rule:item['cics_screens']=rule['cics_screens']
         item['gaps']=[]; item['gap_count']=0; item['gaps_complete']=True; item['program_gates']=[]
         if rule['status'] in GAP_STATUSES:
             item['gaps']=_source_gaps(rule,model)
@@ -278,7 +283,7 @@ def comparison_page(model, *, program='', status='all', after=0, limit=25):
         else: item['program_gate_count']=0; item['program_gates_complete']=True
         item['diagnostics_recorded']=model.get('comparison_contract_version',0)>=2
         output.append(item)
-    return {'process_id':model['process_id'], 'basis':BASIS, 'programs':catalog,
+    return {'cics_contract_version':model.get('cics_contract_version'), 'process_id':model['process_id'], 'basis':evidence_basis(model), 'programs':catalog,
             'unassigned_count':sum(r['id'] not in owned for r in rules), 'inventory_counts':counts(rules),
             'counts':scoped_counts, 'process_gates':[_gate(g) for g in model.get('process_gates',[])[:12]],
             'process_gate_count':len(model.get('process_gates',[])), 'process_gates_complete':len(model.get('process_gates',[]))<=12, 'filters':{'program':program, 'status':status}, 'matching_total':len(matching),
@@ -340,4 +345,8 @@ def render_comparison_report(model):
             process_details+='<p><strong>Whole-process gate'+(' · '+esc(gate['source_rule_id']) if gate.get('source_rule_id') else '')+':</strong> '+esc(gate['reason'])+'</p><p><strong>Evidence needed:</strong> '+esc(gate['resolution'])+'</p><pre>'+esc(json.dumps({'facts':gate['facts'],'evidence':gate['evidence']},ensure_ascii=False,sort_keys=True))+'</pre>'
         process_details+='</details>'
     rollup=render_rule_summary({**model,'rules':[]})
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>COBOL and Python comparison</title><style>'+style+'</style></head><body><main><h1>COBOL and Python comparison</h1><p>'+esc(BASIS)+'</p><p>Counts are unique source units; unclassified spans have unknown semantic rule counts. Shared copybooks can appear in more than one program.</p>'+process_details+'<div class="filters"><label for="program">Program<select id="program"><option value="">All programs and source</option>'+options+'<option value="unassigned">Source outside parsed program ownership</option></select></label><div role="group" aria-label="Comparison status"><button type="button" data-filter="all" aria-pressed="true">All</button> <button type="button" data-filter="gaps" aria-pressed="false">Gaps only</button> <button type="button" data-filter="verified" aria-pressed="false">Verified</button> <button type="button" data-filter="excluded" aria-pressed="false">Selected No</button></div></div><p id="count" role="status">'+str(len(rules))+' source units in the accepted inventory.</p><noscript>All evidence is shown. Enable JavaScript to use filters.</noscript><p id="empty" hidden>No source units match these filters.</p>'+''.join(cards)+''.join(program_details)+'<details><summary>Full counts and requirements accounting</summary>'+rollup+'</details></main><script>'+script+'</script></body></html>'
+    output = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>COBOL and Python comparison</title><style>'+style+'</style></head><body><main><h1>COBOL and Python comparison</h1><p>'+esc(evidence_basis(model))+'</p><p>Counts are unique source units; unclassified spans have unknown semantic rule counts. Shared copybooks can appear in more than one program.</p>'+process_details+'<div class="filters"><label for="program">Program<select id="program"><option value="">All programs and source</option>'+options+'<option value="unassigned">Source outside parsed program ownership</option></select></label><div role="group" aria-label="Comparison status"><button type="button" data-filter="all" aria-pressed="true">All</button> <button type="button" data-filter="gaps" aria-pressed="false">Gaps only</button> <button type="button" data-filter="verified" aria-pressed="false">Verified</button> <button type="button" data-filter="excluded" aria-pressed="false">Selected No</button></div></div><p id="count" role="status">'+str(len(rules))+' source units in the accepted inventory.</p><noscript>All evidence is shown. Enable JavaScript to use filters.</noscript><p id="empty" hidden>No source units match these filters.</p>'+''.join(cards)+''.join(program_details)+'<details><summary>Full counts and requirements accounting</summary>'+rollup+'</details></main><script>'+script+'</script></body></html>'
+
+    if model.get('cics_contract_version')==1:
+        output=output.replace('COBOL and Python comparison','Mainframe and Python / FastAPI comparison').replace('COBOL / source logic','Mainframe / CICS source logic').replace('Python replacement','Python / FastAPI replacement')
+    return output

@@ -55,7 +55,8 @@ def consistency_findings(doc):
 def validation_view(doc, coverage=None):
     run=(doc.get('runs') or [{}])[-1]
     programs=list(run.get('programs',{}).values())
-    unit=[r.get('unit_tests') for r in programs]
+    screens=list(run.get('screens',{}).values()) if (doc.get('analysis') or {}).get('cics_contract_version')==1 else []
+    unit=[r.get('unit_tests') for r in programs+screens]
     validation=doc.get('logic_validation') or {}
     intact=coverage is not None and not coverage['summary']['integrity_errors']
     status='NOT_RUN' if not doc.get('verification_finished') else 'GAPS' if not validation.get('complete') or coverage is not None and not intact else 'PASSED' if intact else 'RECORDED_PASS'
@@ -63,7 +64,7 @@ def validation_view(doc, coverage=None):
             'fixture_contract_version':doc.get('fixture_contract_version'),
             'seed':str(doc['authorization']['seed']) if 'seed' in (doc.get('authorization') or {}) else None,
             'status':status,'evidence_state':'REPLAYED' if coverage is not None else 'RECORDED_NOT_RECHECKED',
-            'program_count':len(programs),'unit_tests_run':sum((item or {}).get('tests_run',0) for item in unit),
+            'program_count':len(programs),**({'screen_layout_count':len(screens)} if (doc.get('analysis') or {}).get('cics_contract_version')==1 else {}),'unit_tests_run':sum((item or {}).get('tests_run',0) for item in unit),
             'unit_tests_passed':(all(item and item.get('passed') for item in unit) and (coverage is None or intact)) if unit else None,
             'job_cases':validation.get('job_cases'),'evidence':validation.get('evidence')}
 
@@ -93,6 +94,10 @@ def factory_view(doc, coverage=None):
         transactions.append({**tx,'api':delivery.get('api'),'screen':delivery.get('screen'),
                              'state':delivery.get('state','IDENTIFIED'),'native_cics_verified':False,
                              'limitations':delivery.get('limitations',['Source transaction semantics require verified replacements'])})
+    if analysis.get('cics_contract_version')==1:
+        for transaction in transactions:
+            delivery=(doc.get('online_delivery') or {}).get('transactions',{}).get(transaction['id'],{})
+            transaction['screen_apis']=delivery.get('screen_apis',[])
     from .backends import target_architecture
     return {'target_architecture':target_architecture(doc),'validation':validation_view(doc,coverage),'schema_version':1,'process_id':doc['id'],'process_revision':doc.get('revision'),
             'source_snapshot':analysis.get('source_snapshot'),'stage':current,'stages':list(STAGES),
@@ -104,7 +109,8 @@ def factory_view(doc, coverage=None):
             'service_design':{'default':'modular_application','extraction_requires':['independent business responsibility','data ownership','verified transaction boundary'],'database':'SQLite; unsupported semantics remain gaps'},
             'consistency':consistency_findings(doc),
             'counts':{'obligations':len(obligations),'transactions':len(transactions),'verified_capabilities':0,
-                      'implemented_api_candidates':sum(t['state']=='IMPLEMENTED_UNVERIFIED' for t in transactions)},
+                      'implemented_api_candidates':sum(t['state']=='IMPLEMENTED_UNVERIFIED' for t in transactions),
+                      **({'implemented_layout_candidates':sum(len(t.get('screen_apis',[])) for t in transactions)} if analysis.get('cics_contract_version')==1 else {})},
             'investigation_strategy':INVESTIGATION,
             'scope':'Capability recognition is not complete support. Source-derived verification is distinct from observed mainframe parity.'}
 
@@ -123,11 +129,11 @@ def render_factory(view):
     from html import escape
     e=lambda value:escape(str(value))
     rows=''.join('<tr>'+''.join('<td>'+e(item[k])+'</td>' for k in ('label','state','source_count','gap_count'))+'</tr>' for item in view['capabilities'])
-    transactions=''.join('<tr>'+''.join('<td>'+e(item.get(k))+'</td>' for k in ('id','program','mapset','map','api','state'))+'</tr>' for item in view['transactions'])
+    transactions=''.join('<tr>'+''.join('<td>'+e(item.get(k) if k!='api' else item.get('api') or ', '.join(item.get('screen_apis',[])))+'</td>' for k in ('id','program','mapset','map','api','state'))+'</tr>' for item in view['transactions'])
     gaps=''.join('<li><strong>'+e(item['id'])+'</strong> '+e(item['requirement'])+'</li>' for item in view['obligations'])
     architecture=view.get('target_architecture',{})
     candidates=''.join('<tr><td>'+e(c['title'])+'</td><td>'+e(c['implementation_status'])+'</td><td>'+e(c['scope'])+'</td></tr>' for c in architecture.get('candidates',[]))
     architecture_html='<h2>Target architecture</h2><p><strong>'+e(architecture.get('title','Not assessed'))+'</strong></p><p>'+e(architecture.get('rationale',''))+'</p><table><tr><th>Target</th><th>Implementation</th><th>Scope</th></tr>'+candidates+'</table><ul>'+''.join('<li>'+e(o['title'])+': '+e(o['status'])+'</li>' for o in architecture.get('obligations',[]))+'</ul>'
     validation=view.get('validation',{})
     validation_html='<h2>Runtime validation</h2><p>'+e(validation.get('status'))+' · minimum '+e(validation.get('minimum_distinct_records_per_logic'))+' distinct records per supported logic · seed '+e(validation.get('seed'))+' · '+e(validation.get('unit_tests_run'))+' generated unit tests executed. Dataset, scheduler and observed mainframe parity require separate evidence.</p>'
-    return '<!doctype html><html lang="en"><meta charset="utf-8"><title>Modernization factory</title><style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ccc;padding:.5rem;text-align:left;overflow-wrap:anywhere}</style><h1>Modernization factory</h1><p>'+e(view['scope'])+'</p>'+architecture_html+validation_html+'<p><a href="program-insights.html">Explore application inventory and program knowledge</a></p><h2>Capabilities</h2><table><tr><th>Area</th><th>Evidence state</th><th>Sources</th><th>Gaps</th></tr>'+rows+'</table><h2>Online mappings</h2><p>Generated API candidates do not earn CICS or BMS conversion credit.</p><table><tr><th>Transaction</th><th>Program</th><th>Mapset</th><th>Map</th><th>API</th><th>State</th></tr>'+transactions+'</table><h2>Unresolved obligations</h2><ul>'+gaps+'</ul></html>'
+    return '<!doctype html><html lang="en"><meta charset="utf-8"><title>Modernization factory</title><style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ccc;padding:.5rem;text-align:left;overflow-wrap:anywhere}</style><h1>Modernization factory</h1><p>'+e(view['scope'])+'</p>'+architecture_html+validation_html+'<p><a href="program-insights.html">Explore application inventory and program knowledge</a></p><h2>Capabilities</h2><table><tr><th>Area</th><th>Evidence state</th><th>Sources</th><th>Gaps</th></tr>'+rows+'</table><h2>Online mappings</h2><p>Generated API candidates do not establish native CICS parity. Source-bound character-layout verification is reported separately from controller, session and data obligations.</p><table><tr><th>Transaction</th><th>Program</th><th>Mapset</th><th>Map</th><th>API</th><th>State</th></tr>'+transactions+'</table><h2>Unresolved obligations</h2><ul>'+gaps+'</ul></html>'

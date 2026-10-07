@@ -304,7 +304,7 @@ not change these process limits.
 | SME | One frozen packet / one valid return per process, immutable question identity/Context/Metadata, Yes/No/Not sure, corrections retained | Corrections requiring new semantics remain blockers. A Yes on an unsupported-item description does not make its conversion supported. |
 | Knowledge | Standard mainframe catalog, editable application/vendor JSON catalog, content-based classification, per-process immutable snapshot, bounded indexed Markdown and confirmed-fact JSON/index pair | Recognition never grants conversion support. No semantic cross-process auto-approval or autonomous interpretation of corrected prose. |
 | Connectors | Local-first typed transitive discovery, Zowe source/metadata reads, Db2 catalog lookup and explicit row exports | Account/service visibility and parser limits remain explicit. No schema allowlist; missing libraries/dynamic bindings/TPX-only facilities need exports or actual service mappings. |
-| UI | Local React intake/prompt/file workflow, real stage events, rule lineage, source coverage filters, review import, Pause/Resume/Cancel and downloads | No target business CICS screen modernization in this subset. Workbench screens and control APIs are not counted as business replacements. |
+| UI | Local React intake/prompt/file workflow, real stage events, rule lineage, source coverage filters, review import, Pause/Resume/Cancel and downloads | New CICS intakes support source-bound literal BMS character layouts and FastAPI rendering; native controller, symbolic buffers, AID, state, security and data semantics remain named gaps. Workbench controls are not business replacements. |
 | Reporting | One primary executive HTML report, six editable PPT slides, metric XLSX/CSV/JSON/history, complete source coverage JSON/CSV/XLSX/HTML, unique/membership counts, LOC and blockers | CICS/VSAM/interfaces unknown until evidenced. Db2 metric is distinct references in supplied SQL, not a confirmed estate table count. Physical/code LOC convention differs by source kind and is not equivalent complexity. |
 | Inspection | PPT reopened, editable table count and canvas bounds checked, hashes recorded | Six sample slides rendered and visually inspected through Artifact Tool. Native PowerPoint/LibreOffice, browser rendering and Windows launch remain unverified. |
 
@@ -902,8 +902,66 @@ comparison receipt. Business module filenames are content hashes under `modules/
 to avoid Windows collisions with runtime files. The service invokes the existing
 generated program; it is not another COBOL converter. Expected cases come from
 the frozen source oracle and are compared through the actual HTTP interface.
-Unsupported programs receive no candidate. Generated candidates remain distinct
+Unsupported record programs receive no record candidate. A separately verified BMS character layout may produce a rendering-only candidate with transaction execution disabled. Generated candidates remain distinct
 from verified native CICS replacements in JSON, Excel, HTML and PowerPoint.
+
+New online intakes carry `cics_contract_version=1`; marker-absent historical
+source analyses, requirement catalogs and retrieval prompts keep their prior
+contracts. The new discovery graph resolves bounded multiline `EXEC CICS` map,
+program, file/dataset, queue, transaction, channel/container and remote-system
+references. Dynamic or ambiguous identities remain gaps. Supplied CSD transaction
+bindings must agree with the manifest; source commands or supplied map bindings
+require actual transaction resource evidence before closure. Resource definitions
+are evidence of identity, not executable behavior or permission to access systems.
+
+Typed Db2 descriptions are non-executable `DB2_TABLE_DESCRIPTION` JSON assets
+with schema/table, columns, observation provenance (canonical locator must equal
+exact `SCHEMA.TABLE`) and nullable DDL/constraints/
+indexes/triggers. Missing metadata and native SQL/type/transaction/auth semantics
+remain explicit obligations; a column description does not prove full DDL.
+New CICS retrieval requests use schema 2 and require Zowe CLI for mainframe exports
+and typed read-only Db2 MCP for catalog/DDL. The exact inbox and immutable source
+journal remain authoritative. The existing approved MCP tools may not expose every
+requested DDL component; do not invent it or conceal its absence.
+
+`workbench.cics` implements `BMS_CHARACTER_LAYOUT_V1`: literal DFHMSD/DFHMDI/
+DFHMDF, complete FINAL/END, bounded dimensions, positions, nonoverlapping character
+fields, supported protection/intensity/cursor attributes and printable ASCII
+INITIAL values. Explicit ATTRB defaults use UNPROT/NORM; absent ATTRB uses
+ASKIP/NORM. Unsupported operands, symbolic layout, encoding and native effects
+remain named gaps. The DFHMDF attribute byte precedes displayed data. IBM source
+references: [DFHMDI](https://www.ibm.com/docs/en/cics-ts/5.6.0?topic=macros-dfhmdi)
+and [DFHMDF](https://www.ibm.com/docs/en/cics-ts/5.5.0?topic=macros-dfhmdf).
+
+Requirements GET filters (`program`, `screen=MAPSET/MAP`, `kind`, `path`) apply
+before the existing 50-item pagination; duplicate/unknown parameters fail closed.
+Safe unnamed constant fields alone can be omitted without a dependency redesign.
+Save retains every hidden page/filter No in one pinned Markdown. Map definitions,
+editable/named fields and controller actions cannot be silently waived.
+
+The same Coordinator verification issues `synthetic/RUN/SCREEN_ID/` source
+expectations/comparisons, `tests/RUN/SCREEN_ID/` executable unit module and receipt,
+`target/RUN/SCREEN_ID.py`, shared content-hash Python code and the online package.
+At least 20 distinct runtime-randomized valid states per input/layout are required;
+finite domains never receive duplicate padding. Constant display fields have one
+source value and are compared across distinct randomized input contexts, without
+claiming 20 distinct display values. Mutation candidates stream and stop at the
+first actual differing witness; receipts record the checked cases, and cancellation
+is checked throughout source planning, target/unit/HTTP execution and review.
+Independent source interpretation,
+actual target execution, mutation witnesses and authenticated FastAPI comparisons
+cover layout/field behavior only. The linked map/controller witness pins source
+identity and lineage; it does not execute a native controller.
+
+`POST /api/screens/{transaction}/{screen_id}` accepts exactly `values`, validates
+source-owned fixed-width character inputs and returns the complete rendered layout
+or rejection. Protected outputs cannot be supplied as inputs. It shares bounded
+JSON, duplicate-key, bearer and origin checks, and has no native session/data side
+effects. A layout-only transaction returns 409 from session creation and transaction
+execution. Coverage replays source/requirements, units, mutations, target copies and
+HTTP package receipts before layout-only credit; tampering, cancellation or an
+unresolved human return withholds it. Program ownership associates only the bound
+map units even when multiple maps share one file. Native command gaps stay visible.
 
 The local runtime uses an explicitly supplied private `ONLINE_TOKEN` of at least
 32 characters, binds to loopback port 8766 by default and supports isolated,

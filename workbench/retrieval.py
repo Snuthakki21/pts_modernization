@@ -68,7 +68,7 @@ def _need(value):
 
 def _prompt(request):
     folder = request['return_folder']
-    return (
+    base = (
         'Use GitHub Copilot only to retrieve these named source artifacts through the already '
         'configured, organization-approved MCP tools. All source-system operations must be read-only. '
         'Do not analyze, modify, modernize, execute, test or review code. Never submit a job, execute '
@@ -97,6 +97,24 @@ def _prompt(request):
         'After saving the final manifest, return to Claude Code and say Continue. Claude reads this '
         'exact local folder and performs analysis, implementation, randomized tests and review without MCP.'
     )
+    if request['schema_version'] == 1:return base
+    return base + (
+        '\n\nMandatory transport boundary: use approved Zowe CLI read operations for mainframe source and '
+        'resource exports. Db2 schema/table metadata and actual DDL must come only from already approved '
+        'typed read-only Db2 MCP tools, including db2_list_tables and db2_describe_table; never arbitrary '
+        'SQL, a direct database driver, or Zowe for Db2 catalog access. Claude Code has no MCP access. '
+        'Save observed table descriptions as UTF-8 JSON text in this exact request inbox, preserving the '
+        'original relative identity. Do not invent DDL from column facts. The typed table-description '
+        'format has exactly schema_version=1, kind=DB2_TABLE_DESCRIPTION, schema, table, columns, '
+        'description_complete, ddl, constraints, indexes, triggers and provenance. Use the exact '
+        'uppercase unquoted schema/table and actual ordered column rows (NAME, COLNO, COLTYPE, LENGTH, '
+        'NULLS; optional SCALE, CCSID, DEFAULT, DEFAULTVALUE). Provenance must match the FOUND item '
+        'and identify configured_mcp / db2_describe_table with locator equal to the exact SCHEMA.TABLE '
+        'and a timezone timestamp. '
+        'Unknown ddl/constraints/indexes/triggers must be null, never guessed or an empty list. '
+        'Missing identity or incomplete typed observations remain explicit NOT_FOUND/AMBIGUOUS needs. '
+        'These JSON facts are catalog evidence, not executable source or proof of conversion.'
+    )
 
 
 def build_request(doc, needs=None):
@@ -116,7 +134,7 @@ def build_request(doc, needs=None):
         need = _need(value)
         previous = unique.setdefault(need['need_id'], need)
         require(previous == need, 'Retrieval need identity collision')
-    request = {'schema_version': 1, 'kind': 'LOCAL_EVIDENCE_RETRIEVAL_REQUEST',
+    request = {'schema_version': 2 if doc.get('cics_contract_version') == 1 else 1, 'kind': 'LOCAL_EVIDENCE_RETRIEVAL_REQUEST',
                'process_id': process_id, 'source_generation': _source_generation(doc),
                'iteration': iteration, 'lineage_hash': _lineage_hash(doc),
                'needs': list(unique.values())}
@@ -131,7 +149,7 @@ def build_request(doc, needs=None):
 def _verify_request(request):
     require(isinstance(request, dict) and set(request) == _REQUEST_FIELDS | {'request_id', 'return_folder', 'copilot_prompt'},
             'Invalid retrieval request fields')
-    require(type(request['schema_version']) is int and request['schema_version'] == 1
+    require(type(request['schema_version']) is int and request['schema_version'] in (1, 2)
             and request['kind'] == 'LOCAL_EVIDENCE_RETRIEVAL_REQUEST', 'Unsupported retrieval request contract')
     process_id = identity(request['process_id'])
     _hash(request['source_generation'], 'Source generation')
@@ -190,6 +208,23 @@ def _provenance(value):
     require(timestamp.tzinfo is not None, 'Retrieval provenance timestamp requires timezone')
 
 
+def _db2_transport(provenance):
+    require(provenance['origin'] == 'configured_mcp' and provenance['tool'] in
+            {'db2_list_schemas', 'db2_list_tables', 'db2_describe_table'},
+            'Db2 metadata and DDL require an approved typed read-only Db2 MCP tool')
+
+
+def _schema_export(text):
+    # Standalone schema declarations identify Db2 metadata even when the need's
+    # type was unknown. Shield strings/comments and embedded program source.
+    from .lineage import _mask_literals
+    from .mainframe import _lines
+    statements = [_mask_literals(line).strip() for _, line in _lines(text)]
+    if any(re.match(r'PROGRAM-ID\s*\.', line, re.I) for line in statements):return False
+    return bool(re.search(r'(?m)^\s*(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|VIEW|SCHEMA|DATABASE|TABLESPACE|TRIGGER|PROCEDURE|FUNCTION)\b',
+                          '\n'.join(statements), re.I))
+
+
 def _relative_path(path):
     _text(path, 'Returned source path', 1000)
     require(Path(path).as_posix() == path and all(p not in ('', '.', '..') for p in path.split('/')),
@@ -245,7 +280,8 @@ def inspect_response(root, request, existing_sources=None):
     require(isinstance(response, dict) and set(response) == {'request_id', 'items'}, 'Invalid retrieval response fields')
     require(response['request_id'] == request['request_id'], 'Retrieval response belongs to another request')
     items = response['items']
-    expected = {n['need_id'] for n in request['needs']}
+    need_by_id = {n['need_id']: n for n in request['needs']}
+    expected = set(need_by_id)
     require(isinstance(items, list) and len(items) == len(expected), 'Every retrieval need requires exactly one response item')
     entries, missing, seen, paths, staged_paths = [], [], set(), set(), set()
     staged_folded = {}; returned_files = {}
@@ -271,6 +307,8 @@ def inspect_response(root, request, existing_sources=None):
                     _text(candidate, 'Ambiguous candidate', 500)
             missing.append(item)
             continue
+        if request['schema_version'] == 2 and need_by_id[need_id]['kind'].startswith('db2_'):
+            _db2_transport(item['provenance'])
         required = {'need_id', 'status', 'path', 'sha256', 'provenance'}
         require(required <= set(item) <= required | {'staged_path'}, 'Found retrieval item has invalid fields')
         path = _relative_path(item['path'])
@@ -307,6 +345,10 @@ def inspect_response(root, request, existing_sources=None):
                 'Retrieved source contains binary control characters')
         total_lines += source_line_count(text)
         require(total_lines <= MAX_SOURCE_LINES, 'Retrieved source exceeds line count limit')
+        if request['schema_version'] == 2:
+            from .db2_catalog import table_description
+            catalog = table_description(text, item['provenance'])
+            if catalog or _schema_export(text):_db2_transport(item['provenance'])
         entries.append({'path': path, 'text': text, 'source_hash': digest,
                         'provenance': {**item['provenance'], 'retrieval_request_id': request['request_id'],
                                        'retrieval_need_id': need_id, 'retrieval_need_ids': [need_id], 'authority': 'AGENT_SUPPLIED_RETRIEVAL'}})

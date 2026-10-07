@@ -388,3 +388,250 @@ class LineageDiscoveryTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+
+class CicsDiscoveryContractTests(unittest.TestCase):
+    def manifest(self, mapset=None):
+        return {'id':'cics-audit','jobs':[], 'cics_contract_version':1,
+                'transactions':[{'id':'TEST','program':'MAIN','mapset':mapset,'map':'SCREEN' if mapset else None}]}
+
+    def files(self, command, extra=None):
+        return {'MAIN.cbl':'IDENTIFICATION DIVISION.\nPROGRAM-ID. MAIN.\nPROCEDURE DIVISION.\n'+command+'\n',
+                'resources.csd':'DEFINE TRANSACTION(TEST) GROUP(APP) PROGRAM(MAIN)\n', **(extra or {})}
+
+    def test_literal_multiline_map_and_link_dependencies_are_transitive(self):
+        command='EXEC CICS RECEIVE\n MAP("SCREEN")\n MAPSET("FORM") END-EXEC.\nEXEC CICS LINK\n PROGRAM("SUB") END-EXEC.'
+        files=self.files(command,{'FORM.bms':'FORM DFHMSD TYPE=MAP\nSCREEN DFHMDI SIZE=(24,80)\n DFHMSD TYPE=FINAL\n END\n',
+                                  'SUB.cbl':'PROGRAM-ID. SUB.\nCOPY RECORD.\nGOBACK.\n', 'RECORD.cpy':'01 RECORD.\n05 DATA PIC X.\n'})
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(result['closure']['complete'])
+        self.assertEqual(result['scope']['selected_files'],sorted(files))
+        maps=[e for e in result['edges'] if e['kind']=='uses_map']
+        self.assertEqual(maps[0]['evidence'][0]['line'],4)
+        self.assertEqual(maps[0]['evidence'][0]['end_line'],6)
+        self.assertFalse(any(n.get('conversion_support')=='VERIFIED' for n in result['nodes']))
+
+    def test_static_file_tdqueue_transid_channel_container_obligations_are_visible(self):
+        command='\n'.join(['EXEC CICS READ\n FILE("CUSTOMER") END-EXEC.',
+                           'EXEC CICS READQ TD QUEUE("FEED") END-EXEC.',
+                           'EXEC CICS READQ TS QUEUE("STATE") END-EXEC.',
+                           'EXEC CICS START TRANSID("NEXT") END-EXEC.',
+                           'EXEC CICS RETURN TRANSID("BACK") END-EXEC.',
+                           'EXEC CICS GET CONTAINER("PAYLOAD") CHANNEL("CHANNEL1") END-EXEC.'])
+        result=map_lineage(self.files(command),self.manifest())
+        gaps={(g['kind'],g['name']) for g in result['closure']['gaps']}
+        self.assertTrue({('cics_file_definition','CUSTOMER'),('cics_tdqueue_definition','FEED'),
+                         ('cics_tsqueue','STATE'),('cics_transaction','NEXT'),('cics_transaction','BACK'),
+                         ('cics_container','PAYLOAD'),('cics_channel','CHANNEL1')} <= gaps)
+        self.assertFalse(result['closure']['complete'])
+
+    def test_cics_dataset_qname_and_remote_system_aliases_remain_explicit(self):
+        result=map_lineage(self.files('EXEC CICS READ DATASET("CUSTOMER") SYSID("REM1") END-EXEC.\n'
+                                     'EXEC CICS READQ TS QNAME("STATE") END-EXEC.'),self.manifest())
+        gaps={(g['kind'],g['name']) for g in result['closure']['gaps']}
+        self.assertTrue({('cics_file_definition','CUSTOMER'),('cics_tsqueue','STATE'),('cics_system','REM1')} <= gaps)
+
+    def test_dynamic_or_missing_mapset_cannot_clear_literal_map_binding(self):
+        files=self.files('EXEC CICS RECEIVE MAP("SCREEN")\n MAPSET(MAPSET-NAME) END-EXEC.',
+                         {'FORM.bms':'FORM DFHMSD TYPE=MAP\nSCREEN DFHMDI SIZE=(24,80)\n DFHMSD TYPE=FINAL\n END\n'})
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(any(g['kind']=='bms_map' and g['status']=='dynamic_unknown' for g in result['closure']['gaps']))
+        self.assertTrue(any(g['name']=='MAPSET-NAME' and g['status']=='dynamic_unknown' for g in result['closure']['gaps']))
+
+    def test_missing_required_cics_operand_and_incomplete_command_remain_gaps(self):
+        for command in ('EXEC CICS READ INTO(REC) END-EXEC.', 'EXEC CICS RECEIVE MAP("SCREEN")',
+                        'EXEC CICS LINK PROGRAM("SUB")\nEXEC CICS RETURN END-EXEC.'):
+            with self.subTest(command=command):
+                result=map_lineage(self.files(command),self.manifest())
+                self.assertFalse(result['closure']['complete'])
+                self.assertTrue(any(g['kind']=='unknown_dependency' for g in result['closure']['gaps']))
+
+    def test_csd_file_dataset_and_indirect_tdqueue_dependencies_are_transitive(self):
+        files=self.files('EXEC CICS READ FILE("CUSTOMER") END-EXEC.\nEXEC CICS READQ TD QUEUE("FEED") END-EXEC.')
+        files['files.csd']='DEFINE FILE(CUSTOMER) GROUP(APP)\n DSNAME(APP.CUSTOMER)\nDEFINE TDQUEUE(FEED) GROUP(APP)\n INDIRECTNAME(REALFEED)\nDEFINE TDQUEUE(REALFEED) GROUP(APP)\n'
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(any(g['kind']=='dataset' and g['name']=='APP.CUSTOMER' for g in result['closure']['gaps']))
+        self.assertFalse(any(g['name'] in ('CUSTOMER','FEED','REALFEED') for g in result['closure']['gaps']))
+        self.assertTrue(any(e['kind']=='cics_indirect_queue' for e in result['edges']))
+
+    def test_manifest_resource_program_conflict_and_missing_binding_stop_discovery(self):
+        for resource in ('DEFINE TRANSACTION(TEST) PROGRAM(OTHER)', 'DEFINE TRANSACTION(TEST) GROUP(APP)'):
+            files=self.files('GOBACK.',{'resources.csd':resource,'OTHER.cbl':'PROGRAM-ID. OTHER.\nGOBACK.\n'})
+            result=map_lineage(files,self.manifest())
+            self.assertFalse(result['closure']['complete'])
+            self.assertTrue(any('BINDING CONFLICT' in g['name'] for g in result['closure']['gaps']))
+
+    def test_native_root_requires_resource_but_flat_record_candidate_does_not(self):
+        files={'MAIN.cbl':'PROGRAM-ID. MAIN.\nEXEC CICS RETURN END-EXEC.\n'}
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(any(g['kind']=='cics_transaction' and g['name']=='TEST' for g in result['closure']['gaps']))
+        flat=map_lineage({'MAIN.cbl':'PROGRAM-ID. MAIN.\nGOBACK.\n'},self.manifest())
+        self.assertTrue(flat['closure']['complete'])
+
+    def test_historical_parser_graph_is_unchanged_without_contract(self):
+        files={'MAIN.cbl':'PROGRAM-ID. MAIN.\nEXEC CICS READ FILE("MISSING") END-EXEC.\n'}
+        manifest=self.manifest();manifest.pop('cics_contract_version')
+        self.assertTrue(map_lineage(files,manifest)['closure']['complete'])
+        self.assertFalse(map_lineage(files,self.manifest())['closure']['complete'])
+
+    def test_literals_and_comments_do_not_create_fake_cics_requests(self):
+        files={'MAIN.cbl':'PROGRAM-ID. MAIN.\nDISPLAY "EXEC CICS READ FILE(""FAKE"") END-EXEC".\n*> EXEC CICS LINK PROGRAM("OTHER") END-EXEC.\nGOBACK.\n'}
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(result['closure']['complete'])
+        self.assertFalse(any(n['name'] in ('FAKE','OTHER') for n in result['nodes']))
+
+    def test_command_scan_is_bounded_and_does_not_skip_later_program_owner(self):
+        files=self.files('EXEC CICS READ '+('X '*33000)+'FILE("CUSTOMER") END-EXEC.\nPROGRAM-ID. SECOND.\nEXEC CICS LINK PROGRAM("MISSING") END-EXEC.')
+        result=map_lineage(files,self.manifest())
+        self.assertTrue(any('OVERSIZED' in g['name'] for g in result['closure']['gaps']))
+        # Whole exported compilation unit remains retained, including the second declaration.
+        self.assertTrue(any(g['name']=='MISSING' and g['source'].endswith(':SECOND') for g in result['closure']['gaps']))
+
+
+    def test_omitted_mapset_uses_map_name_and_cannot_borrow_unique_other_mapset(self):
+        maps='MAPS DFHMSD TYPE=MAP\nSCREEN DFHMDI SIZE=(24,80)\n DFHMSD TYPE=FINAL\n'
+        for verb in ('SEND','RECEIVE'):
+            with self.subTest(verb=verb):
+                files=self.files('EXEC CICS '+verb+' MAP("SCREEN") END-EXEC.',{'MAPS.bms':maps})
+                result=map_lineage(files,self.manifest('MAPS'))
+                self.assertFalse(result['closure']['complete'])
+                self.assertTrue(any(g['kind']=='bms_mapset' and g['name']=='SCREEN' for g in result['closure']['gaps']))
+                self.assertTrue(any(g['kind']=='bms_map' and g['name']=='SCREEN' for g in result['closure']['gaps']))
+                files['MAPS.bms']=maps.replace('MAPS DFHMSD','SCREEN DFHMSD')
+                result=map_lineage(files,self.manifest())
+                self.assertTrue(result['closure']['complete'])
+                self.assertTrue(any(e['kind']=='uses_default_mapset' for e in result['edges']))
+
+    def test_malformed_explicit_mapset_never_takes_default_or_unique_binding(self):
+        maps='SCREEN DFHMSD TYPE=MAP\nSCREEN DFHMDI SIZE=(24,80)\n DFHMSD TYPE=FINAL\n'
+        for operand in ('MAPSET','MAPSET "MAPS"','MAPSET()','MAPSET("SCREEN") MAPSET'):
+            with self.subTest(operand=operand):
+                result=map_lineage(self.files('EXEC CICS SEND MAP("SCREEN") '+operand+' END-EXEC.',{'SCREEN.bms':maps}),self.manifest())
+                self.assertFalse(result['closure']['complete'])
+                self.assertTrue(any(g['kind']=='unknown_dependency' and 'MALFORMED MAPSET' in g['name'] or g['kind']=='bms_map' and g['status']=='dynamic_unknown' for g in result['closure']['gaps']))
+        result=map_lineage(self.files('EXEC CICS SEND MAP("SCREEN") FROM(MAPSET) END-EXEC.',{'SCREEN.bms':maps}),self.manifest())
+        self.assertTrue(result['closure']['complete'])
+        self.assertFalse(any('MALFORMED MAPSET' in g['name'] for g in result['closure']['gaps']))
+
+    def test_text_form_and_nested_operand_names_do_not_create_map_dependencies(self):
+        for command in ('EXEC CICS SEND TEXT FROM(MAP) END-EXEC.',
+                        'EXEC CICS SEND TEXT FROM(MAP(OFFSET:LENGTH)) END-EXEC.',
+                        'EXEC CICS RECEIVE INTO(MAP) LENGTH(LENGTH) END-EXEC.',
+                        'EXEC CICS SEND CONTROL RESP(MAP) END-EXEC.'):
+            with self.subTest(command=command):
+                result=map_lineage(self.files(command),self.manifest())
+                self.assertTrue(result['closure']['complete'],result['closure']['gaps'])
+                self.assertFalse(any(n['kind'] in ('bms_map','bms_mapset') for n in result['nodes']))
+        result=map_lineage(self.files('EXEC CICS SEND MAP FROM(REC) END-EXEC.'),self.manifest())
+        self.assertTrue(any(g['name']=='<CICS SEND MISSING MAP>' for g in result['closure']['gaps']))
+
+    def test_all_csd_program_operands_are_observed_and_duplicate_binding_stops(self):
+        for operands in (' PROGRAM(MAIN) PROGRAM(OTHER)', '\n PROGRAM(MAIN)\n PROGRAM(OTHER)',
+                         ' PROGRAM(MAIN) PROGRAM(MAIN)', ' PROGRAM(MAIN) PROGRAM(PROG-NAME(1))'):
+            with self.subTest(operands=operands):
+                files=self.files('EXEC CICS RETURN END-EXEC.',{'resources.csd':'DEFINE TRANSACTION(TEST)'+operands+'\n',
+                                                                 'OTHER.cbl':'PROGRAM-ID. OTHER.\nGOBACK.\n'})
+                result=map_lineage(files,self.manifest())
+                self.assertFalse(result['closure']['complete'])
+                self.assertTrue(any('DUPLICATE PROGRAM BINDING' in g['name'] for g in result['closure']['gaps']))
+                if 'OTHER' in operands:
+                    conflict=next(g for g in result['closure']['gaps'] if 'PROGRAM BINDING CONFLICT' in g['name'])
+                    self.assertEqual(set(conflict['evidence'][0]['observed_programs']),{'MAIN','OTHER'})
+                    self.assertTrue(all(e['path']=='resources.csd' for e in conflict['evidence'][0]['binding_source_refs']))
+
+
+class Db2CatalogReceiptTests(unittest.TestCase):
+    def receipt(self):
+        return {'schema_version':1,'kind':'DB2_TABLE_DESCRIPTION','schema':'APP','table':'CUSTOMER',
+                'columns':[{'NAME':'ID','COLNO':0,'COLTYPE':'CHAR','LENGTH':9,'NULLS':'N'}],
+                'description_complete':True,'ddl':None,'constraints':None,'indexes':None,'triggers':None,
+                'provenance':{'origin':'configured_mcp','tool':'db2_describe_table','locator':'APP.CUSTOMER',
+                              'retrieved_at':'2026-10-07T16:00:00Z'}}
+
+    def test_typed_catalog_resolves_table_identity_without_executing_json_or_inventing_ddl(self):
+        from workbench.domain import encode, sha
+        from workbench.retrieval import unresolved_after_mapping
+        receipt=self.receipt();raw=encode(receipt).decode();path='db2/APP.CUSTOMER.json.txt'
+        manifest={'id':'db2-audit','jobs':[], 'cics_contract_version':1,
+                  'transactions':[{'id':'TEST','program':'MAIN','mapset':None,'map':None}]}
+        result=map_lineage({'MAIN.cbl':'PROGRAM-ID. MAIN.\nEXEC SQL SELECT ID FROM APP.CUSTOMER END-EXEC.\n',path:raw},manifest)
+        self.assertTrue(result['closure']['complete'])
+        table=next(n for n in result['nodes'] if n['kind']=='db2_table')
+        self.assertEqual(table['name'],'APP.CUSTOMER');self.assertFalse(table['executable_source'])
+        self.assertEqual(table['catalog_evidence']['source_hash'],sha(raw))
+        self.assertIn('DDL',table['catalog_evidence']['missing_semantics'])
+        self.assertIn('TRIGGERS',table['catalog_evidence']['missing_semantics'])
+        self.assertIsNone(table['catalog_evidence']['ddl'])
+        doc={'source_files':{path:sha(raw)},'retrieval_unresolved':{'t':{'need':{'kind':'db2_table','name':'APP.CUSTOMER'},
+             'status':'RECEIVED','path':path,'source_hash':sha(raw)}}}
+        self.assertEqual(unresolved_after_mapping(doc,result),{})
+        doc['retrieval_unresolved']['t']['source_hash']='0'*64
+        self.assertIn('t',unresolved_after_mapping(doc,result))
+
+    def test_partial_catalog_columns_and_duplicate_table_sources_remain_unresolved(self):
+        from workbench.domain import encode
+        receipt=self.receipt();receipt['description_complete']=False
+        manifest=CicsDiscoveryContractTests().manifest()
+        files={'MAIN.cbl':'PROGRAM-ID. MAIN.\nEXEC SQL SELECT ID FROM APP.CUSTOMER END-EXEC.\n',
+               'db2/description.txt':encode(receipt).decode()}
+        result=map_lineage(files,manifest)
+        self.assertTrue(result['closure']['complete'])
+        self.assertFalse(any(g['kind']=='db2_catalog_detail' for g in result['closure']['gaps']))
+        table=next(n for n in result['nodes'] if n['kind']=='db2_table')
+        self.assertFalse(table['executable_source']);self.assertEqual(table['conversion_support'],'UNVERIFIED')
+        self.assertIn('COLUMN_DESCRIPTION',table['catalog_evidence']['missing_semantics'])
+        from workbench.source import analyze_sources
+        analysis=analyze_sources(files,manifest)
+        self.assertTrue(any(g['kind']=='db2_catalog_semantics_gap' and g['obligation']=='COLUMN_DESCRIPTION' for g in analysis['blockers']))
+        receipt['description_complete']=True;files['db2/description.txt']=encode(receipt).decode();files['db2/second.txt']=encode(receipt).decode()
+        result=map_lineage(files,manifest)
+        self.assertTrue(any(g['kind']=='db2_table' and g['status']=='ambiguous' for g in result['closure']['gaps']))
+
+    def test_catalog_rejects_twenty_distinct_malformed_claims_and_different_provenance(self):
+        from copy import deepcopy
+        from workbench.db2_catalog import table_description
+        from workbench.domain import encode, ValidationError
+        changes=[('extra',True),('schema_version',True),('kind','OTHER'),('schema','app'),('table','APP.T'),
+                 ('columns',[]),('description_complete','yes'),('ddl',[]),('constraints',{}),('indexes',[{}]),
+                 ('triggers','unknown'),('provenance',{}),('column_NAME','id'),('column_COLNO',True),
+                 ('column_COLTYPE','char'),('column_LENGTH',-1),('column_NULLS','maybe'),('column_SCALE',-1),
+                 ('column_CCSID',True),('column_COLNO',2)]
+        for key,value in changes:
+            receipt=deepcopy(self.receipt())
+            if key.startswith('column_'):receipt['columns'][0][key[7:]]=value
+            else:receipt[key]=value
+            with self.subTest(key=key,value=value),self.assertRaises(ValidationError):
+                # Explicit typed-contract text remains identifiable even if kind is corrupted.
+                raw=encode(receipt).decode()
+                if key=='kind':raw=raw.replace('OTHER','DB2_TABLE_DESCRIPTION_INVALID')
+                table_description(raw)
+        receipt=self.receipt()
+        with self.assertRaises(ValidationError):table_description(encode(receipt).decode(),{**receipt['provenance'],'tool':'zowe'})
+        self.assertIsNone(table_description('{"unrelated":"data"}'))
+
+    def test_catalog_valid_randomized_column_observations_retain_unknown_native_equivalence(self):
+        import random
+        from workbench.db2_catalog import table_description
+        from workbench.domain import encode
+        rng=random.Random(127)
+        states=set()
+        for index in range(20):
+            receipt=self.receipt();receipt['table']='T'+str(index)
+            receipt['provenance']['locator']='APP.'+receipt['table']
+            receipt['columns'][0].update(LENGTH=rng.randrange(1,1000),NULLS=rng.choice(('Y','N')))
+            result=table_description(encode(receipt).decode());states.add((result['table'],result['columns'][0]['LENGTH']))
+            self.assertIn('NATIVE_SQL_TRANSACTION_TYPE_AND_AUTHORIZATION_EQUIVALENCE',result['missing_semantics'])
+            self.assertIsNone(result['ddl'])
+        self.assertEqual(len(states),20)
+
+    def test_catalog_canonical_locator_must_match_exact_observed_table(self):
+        from workbench.db2_catalog import table_description
+        from workbench.domain import encode,ValidationError
+        for locator in ('APP.OTHER','OTHER.CUSTOMER','app.customer','gateway/APP.CUSTOMER'):
+            with self.subTest(locator=locator):
+                receipt=self.receipt();receipt['provenance']['locator']=locator
+                with self.assertRaisesRegex(ValidationError,'qualified schema.table identity'):
+                    table_description(encode(receipt).decode())
+                with self.assertRaises(ValidationError):
+                    map_lineage({'MAIN.cbl':'PROGRAM-ID. MAIN.\n','catalog.txt':encode(receipt).decode()},CicsDiscoveryContractTests().manifest())
+        self.assertEqual(table_description(encode(self.receipt()).decode())['provenance']['locator'],'APP.CUSTOMER')

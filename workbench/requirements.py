@@ -15,9 +15,48 @@ NO_REASON='Not converted because selected No in requirements.'
 DRAFT='analysis/requirements.md'
 
 
+def _screen_units(analysis):
+    """New-intake screen descriptors only; old canonical selections stay byte-exact."""
+    version=analysis.get('cics_contract_version')
+    if version is None:return {},{}
+    require(type(version) is int and version==1,'Unsupported frozen CICS selection contract')
+    cics=analysis.get('cics') or {}
+    require(cics.get('schema_version')==1 and isinstance(cics.get('units'),list) and isinstance(cics.get('screens'),list),'Invalid frozen CICS source descriptors')
+    assets={a['path']:a for a in analysis.get('assets',[])};units={};owners={};source_facts={}
+    for screen in cics['screens']:
+        require(isinstance(screen,dict) and isinstance(screen.get('mapset'),str) and isinstance(screen.get('map'),str) and isinstance(screen.get('owners',[]),list),'Invalid frozen screen identity')
+        key=screen['mapset']+'/'+screen['map']
+        require(all(isinstance(name,str) for name in screen.get('owners',[])),'Invalid screen program ownership')
+        owners[key]=sorted(set(owners.get(key,[])+screen.get('owners',[])))
+    for row in cics['units']:
+        require(isinstance(row,dict) and row.get('kind') in ('screen_definition','screen_field','screen_action'),'Invalid frozen screen unit')
+        path=row.get('source_path');asset=assets.get(path)
+        if asset is not None and path not in source_facts:source_facts[path]=(sha(asset.get('source_text','')),len(asset.get('source_text','').splitlines()))
+        require(asset is not None and row.get('source_hash')==asset['source_hash'] and source_facts[path][0]==asset['source_hash'],'Screen source identity differs from retained export')
+        start,end=row.get('start_line'),row.get('end_line')
+        require(type(start) is int and type(end) is int and 1<=start<=end<=source_facts[path][1],'Invalid screen source span')
+        require(isinstance(row.get('description'),str) and isinstance(row.get('replacement'),str) and type(row.get('required')) is bool and row.get('support') in ('layout_supported','unverified_controller','unsupported'),'Invalid frozen screen interpretation')
+        require(row.get('program') is None or isinstance(row.get('program'),str),'Invalid screen program identity')
+        require(isinstance(row.get('diagnostics',[]),list),'Invalid screen diagnostics')
+        for number in range(start,end+1):
+            require(number not in units.setdefault(path,{}),'Overlapping frozen screen source units')
+            units[path][number]=row
+    return units,owners
+
+
 def catalog(analysis):
     items=[];files=[]
     programs={p['path']:p for p in analysis.get('programs',{}).values()}
+    screen_units,screen_owners=_screen_units(analysis)
+    screen_contract=analysis.get('cics_contract_version')==1
+    source_owners={};screens_by_program={};screens_by_mapset={}
+    if screen_contract:
+        for program in programs.values():
+            paths={dependency.get('path') for dependency in program.get('dependencies',[])}|{field.get('source_ref','').rsplit(':',1)[0] for field in program.get('fields',{}).values()}
+            for path in paths:source_owners.setdefault(path,set()).add(program['name'])
+        for key,names in screen_owners.items():
+            screens_by_mapset.setdefault(key.split('/',1)[0],[]).append(key)
+            for name in names:screens_by_program.setdefault(name,[]).append(key)
     for asset in sorted(analysis.get('assets',[]),key=lambda r:r['path']):
         path=asset['path'];lines=asset.get('source_text','').splitlines();p=programs.get(path)
         file={'path':path,'source_hash':asset['source_hash'],'kind':analysis.get('classifications',{}).get(path,{}).get('kind',asset['kind']),
@@ -26,23 +65,27 @@ def catalog(analysis):
         if not file['in_process_scope']:continue
         coverage={r['line']:r for r in (p or {}).get('coverage',[])}
         modeled={n:r for r in (p or {}).get('rules',[])+ (p or {}).get('omitted_rules',[]) for n in range(r['source_start'],r['source_end']+1)}
+        native=screen_units.get(path,{})
+        require(not set(modeled).intersection(native),'Screen action overlaps independently parsed rule logic')
         n=1
         while n<=len(lines):
-            rule=modeled.get(n);start=n
+            rule=modeled.get(n);screen=native.get(n);start=n
             if rule:
                 end=rule['source_end'];kind='rule';description=rule['plain'];rid=rule['id']
+            elif screen:
+                end=screen['end_line'];kind=screen['kind'];description=screen['description'];rid=None
             else:
                 rid=None;kind=coverage.get(n,{}).get('disposition','platform_behavior')
                 if not lines[n-1].strip():kind='blank'
                 end=n
                 # Group only contiguous lines of the same source-accounting kind.
-                while end<len(lines) and end+1 not in modeled and coverage.get(end+1,{}).get('disposition','platform_behavior')==kind:end+=1
+                while end<len(lines) and end+1 not in modeled and end+1 not in native and coverage.get(end+1,{}).get('disposition','platform_behavior')==kind:end+=1
                 description={'structure':'Source declarations and structural headers','paragraph':'COBOL paragraph identity',
                     'comment':'Source comments','blank':'Blank source lines','data_layout':'Record layout and value constraints',
                     'copybook':'COPY dependency and shared record layout','terminal':'Program return behavior',
                     'unsupported':'Mainframe behavior requiring a verified semantic adapter','platform_behavior':'Mainframe file or platform behavior requiring evidence'}.get(kind,'Unclassified source behavior')
             identity='REQ_'+sha(encode([path,asset['source_hash'],start,end,rid,kind]))[:24]
-            replacement={'rule':'Python decision and assignment statements; preserve ordered effects, outcomes and record validation.',
+            replacement=screen['replacement'] if screen else {'rule':'Python decision and assignment statements; preserve ordered effects, outcomes and record validation.',
                 'data_layout':'Explicit Python record validation and field constraints; native encoding/numeric layouts still need verified adapters.',
                 'copybook':'Reuse the resolved field layout in Python validation; preserve COPY/version evidence.',
                 'terminal':'Return the target record, trace and return code through run_program; native process/session exit semantics are separate.',
@@ -50,13 +93,27 @@ def catalog(analysis):
                 'paragraph':'No standalone executable replacement for an unused label in the supported flat profile; PERFORM/GO TO require adapters.',
                 'comment':'No executable replacement is needed for source comments; preserve them as evidence.',
                 'blank':'No executable replacement is needed for blank lines; preserve line accounting.'}.get(kind,'No verified replacement is established. Inspect the frozen mainframe catalog and dependencies; implement and test the specific Python/SQLite adapter before crediting conversion.')
-            items.append({'id':identity,'kind':kind,'rule_id':rid,'program':(p or {}).get('name'),'source_path':path,
+            item={'id':identity,'kind':kind,'rule_id':rid,'program':screen.get('program') if screen else (p or {}).get('name'),'source_path':path,
                 'source_hash':asset['source_hash'],'start_line':start,'end_line':end,'description':description,'replacement':replacement,
                 'not_required':kind in ('blank','comment','structure','paragraph'),
-                'source_excerpt':'\n'.join(lines[start-1:min(end,start+19)])[:4000],'excerpt_complete':end-start<20 and len('\n'.join(lines[start-1:end]))<=4000})
+                'source_excerpt':'\n'.join(lines[start-1:min(end,start+19)])[:4000],'excerpt_complete':end-start<20 and len('\n'.join(lines[start-1:end]))<=4000}
+            if screen_contract:
+                if screen:
+                    related=[screen['mapset']+'/'+screen['map']] if screen.get('mapset') and screen.get('map') else screens_by_mapset.get(screen.get('mapset'),[])
+                else:
+                    names=[item['program']] if item['program'] else source_owners.get(path,[])
+                    related=[key for name in names for key in screens_by_program.get(name,[])]
+                item['screens']=sorted(set(related));item['screen']=item['screens'][0] if len(item['screens'])==1 else None
+                item['programs']=[item['program']] if item['program'] else sorted(set(source_owners.get(path,set()))|{name for key in item['screens'] for name in screen_owners.get(key,[])})
+                if screen:
+                    item.update({key:screen.get(key) for key in ('mapset','map','field','operation','component','required','support','diagnostics')})
+                    item['not_required']=not screen['required'] and screen['kind']=='screen_field' and screen['support']=='layout_supported'
+            items.append(item)
             file['item_count']+=1;n=end+1
     contract={'source_snapshot':analysis.get('source_snapshot'),'items':[{k:v for k,v in r.items() if k not in ('source_excerpt','excerpt_complete')} for r in items], 'files':files}
-    return {'schema_version':1,'hash':sha(encode(contract)),**contract,'items':items}
+    result={'schema_version':1,'hash':sha(encode(contract)),**contract,'items':items}
+    if screen_contract:result['cics_contract_version']=1
+    return result
 
 
 def validate_selection(selection,model):
@@ -78,13 +135,17 @@ def validate_selection(selection,model):
 def render_markdown(selection,model):
     validate_selection(selection,model);excluded=set(selection['excluded_ids'])
     def cell(value):return html.escape(str(value or ''),quote=False).replace('|','&#124;').replace('\n',' ')
+    screen_contract=model.get('cics_contract_version')==1
     rows=['# Conversion requirements','', 'This is the saved operator scope. Yes requests conversion; it is not SME approval or verification evidence.',
           'No items retain the reason: '+NO_REASON,'', '## Machine-readable conversion input','',
           '```json',encode(selection).decode(),'```','', '## Source breakdown and choices','',
           '| Requirement | Convert | Source evidence | Description | Replacement / omission commentary |', '|---|---|---|---|---|']
+    if screen_contract:rows[-2:]=['| Requirement | Convert | Program / screen / component | Source evidence | Description | Replacement / omission commentary |','|---|---|---|---|---|---|']
     for r in model['items']:
         chosen=r['id'] not in excluded
-        rows.append('| '+' | '.join(cell(x) for x in (r['id'],'Yes' if chosen else 'No',r['source_path']+':'+str(r['start_line'])+'–'+str(r['end_line'])+' SHA256 '+r['source_hash'],r['description'],r['replacement'] if chosen else NO_REASON))+' |')
+        values=[r['id'],'Yes' if chosen else 'No',r['source_path']+':'+str(r['start_line'])+'–'+str(r['end_line'])+' SHA256 '+r['source_hash'],r['description'],r['replacement'] if chosen else NO_REASON]
+        if screen_contract:values.insert(2,'; '.join(r.get('programs',[])+r.get('screens',[])+[r.get('component') or r['kind']]))
+        rows.append('| '+' | '.join(cell(x) for x in values)+' |')
     rows+=['','## Retained files','']
     for file in model['files']:rows.append('- '+cell(file['path'])+' — '+str(file['physical_lines'])+' lines; '+('in process scope' if file['in_process_scope'] else 'outside the discovered process: '+str(file['scope_reason'])))
     return '\n'.join(rows)+'\n'
@@ -108,6 +169,8 @@ def project(analysis,selection,jobs=()):
     omitted_rules={r['rule_id'] for r in excluded.values() if r['kind']=='rule'}
     omitted_lines={path:{n for r in excluded.values() if r['source_path']==path for n in range(r['start_line'],r['end_line']+1)} for path in {r['source_path'] for r in excluded.values()}}
     out['requirements']={'selection':selection,'excluded_units':list(excluded.values()),'catalog_hash':model['hash']}
+    def cosmetic(unit):
+        return type(analysis.get('cics_contract_version')) is int and analysis.get('cics_contract_version')==1 and unit['kind']=='screen_field' and unit.get('required') is False and unit.get('support')=='layout_supported'
     for name,p in out['programs'].items():
         p['omitted_rules']=[r for r in p['rules'] if r['id'] in omitted_rules]
         p['rules']=[r for r in p['rules'] if r['id'] not in omitted_rules]
@@ -127,7 +190,7 @@ def project(analysis,selection,jobs=()):
                      'message':'Selected Yes rule '+rule['id']+' reads fields written by a selected No predecessor: '+', '.join(sorted(written & reads(rule['predicate'])))+'. A verified redesign or revised requirements is needed.'}
                 p['blockers'].append(gap);out['blockers'].append(gap)
         for unit in excluded.values():
-            if unit['source_path']==p['path'] and unit['kind'] not in ('rule','blank','comment','structure','paragraph'):
+            if unit['source_path']==p['path'] and unit['kind'] not in ('rule','blank','comment','structure','paragraph') and not cosmetic(unit):
                 gap={'kind':'requirements_dependency','program':name,'path':p['path'],'lines':list(range(unit['start_line'],unit['end_line']+1)),
                      'message':NO_REASON+' Required layout/return/platform behavior was excluded; retained program semantics need a verified redesign before target generation.'}
                 p['blockers'].append(gap);out['blockers'].append(gap)
@@ -147,8 +210,8 @@ def project(analysis,selection,jobs=()):
             # repeated program invocations and jobs sharing the target record.
             upstream.update(e['field'] for r in p['omitted_rules'] for e in r['then']+r['else'])
     for unit in excluded.values():
-        if unit['program'] is not None or unit['kind'] in ('blank','comment'):continue
-        dependents=[p for p in out['programs'].values() if unit['source_path'] in {d.get('path') for d in p.get('dependencies',[])} or any(f.get('source_ref','').rsplit(':',1)[0]==unit['source_path'] for f in p.get('fields',{}).values())]
+        if unit['program'] is not None or unit['kind'] in ('blank','comment') or cosmetic(unit):continue
+        dependents=[p for p in out['programs'].values() if unit['source_path'] in {d.get('path') for d in p.get('dependencies',[])} or any(f.get('source_ref','').rsplit(':',1)[0]==unit['source_path'] for f in p.get('fields',{}).values()) or p['name'] in unit.get('programs',[])]
         gap={'kind':'requirements_dependency','path':unit['source_path'],'lines':list(range(unit['start_line'],unit['end_line']+1)),
              'message':NO_REASON+' This source file participates in the selected process; its consumers need a verified redesign before execution.'}
         out['blockers'].append(gap)
