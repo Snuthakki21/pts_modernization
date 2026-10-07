@@ -32,3 +32,11 @@ knowledge/input-locations.json
 
 !examples/processes/
 !examples/processes/**
+
+# Private workstation connection and package-manager configuration
+/tools/dq3g_mcp/certs/
+/.gradle/
+/.npmrc
+/pip.conf
+/pip.ini
+/NuGet.Config

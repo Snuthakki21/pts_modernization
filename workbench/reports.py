@@ -12,6 +12,7 @@ from .ledger import now
 from .coverage import build_coverage, write_coverage
 from .executive import executive_summary, render_executive, inspect_executive, PRIMARY_REPORT
 from .inventory import report_inventory
+from .rule_inventory import build_rule_inventory, add_workbook, write_inventory, render_rule_summary
 
 def metrics(ledger, doc, coverage=None, portfolio_model=None):
     coverage=coverage or build_coverage(doc,ledger.root)
@@ -66,6 +67,10 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
         'observed_mainframe_parity':False,'evidence_basis':'SOURCE_DERIVED_EXPECTED',
         'verification_percent_denominator':'Extracted known rules only; unsupported and unknown rules are not silently excluded from completion gates.',
         'target_environment':'Non-production Python / SQLite; JSON record adapter'}
+    if doc.get('transactions'):
+        result['declared_online_transactions']=len(doc['transactions'])
+        result['target_online_api_candidates']=len((doc.get('online_delivery') or {}).get('transactions',{}))
+        result['verified_native_cics_replacements']=0
     with ledger.lock:documents=ledger.list()
     result['estate_inventory_json']=json.dumps(report_inventory(doc,documents,coverage),ensure_ascii=False,sort_keys=True)
     result['adapter_priorities_json']=json.dumps([{key:value for key,value in group.items() if key!='source_paths'} | {'source_files':len(group['source_paths']),'evidence':'coverage.json summary.adapter_groups'} for group in summary.get('adapter_groups',[])],ensure_ascii=False,sort_keys=True)
@@ -73,14 +78,14 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
     if doc.get('logic_validation_min_records'):
         records=[value.get('coverage',{}).get('logic_validation') for value in run['programs'].values()]
         records=[value for value in records if isinstance(value,dict)]
-        meeting=sum(value.get('logic_meeting_minimum',0) for value in records)
-        validation={**(validation or {}),'contract_version':3,'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],
+        meeting=sum(value.get('logic_meeting_minimum',0) for value in records) if not summary['integrity_errors'] else 0
+        validation={**(validation or {}),'contract_version':doc.get('fixture_contract_version',3),'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],
                     'known_supported_logic':len(a['rules']),'logic_meeting_minimum':meeting,
                     'known_logic_missing_minimum':max(0,len(a['rules'])-meeting),
                     'unresolved_record_gaps':sum(value.get('gaps',0) for value in records),
                     'unsupported_source_lines':result['unsupported_source_lines'],
                     'unknown_legacy_logic_count':None,
-                    'complete':bool(records) and (validation or {}).get('complete',True) and all(value.get('complete') for value in records) and not a.get('blockers'),
+                    'complete':bool(records) and not summary['integrity_errors'] and (validation or {}).get('complete',True) and all(value.get('complete') for value in records) and not a.get('blockers'),
                     'basis':'Distinct source predicate input states at execution; duplicates and unused-field padding do not count. Unsupported logic remains unresolved; records do not prove complete legacy parity.'}
     if validation is not None:result['logic_validation_json']=json.dumps(validation,ensure_ascii=False,sort_keys=True)
     return result
@@ -121,21 +126,65 @@ def report_portfolio(ledger,doc,final_status):
     return result
 
 
-def generate_reports(ledger,doc,root,checkpoint=None):
+def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
     root=Path(root)
     names=('metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json',
-           'coverage.json','coverage.csv','coverage.xlsx','coverage.html',PRIMARY_REPORT)
+           'program-insights.json','program-insights.html','factory.json','factory.html','economics.json','economics.html','economics.csv','coverage.json','coverage.csv','coverage.xlsx','coverage.html','rules.json','rules.csv','rules.html',PRIMARY_REPORT)
     require(not root.is_symlink() and not any(p.is_symlink() for p in root.parents),'Unsafe report output path')
     require(not any((root/name).exists() or (root/name).is_symlink() for name in names),
             'Report evidence already exists; create a new report version')
     root.mkdir(parents=True,exist_ok=True)
-    coverage=build_coverage(doc,ledger.root,checkpoint=checkpoint)
+    coverage=coverage if coverage is not None else build_coverage(doc,ledger.root,checkpoint=checkpoint)
     coverage_paths=write_coverage(coverage,root)
+    factory_paths=[]
+    factory=None
+    if doc.get('factory_contract_version'):
+        from .factory import factory_view, render_factory
+        factory=factory_view(doc,coverage)
+        atomic_json(root/'factory.json',factory)
+        (root/'factory.html').write_text(render_factory(factory),encoding='utf-8')
+        from .program_insights import program_insights, render_program_insights
+        insights=program_insights(doc,coverage,complete=True)
+        atomic_json(root/'program-insights.json',insights)
+        (root/'program-insights.html').write_text(render_program_insights(insights),encoding='utf-8')
+        factory_paths=[root/'factory.json',root/'factory.html',root/'program-insights.json',root/'program-insights.html']
+    from .economics import economics_view, render_economics
+    economics=economics_view(ledger,doc['id'])
+    atomic_json(root/'economics.json',economics)
+    (root/'economics.html').write_text(render_economics(economics),encoding='utf-8')
+    economics_paths=[root/'economics.json',root/'economics.html',root/'economics.csv']
+    pilot=economics['processes'][0]
+    forecast=economics.get('forecast') or {}
+    economics_summary={'as_of':economics['as_of'],'pilot_effort_hours':pilot['work']['total_effort_hours'],
+        'service_hours':pilot['timing']['service_hours'],'framework_hours':economics['framework']['recorded_detail_hours'],
+        'remaining_base_hours':forecast.get('remaining_effort_hours',{}).get('base'),
+        'capacity_base_weeks':forecast.get('capacity_weeks',{}).get('base')}
+    economics_rows=[['Measure','Value','Basis']]
+    economics_rows.extend([[key,'Unknown' if value is None else value,'Frozen as of report generation; current reporting attempt may still be open'] for key,value in economics_summary.items()])
+    economics_rows.extend([['AI '+r['provider']+' / '+r['account']+' / '+r['model']+' / '+r['unit'],r['quantity'],r['provenance']] for r in economics['usage']['quantities']])
+    economics_rows.extend([['Forecast '+r['id']+' '+k,'Unknown' if v is None else v,r['basis']] for r in forecast.get('cohorts',[]) for k,v in r['remaining_effort_hours'].items()])
+    # Imported labels are inert in spreadsheet applications.
+    def cell(value):return "'"+value if isinstance(value,str) and value.lstrip().startswith(('=','+','-','@')) else value
+    economics_rows=[[cell(v) for v in row] for row in economics_rows]
+    out=StringIO();csv.writer(out).writerows(economics_rows);(root/'economics.csv').write_text(out.getvalue(),encoding='utf-8')
+    rule_inventory=build_rule_inventory(doc,coverage,ledger.root)
+    rule_paths=write_inventory(rule_inventory,root)
+    (root/'rules.html').write_text('<!doctype html><meta charset="utf-8"><title>Source and modernized rules</title><style>body{font:16px system-ui;margin:2rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}td,th{padding:.5rem;text-align:left}details{margin:1rem 0}</style><h1>Source and modernized rules</h1>'+render_rule_summary(rule_inventory),encoding='utf-8')
+    rule_paths.append(root/'rules.html')
     final_status='COMPLETED' if coverage['summary']['completion_eligible'] and not doc.get('blockers') and not doc.get('cancel_requested') else 'COMPLETED_WITH_BLOCKERS'
     pf=report_portfolio(ledger,doc,final_status)
     m=metrics(ledger,doc,coverage,portfolio_model=pf);model={'created':now(),'metrics':m,'portfolio':pf,'blockers':doc['blockers'],'lineage':doc.get('lineage',(doc.get('analysis') or {}).get('graph',[]))}
+    if factory is not None:model['factory']=factory
     model['inventory']=json.loads(m['estate_inventory_json'])
+    model['economics']=economics
+    m.update({'pilot_effort_hours':economics_summary['pilot_effort_hours'],'observed_service_hours':economics_summary['service_hours'],'framework_effort_hours':economics_summary['framework_hours'],'forecast_remaining_base_hours':economics_summary['remaining_base_hours']})
     model['executive_context']={key:doc.get(key) for key in ('id','name','status','demo','fixture_only','cancel_requested','packet_imported','verification_finished','manifest_hash','blockers')}
+    model['executive_context']['economics_summary']=economics_summary
+    if factory is not None:model['executive_context']['factory_report']=True
+    model['executive_context']['rule_inventory']={k:v for k,v in rule_inventory.items() if k not in ('rules','requirements_comparison')}
+    for category,counts in rule_inventory['summary'].items():
+        for key in ('total','selected','converted_verified','blocked','implemented_unverified','excluded_by_requirements'):
+            m[category+'_'+key]=counts[key]
     model['executive_context']['analysis']={'source_snapshot':(doc.get('analysis') or {}).get('source_snapshot')}
     model['executive_context']['artifacts']=[name for name in doc.get('artifacts',[]) if name=='analysis/source-analysis.json']
     model['executive']=executive_summary(model['executive_context'],m,coverage)
@@ -163,8 +212,21 @@ def generate_reports(ledger,doc,root,checkpoint=None):
     for h in accepted_history:
         if h['document'].get('demo'):continue
         history.append([h['process_id'],h['created'],h['document']['source_programs'],h['document']['rules_verified'],'Accepted snapshot'])
-    if not doc['demo'] and not any(h['process_id']==doc['id'] and encode(h['document'])==encode(m) for h in accepted_history):
+    # Live effort snapshots change with reporting time; that is not another
+    # accepted conversion. Compare stable conversion metrics for history rows.
+    timing_metrics={'pilot_effort_hours','observed_service_hours','framework_effort_hours','forecast_remaining_base_hours'}
+    conversion_metrics=lambda values:{k:v for k,v in values.items() if k not in timing_metrics}
+    if not doc['demo'] and not any(h['process_id']==doc['id'] and encode(conversion_metrics(h['document']))==encode(conversion_metrics(m)) for h in accepted_history):
         history.append([doc['id'],model['created'],m['source_programs'],m['rules_verified'],'Current report upon atomic acceptance'])
+    economics_sheet=book.create_sheet('Effort and forecast')
+    for row in economics_rows:economics_sheet.append(row)
+    economics_sheet.freeze_panes='B2';economics_sheet.column_dimensions['A'].width=60;economics_sheet.column_dimensions['B'].width=30;economics_sheet.column_dimensions['C'].width=85
+    add_workbook(book,rule_inventory)
+    if factory is not None:
+        sheet=book.create_sheet('Factory capabilities');sheet.append(['Capability','State','Source count','Gap count'])
+        for item in factory['capabilities']:sheet.append([item['label'],item['state'],item['source_count'],item['gap_count']])
+        sheet=book.create_sheet('Online transactions');sheet.append(['Transaction','Program','Mapset','Map','API candidate','State','Native CICS verified'])
+        for item in factory['transactions']:sheet.append([item['id'],item['program'],item['mapset'],item['map'],item['api'],item['state'],False])
     book.save(root/'metrics.xlsx');book.close()
     prs=Presentation();prs.slide_width=Inches(13.333);prs.slide_height=Inches(7.5)
     def slide(title,rows,note,headers=None):
@@ -190,8 +252,8 @@ def generate_reports(ledger,doc,root,checkpoint=None):
     slide('Estate inventory · '+doc['id'],inventory_rows,
           f"User-reported, unverified: declared {inventory['declared_total']:,}; category sum {inventory['category_total']:,}; unreconciled {inventory['unreconciled_count']:,}. Delta = baseline minus cumulative verified local POC assets. CICS screens are separate from transactions; staging locations provide no conversion credit.",
           ['Category','Baseline','Process','Converted','Delta'])
-    slide('Before → after',[['BMS screens → React business screens',f"{m['source_bms_screens']} → 0"],['Business REST APIs generated',0],['All selected source code LOC → program Python LOC',f"{m['source_code_loc']} → {m['target_program_code_loc']}"],['CICS / VSAM / inbound / outbound counts','Unknown until evidenced'],['Target environment','Python / SQLite (non-production)']],'Workbench UI and its control endpoints are excluded from modernized business-screen/API counts. LOC is a size metric, not a parity metric.')
-    slide('Rule verification',[['Extracted known rules',m['rules_documented']],['SME-confirmed + tested rules',m['rules_verified']],['Known-rule verification','Unknown' if m['known_rule_verification_percent'] is None else str(m['known_rule_verification_percent'])+'%'],['Unsupported source lines',m['unsupported_source_lines']],['Observed mainframe parity','NOT established']],'The percentage covers extracted known rules only. Unknown/unsupported behavior remains a blocker; passing synthetic tests is not proof of full legacy parity.')
+    slide('Before → after',[['BMS screens → React business screens',f"{m['source_bms_screens']} → 0"],['Local online API candidates (unverified native replacement)',m.get('target_online_api_candidates',0)],['All selected source code LOC → program Python LOC',f"{m['source_code_loc']} → {m['target_program_code_loc']}"],['CICS / VSAM / inbound / outbound counts','Unknown until evidenced'],['Target environment','Python / SQLite (non-production)']],'Workbench UI and its control endpoints are excluded from modernized business-screen/API counts. LOC is a size metric, not a parity metric.')
+    slide('Rule verification',[['Business rules: verified / total',str(m['business_rule_converted_verified'])+' / '+str(m['business_rule_total'])],['Technical logic: verified / total',str(m['technical_logic_converted_verified'])+' / '+str(m['technical_logic_total'])],['Unclassified spans (rule count unknown)',m['unclassified_total']],['Unsupported source lines',m['unsupported_source_lines']],['Observed mainframe parity','NOT established']],'The percentage covers extracted known rules only. Unknown/unsupported behavior remains a blocker; passing synthetic tests is not proof of full legacy parity.')
     cs=coverage['summary']
     slide('Complete source accountability',[
         ['Frozen export files / physical lines',f"{cs['source_files']} / {cs['source_lines']}"],
@@ -212,6 +274,6 @@ def generate_reports(ledger,doc,root,checkpoint=None):
     executive_html=render_executive(model['executive'])
     (root/PRIMARY_REPORT).write_text(executive_html,encoding='utf-8')
     inspect_executive((root/PRIMARY_REPORT).read_text(encoding='utf-8'),model['executive'])
-    paths=[root/PRIMARY_REPORT]+[root/f for f in ['metrics.json','metrics.csv','metrics.xlsx','management.pptx']]+coverage_paths
+    paths=[root/PRIMARY_REPORT]+[root/f for f in ['metrics.json','metrics.csv','metrics.xlsx','management.pptx']]+coverage_paths+rule_paths+factory_paths+economics_paths
     atomic_json(root/'inspection.json',{'verified':True,'primary_report':PRIMARY_REPORT,'executive_schema_version':1,'executive_html_checked':True,'checks':['Executive metrics, safe links and collapsed disclosure','6 editable slides','full source accountability in JSON/CSV/XLSX/HTML','all shapes within canvas','source program metric present'],'powerpoint_render_checked':False,'sha256':{p.name:sha(p.read_bytes()) for p in paths}})
     return paths+[root/'inspection.json']

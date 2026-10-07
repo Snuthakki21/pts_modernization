@@ -13,6 +13,7 @@ from .domain import require, decode, encode, ValidationError
 from .limits import MAX_SOURCE_FILE_BYTES, MAX_JSON_DOCUMENT_BYTES
 
 READ_TOOLS={'db2_list_schemas','db2_list_tables','db2_describe_table','db2_sample_rows','db2_read_table_rows'}
+SEARCH_TOOLS={'db2_search_start','db2_search_continue','db2_search_status','db2_search_results','db2_search_cancel'}
 MCP_VERSIONS=('2025-06-18','2025-03-26')
 MAX_RESPONSE_BYTES=1024*1024
 MAX_ZOWE_SOURCE_RESPONSE_BYTES=MAX_JSON_DOCUMENT_BYTES
@@ -88,7 +89,7 @@ class Db2MCP:
         require(method in ('initialize','tools/list','tools/call') and isinstance(params,dict),'Only the read-only MCP protocol operations are allowed')
         if method=='tools/call':
             require(set(params)<={'name','arguments'} and isinstance(params.get('name'),str),'Invalid MCP read operation')
-            catalog_sql(params['name'],params.get('arguments',{}))
+            validate_read_operation(params['name'],params.get('arguments',{}))
         require(method=='initialize' or self.protocol in MCP_VERSIONS,'Initialize and negotiate MCP before calling tools')
         self.counter+=1
         result,h=post_json(self.url,{'jsonrpc':'2.0','id':self.counter,'method':method,'params':params},self.token,self.headers(),timeout=self.bounded_timeout())
@@ -120,11 +121,11 @@ class Db2MCP:
             seen.add(cursor)
         else:raise ValidationError('MCP tool listing exceeds page budget')
         require({'db2_list_schemas','db2_list_tables'}<=self.tools,'MCP server needs exploratory schema/table tools; configure the supplied read-only gateway or a compatible server')
-        return {'status':'CONNECTED','protocol_version':self.protocol,'read_tools':sorted(self.tools & READ_TOOLS)}
+        return {'status':'CONNECTED','protocol_version':self.protocol,'read_tools':sorted(self.tools & (READ_TOOLS | SEARCH_TOOLS))}
     def call(self,name,args):
-        require(name in READ_TOOLS,'Only the explicit read-only Db2 operations are allowed')
+        require(name in READ_TOOLS | SEARCH_TOOLS,'Only the explicit read-only Db2 operations are allowed')
         require(name in self.tools,'Required read capability is unavailable')
-        catalog_sql(name,args)
+        validate_read_operation(name,args)
         result=self.rpc('tools/call',{'name':name,'arguments':args})
         require(isinstance(result,dict) and result.get('isError',False) is False,'Db2 read failed')
         if 'structuredContent' in result:
@@ -149,6 +150,31 @@ class Db2MCP:
         require(type(cancel)is bool,'Typed cancellation must be boolean')
         return self.call('db2_read_table_rows',{'schema':schema,'table':table,'limit':limit,'max_rows':max_rows,
                          **({'cursor':cursor} if cursor is not None else {}),**({'cancel':True} if cancel else {})})
+
+    def search_start(self,query):return self.call('db2_search_start',{'query':query})
+    def search_continue(self,search_id,row_budget=1000):return self.call('db2_search_continue',{'search_id':search_id,'row_budget':row_budget})
+    def search_status(self,search_id):return self.call('db2_search_status',{'search_id':search_id})
+    def search_results(self,search_id,after=0,limit=100,kind='matches'):
+        return self.call('db2_search_results',{'search_id':search_id,'after':after,'limit':limit,'kind':kind})
+    def search_cancel(self,search_id):return self.call('db2_search_cancel',{'search_id':search_id})
+
+
+def validate_read_operation(name,args):
+    if name in READ_TOOLS:return catalog_sql(name,args)
+    require(name in SEARCH_TOOLS and isinstance(args,dict),'Unsupported read operation')
+    allowed={'db2_search_start':{'query'},'db2_search_continue':{'search_id','row_budget'},
+             'db2_search_status':{'search_id'},'db2_search_results':{'search_id','after','limit','kind'},
+             'db2_search_cancel':{'search_id'}}
+    require(set(args)<=allowed[name],'Unsupported search argument')
+    if name=='db2_search_start':
+        q=args.get('query');require(isinstance(q,str) and bool(q.strip()) and len(q)<=256 and '\x00' not in q,'Invalid literal search phrase')
+    else:
+        token=args.get('search_id');require(isinstance(token,str) and re.fullmatch('[0-9a-f]{64}',token),'Invalid search identity')
+    if name=='db2_search_continue':
+        n=args.get('row_budget',1000);require(type(n)is int and 1<=n<=1000,'Invalid search batch limit')
+    if name=='db2_search_results':
+        n=args.get('limit',100);a=args.get('after',0)
+        require(type(n)is int and 1<=n<=100 and type(a)is int and a>=0 and args.get('kind','matches') in ('matches','objects'),'Invalid search page')
 
 
 def sql_name(value):
@@ -192,14 +218,18 @@ def catalog_sql(operation,args):
     return f'SELECT * FROM {s}.{t} FETCH FIRST {limit} ROWS ONLY WITH UR',[]
 
 
-def discover_catalog(client,kind,max_pages=10,max_bytes=2*1024*1024,max_seconds=60):
+def discover_catalog(client,kind,max_pages=10,max_bytes=2*1024*1024,max_seconds=60,continuation=None):
     """Follow the supplied gateway's keyset cursors within explicit budgets."""
     require(kind in ('schemas','tables') and type(max_pages)is int and 1<=max_pages<=50,'Invalid catalog page budget')
     require(type(max_bytes)is int and 1024<=max_bytes<=8*1024*1024 and type(max_seconds) in (int,float) and 0<max_seconds<=300,'Invalid catalog resource budget')
     output={'rows':[],'pages':0,'coverage':'PARTIAL','reason':'page_budget','next_cursor':None,
             'bounded':True,'snapshot_consistent':False,'scope':'Account-visible catalog traversal, not an authorization inventory or consistent snapshot',
             'budgets':{'max_pages':max_pages,'max_bytes':max_bytes,'max_seconds':max_seconds}}
-    cursor={};seen=set();size=0;deadline=time.monotonic()+max_seconds;old_timeout=client.timeout
+    cursor=continuation or {}
+    require(isinstance(cursor,dict),'Invalid initial catalog continuation')
+    catalog_sql('db2_list_schemas' if kind=='schemas' else 'db2_list_tables',cursor)
+    output['next_cursor']=cursor or None
+    seen=set();size=0;deadline=time.monotonic()+max_seconds;old_timeout=client.timeout
     try:
         for _ in range(max_pages):
             remaining=deadline-time.monotonic()

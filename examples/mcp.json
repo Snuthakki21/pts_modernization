@@ -11,6 +11,12 @@
       "type": "promptString",
       "description": "Already running local workbench UI origin (explicit loopback address and port)",
       "default": "http://127.0.0.1:8765"
+    },
+    {
+      "id": "db2Token",
+      "type": "promptString",
+      "description": "Private token for the running local Db2 FastMCP server",
+      "password": true
     }
   ],
   "servers": {
@@ -20,8 +26,17 @@
       "args": [
         "${workspaceFolder}/tools/workbench_mcp.py",
         "--origin",
-        "${input:workbenchOrigin}"
+        "${input:workbenchOrigin}",
+        "--role",
+        "retrieval"
       ]
+    },
+    "db2": {
+      "type": "http",
+      "url": "http://127.0.0.1:8766/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:db2Token}"
+      }
     }
   }
 }

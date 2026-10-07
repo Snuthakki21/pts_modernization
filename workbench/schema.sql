@@ -23,3 +23,24 @@ CREATE TABLE IF NOT EXISTS knowledge (
  id TEXT PRIMARY KEY, document TEXT NOT NULL, updated TEXT NOT NULL
 );
 PRAGMA user_version=1;
+CREATE TABLE IF NOT EXISTS status_transitions (
+ seq INTEGER PRIMARY KEY AUTOINCREMENT, process_id TEXT NOT NULL REFERENCES processes(id),
+ status TEXT NOT NULL, created TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS transitions_process ON status_transitions(process_id,seq);
+CREATE TABLE IF NOT EXISTS stage_timings (
+ seq INTEGER PRIMARY KEY AUTOINCREMENT, process_id TEXT NOT NULL REFERENCES processes(id),
+ stage TEXT NOT NULL, started TEXT NOT NULL, ended TEXT, elapsed_seconds TEXT, outcome TEXT
+);
+CREATE TABLE IF NOT EXISTS measurement_receipts (
+ seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL,
+ process_id TEXT REFERENCES processes(id), fingerprint TEXT NOT NULL,
+ path TEXT, document TEXT NOT NULL, created TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS work_sessions (
+ id TEXT PRIMARY KEY, document TEXT NOT NULL, started TEXT NOT NULL, receipt_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS development_handoffs (
+ id TEXT PRIMARY KEY, process_id TEXT NOT NULL REFERENCES processes(id)
+);

@@ -86,6 +86,28 @@ def parse_manifest(text):
                     'Use balanced inline-code wrappers for '+label)
             value=value[1:-1].strip()
         return value
+    online_headers = ['Transaction', 'Program', 'Mapset', 'Map']
+    table_lines = [line for line in text.splitlines() if line.strip().startswith('|')]
+    if table_lines and [x.strip() for x in table_lines[0].strip().strip('|').split('|')] == online_headers:
+        pid, name = attr('Process ID'), attr('Process name')
+        identity(pid)
+        require(0 < len(name) <= 160 and single_line(name), 'Invalid process name')
+        transactions=[]; seen=set()
+        for line in table_lines[1:]:
+            cells=[x.strip() for x in line.strip().strip('|').split('|')]
+            # Preserve empty trailing cells, unlike strip('|').
+            cells=[x.strip() for x in line.strip()[1:].removesuffix('|').split('|')]
+            if len(cells)==4 and all(re.fullmatch(r':?-{3,}:?',v) for v in cells):continue
+            require(len(cells)==4 and all(single_line(v) and len(v)<=80 for v in cells), 'Online rows need Transaction, Program, Mapset and Map')
+            tx, program, mapset, screen = [v.upper() for v in cells]
+            require(bool(re.fullmatch(r'[A-Z0-9]{1,4}',tx)), 'Transaction IDs need 1–4 alphanumeric characters')
+            identity(program)
+            require(tx not in seen, 'Duplicate transaction identity');seen.add(tx)
+            require(bool(mapset)==bool(screen), 'Supply both Mapset and Map, or leave both unknown')
+            if mapset:identity(mapset);identity(screen)
+            transactions.append({'id':tx,'program':program,'mapset':mapset or None,'map':screen or None})
+        require(0<len(transactions)<=200, 'Supply 1–200 transactions')
+        return {'id':pid,'name':name,'jobs':[],'transactions':transactions,'workload':'online'}
     rows = [];header=False
     for line in text.splitlines():
         if not line.strip().startswith('|'): continue

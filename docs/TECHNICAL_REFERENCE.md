@@ -8,27 +8,33 @@ operating, implementation and extension reference. Update it in place.
 ## Operating promise
 
 After initial setup: provide the process manifest and complete Endeavor export,
-click Start, return the one authentic SME checklist, then receive one primary
-executive report. Copilot Chat operates through the local workspace MCP bridge;
-no LLM endpoint/token is required. Local analysis, supported Python conversion, deterministic
-synthetic generation, comparison, adversarial mutation checks, knowledge updates
+click Start, save the selected requirements, return the one authentic SME checklist,
+then receive one primary executive report. GitHub Copilot in VS Code only
+retrieves source and metadata through already approved MCP connections. Claude
+Code, including its approved VS Code extension, reads approved local files and
+owns analysis, development, tests and review with no MCP servers. No model
+endpoint/token is required by the workbench. Local analysis, supported Python
+conversion, runtime-randomized synthetic generation with frozen replay seeds,
+comparison, adversarial mutation checks, knowledge updates
 and the six-slide management PowerPoint run automatically. Blockers stay visible.
 The Python/SQLite target is non-production. Full COBOL/CICS/SQL semantics require
 source-supported adapters; recognizing syntax or submitting a plan gives no credit.
 
-Copilot-mode intake maps job-led transitive object lineage first. Missing,
+Local-file agent intake maps job-led transitive object lineage first. Missing,
 ambiguous, dynamic or unsupported bindings stop at `WAITING_DISCOVERY`, before
 conversion or SME questions. The retained export is indexed in full; unrelated
-members remain explicitly outside the selected closure. Configured typed Zowe
-and Db2 reads resolve local misses; fetched source is frozen through a
-ledger-pinned recovery journal before conversion. Closure COMPLETE describes
+members remain explicitly outside the selected closure. Missing objects become
+request-bound Copilot retrievals; the local Coordinator validates returned files
+and preserves immutable accepted evidence before conversion. Claude does not
+call Zowe, Db2 or other remote/MCP connectors. Closure COMPLETE describes
 the bounded static graph, not all runtime paths or the entire estate.
-`WAITING_COPILOT` exposes content-addressed frozen analysis/task evidence.
-Copilot can implement/test adapters then call `workbench_refresh_analysis`
-before the one SME packet; prior evidence remains preserved. Only the current
-hash-matching return is accepted. The service never invokes Copilot Chat itself
-or fabricates a model result. Deterministic/historical mode preserves earlier
-contracts; the new UI/Start prompt selects Copilot mode.
+`WAITING_COPILOT` remains the historical ledger key for frozen agent analysis
+and is presented as waiting for Claude analysis in the active workflow. Claude
+implements adapters, runs tests and independent review, refreshes analysis through
+the local runner and submits a current hash-bound result before the one SME
+packet. Prior evidence is preserved. The service never launches an agent or
+fabricates model results. New intake uses `claude_files`; deterministic and legacy
+assistant modes retain their replay contracts.
 
 Read-only Zowe/Db2 discovery does not require prelisting schemas or tables.
 No source-system writes, mainframe execution or synthetic uploads are permitted.
@@ -51,28 +57,86 @@ connection, supported conversion and verified business acceptance are separate.
 | Application export | `WORKSPACE/Endeavor/` | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
 | Initial process | Markdown following `examples/process-input.md`, or the UI Excel template | Ordered jobs, steps, program/utility names, input/output groups and conditions. A new source version uses a new process ID. |
 | Custom knowledge | `WORKSPACE/knowledge/application-knowledge.json`; start with `examples/application-knowledge.json` | Application/vendor utilities, aliases, semantics, evidence, record layouts, control-card behavior and known dependencies. The standard catalog is visible in `knowledge/mainframe-catalog.json`. |
-| Background articles | `WORKSPACE/knowledge/inbox/context.md`, up to 16 KB | Devin/application notes. Treated as unverified evidence, never executable instructions or approval. |
+| Background articles | `WORKSPACE/knowledge/inbox/`, up to 20 Markdown documents, 1 MiB combined | Devin/application notes. Treated as unverified evidence, never executable instructions or approval. |
 | Zowe, when used | Authenticated CLI profile; `WB_ZOWE_PROFILE` | Account-visible read-only catalog/source operations. Profile presence is not successful authentication or complete discovery. |
 | Db2, when used | Authenticated typed MCP URL/token; IBM ODBC driver and `pyodbc` for the bundled gateway | Schema/table descriptions without a prior schema allowlist. Discovery and sample access are distinct; no arbitrary SQL or automatic row sampling. |
-| Copilot Chat | Normal VS Code Copilot access; copy `examples/mcp.json` to `.vscode/mcp.json`; running local UI | Frozen-task/source tools and structured analysis return. No LLM endpoint/token; normal host trust/tool consent applies. Tokens/billing Unknown without a receipt. |
+| GitHub Copilot | Normal VS Code access and already approved MCP connections; optional `examples/mcp.json` selects `--role retrieval` | Read-only discovery and file/metadata retrieval into exact request-bound local inboxes. No coding, analysis, tests, review or conversion submission. Credits Unknown without a receipt. |
+| Claude Code | Organization-approved VS Code extension or other approved host; local framework and approved exports | Local analysis, rules, development, testing and review. No MCP servers. `examples/claude-mcp.json` is empty; no setup or connection required. Local runner commands preserve the single Coordinator. |
 | Actual SME return | One issued checklist, completed by the real reviewer; import once with attribution | Confirms or corrects interpretations. Unanswered/No/corrected items remain unresolved; no second questionnaire is generated. |
 
 Private environment variables are set in your shell before launch. `.env.example`
 is an example, not an auto-loaded credential file. Do not paste credentials into
-source, knowledge, intake or review files. Stop the running UI before starting a
-CLI Coordinator against the same workspace.
+source, knowledge, intake or review files. The `runner agent` command uses a
+local command inbox when the UI owns the workspace. Other direct-writer CLI
+commands require stopping the UI first.
 
 ### Connection configuration
 
-Set private variables in the launch shell. `.env.example` is not auto-loaded.
+Set private variables in the launch shell. Root `.env.example` is not auto-loaded; the Db2 server reads only its fixed `tools/dq3g_mcp/.env`.
 The UI never asks you to paste credentials into a form or source file.
 
 | Connection | Variables / prerequisite | Actual implemented behavior |
 |---|---|---|
 | Zowe | `WB_ZOWE_PROFILE`, optional paired `WB_ZOWE_ZOSMF_PROFILE`; actual service access | `tools/setup_zowe.py --interactive` prepares secure declarations; exact config/schema import is supported. Typed bounded lists/reads resolve missing sources. TPX aliases cannot substitute for z/OSMF/API host/profile mappings. |
-| Db2 MCP | `WB_DB2_MCP_URL`, `WB_DB2_MCP_TOKEN` | Schema/table/describe tools plus bounded sampling and explicit `db2_read_table_rows`. Supported revisions 2025-06-18 / 2025-03-26. Every account-visible schema/table is eligible; no allowlist or caller-supplied SQL. Automatic lineage does not export business rows. |
-| Local Db2 gateway | IBM ODBC/pyodbc; `WB_DB2_CONFIG`; private `WB_DB2_USER`/`WB_DB2_PASSWORD` | `tools/setup_db2.py` prepares server/location/database/host/port, SSL true, fixed `certificates/DB2-CA.cert` and max_rows up to 500,000. Replace the invalid placeholder. Explicit row exports default to 1,000, pages at most 1,000, short-lived cursors and byte/time limits. Reaching a cap is PARTIAL. Legacy external `WB_DB2_ODBC_CONNECTION` retains externally managed TLS responsibility. |
-| Copilot Chat | Workspace stdio MCP configuration from `examples/mcp.json` and existing local UI origin | Uses normal workspace chat/agent tools. Bridge never creates a second Coordinator, runs arbitrary shell or asks for a model endpoint. Legacy explicit opt-in provider remains available, with its own endpoint/source-egress configuration. |
+| Db2 MCP | `WB_DB2_MCP_URL`, `WB_DB2_MCP_TOKEN` | Schema/table/describe tools, bounded sampling, explicit `db2_read_table_rows`, and resumable literal content-search tools. Supported revisions 2025-06-18 / 2025-03-26. Every account-visible schema/table is eligible; no allowlist or caller-supplied SQL. Automatic lineage does not export business rows. |
+| Local Db2 FastMCP | Fixed `tools/dq3g_mcp/.env`, IBM ODBC driver and `pyodbc`; HTTP additionally needs `WB_DB2_MCP_TOKEN` | Python FastMCP provides stdio or authenticated loopback HTTP. TLS and approved PEM/DER certificate required. Query cap defaults to 500,000 and cannot exceed it; pages remain bounded. Private credentials never enter tool output. Existing JSON/ODBC modes remain explicit compatibility options. |
+| GitHub Copilot | Already approved workspace MCP connections; optional `examples/mcp.json`, `--role retrieval`, existing local UI origin | The workbench retrieval profile exposes only `workbench_retrieval_task(process_id)`. Copilot writes requested files/response using approved file tools. No code, tests, analysis submission or second Coordinator. |
+| Claude Code | Approved local files, configured Python; empty `examples/claude-mcp.json` | No MCP or remote connector connection. Local `runner agent` commands use the existing Coordinator or its filesystem command queue; this is not an MCP/HTTP proxy. |
+
+
+Db2 `.env` recognizes exactly `DB2_LOCATION_NAME`, `DB2_HOSTNAME`, `DB2_PORT`,
+`DB2_DATABASE`, `DB2_USERNAME`, `DB2_PASSWORD`, `DB2_SSL_CONNECTION`,
+`DB2_SSL_CERT_LOCATION`, and `DB2_QUERY_ROW_LIMIT`. The matching launch-shell
+values override file fields even when empty. Parsing never executes or expands
+values. Keep the username commented in the file and supply it privately in the
+shell. Certificate paths stay below the `.env` directory; symlinks/traversal and
+SSL false are rejected. Blank row limit means 500,000; permitted values are
+1–500,000. Settings status is separate from successful authentication.
+Explicit legacy `WB_DB2_CONFIG` takes precedence, then an explicit
+`WB_DB2_ODBC_CONNECTION`, otherwise the fixed `.env`. The JSON mode retains
+`WB_DB2_USER`/`WB_DB2_PASSWORD` and `certificates/DB2-CA.cert`; external ODBC mode
+retains externally managed TLS responsibility. No environment-file selector is
+required. All modes enforce the query budget and read-only ODBC access mode.
+
+A search begins with `db2_search_start(query)` and advances via
+`db2_search_continue(search_id, row_budget=1000)`. It follows `SYSIBM.LOCATIONS`
+recursively through configured three-part DDF names, deduplicates location/object
+identities, enumerates `SYSIBM.SYSTABLES` without schema/type allowlists, then
+attempts a fixed SELECT against every discovered object. Table descriptions,
+including empty-table column names, and all supported cell contents are searched
+as literal case-insensitive substrings. Numeric/date values use driver text
+representations and binary values use hex; unsupported types are explicit gaps.
+No procedures, jobs, bind operations, arbitrary SQL, network scans or source
+writes are exposed. A configured read-only Db2 account remains required.
+
+`db2_search_status` returns counts and `db2_search_results` pages matches or
+per-object outcomes (`kind="matches"` or `"objects"`; at most 100 records,
+`after=next_after`). Match excerpts are bounded and include location/schema/
+table/column and cursor row ordinal. An ordinal is not a stable business key.
+`db2_search_cancel` closes live cursors and retains results. Calls process at
+most 1,000 fetched rows or roughly two seconds of work between driver calls;
+ODBC login/query timeouts are 10/15 seconds. A row may be materialized by the
+driver before its 1 MiB application byte check; this does not certify native
+memory use at every database type/size. Query caps apply across continuations;
+even an exact cap remains PARTIAL without proof of cursor exhaustion.
+
+Private search state/results live under `.migration/db2-search/`, with one
+server writer, eight active searches, a 256 MiB SQLite page cap and reserve.
+Storage exhaustion records partial coverage and closes remaining search cursors.
+SQLite transaction journals may temporarily require additional disk. Live
+cursors expire after five idle minutes. Server restart/expiry cannot restore an
+unordered table cursor: that object stays partial, while continuation visits
+remaining objects. Use a new search to retry interrupted objects. These local
+search records never replace frozen process evidence. The UI and CLI keep the
+existing Coordinator/ledger and one-packet gates.
+
+Coverage is account-visible and uses uncommitted reads, not a consistent
+snapshot. Denied objects, unreachable/unadvertised locations, malformed catalogs,
+row/storage/byte limits, and unsupported driver values cannot establish absence.
+COMPLETE describes only an exhausted traversal of available catalogs/selectable
+objects; it is not complete enterprise inventory or observed mainframe parity.
+`discover_catalog(..., continuation=...)` also accepts the previous catalog
+cursor so callers can continue beyond a single metadata page budget.
 
 Zowe's “no secure properties found” means the selected configuration has no
 secure declarations. The guided helper adds field names `user`/`password` to
@@ -118,9 +182,10 @@ No dependent file is removed to fit the old POC limit.
 SME v2 compacts technical blockers by program/type while preserving all raw gaps
 in Context/coverage; business rules remain individual. At most 2,000 mandatory
 review items; no silent truncation. Historical packet v1 is replayed unchanged.
-Copilot-mode fixtures default to 4,096 cases/program, support budgets to 10,000,
-and require 10 distinct source-predicate input states per supported logic item
-(configurable 10–20). Legacy fixtures retain 256. There are 192 atomic condition
+New processes use fixture contract 4: a 4,096-case budget/program (up to 10,000),
+at least 20 distinct randomized valid source-predicate input states per supported
+logic item, and a runtime-generated unsigned 63-bit seed pinned at Start. Resume
+replays that seed. Historical fixture contracts and minima remain unchanged. There are 192 atomic condition
 comparisons and JSON depth 256. Coverage XLSX splits sheets at Excel's row limit.
 Limits reject excess rather than silently truncating it. Required witnesses
 that cannot fit the fixture budget remain coverage gaps. Do not omit dependent
@@ -134,17 +199,29 @@ not change these process limits.
 | Source | Complete original line-order accounting, hashes, supported copybook field layouts, program inventory | Flat IF/ELSE/END-IF; comparisons and AND/OR; literal MOVE, CONTINUE, GOBACK/STOP RUN. No nested IF, PERFORM, READ/WRITE, arithmetic, SQL, CICS, REDEFINES, OCCURS, signed/packed decimals or continuation. |
 | Layouts | Unsigned PIC 9 and fixed-width PIC X, simple named 01/05 declarations, LINKAGE groups named once each in PROCEDURE USING, group-correlated fixtures | JSON record transport; not EBCDIC, packed binary, COMP-3, VSAM or native datasets. Standalone level-77 items, FILLER, WORKING-STORAGE/FILE lifetime and initialization require adapters and remain blocked. |
 | Conversion | Audited generated Python for fully supported programs, immutable shared versions | Source-order rule behavior is preserved; syntactic line-for-line Python correspondence is not claimed. Unsupported programs receive no full executable translation. No code is silently retired as mainframe-only. |
-| Jobs | Named method per job, ordered steps and RC comparisons; actual record-adapter job comparison | Same field-name sets required between programs. One integration baseline, not exhaustive path testing. DSN reads/writes, external scheduler, procedure expansion and restart semantics require adapters. |
-| Copilot | Frozen tasks, bounded source excerpts, MCP return and adapter reassessment before SME issue | IDE host initiates model work. Returned plans/context cannot clear semantic blockers; actual adapters and tests are required. |
-| Synthetic data | Source-derived boundaries, invalid layouts, sequential effects, distinct logic states and linked-group match/mismatch witnesses | New contracts require 10–20 distinct valid states per supported logic item, with explicit budget/domain/reachability gaps. Native missing/duplicate/empty file/table behavior needs its own adapter. No exhaustive or observed legacy claim. |
-| Oracle | Independent source IR interpreter freezes expected results before generated Python execution | Both depend on the parser; parser errors remain a shared risk. No observed mainframe oracle or mainframe execution. |
+| Jobs | Named method per job, ordered steps and RC comparisons; actual record-adapter job comparison | Same field-name sets required between programs. New runs require at least 20 distinct randomized executed states per step, with full source/target comparisons. Never-executed steps and budget/state deficits remain gaps; historical single baselines remain replayable. DSN reads/writes, external scheduler, procedure expansion and restart semantics require adapters. |
+| Agent handoff | Copilot retrieves requested source/metadata; Claude analyzes approved local files, implements and tests through the existing Coordinator | Missing/ambiguous returns remain gates. Retrieval is not validation, model claims are not test receipts, and no Claude MCP connection is allowed. Legacy source-free development evidence remains historical. |
+| Synthetic data | Source-derived boundaries, invalid layouts, sequential effects, distinct logic states and linked-group match/mismatch witnesses | New contracts require at least 20 distinct valid states per supported logic item, with explicit budget/domain/reachability gaps. Native missing/duplicate/empty file/table behavior needs its own adapter. No exhaustive or observed legacy claim. |
+| Source oracle | Independent source IR interpreter freezes expected results before generated Python execution | Both depend on the parser; parser errors remain a shared risk. No observed mainframe oracle or mainframe execution. |
 | Verification | Full output/trace/RC comparisons, independent source-order job interpretation, per-rule decision/boundary/effect mutation, denied capability checks; new target contracts include directly tested input guards | Historical targets used the separate JSON adapter. No native mainframe malformed-record semantics are claimed. Unit suite and mutation checks do not substitute for actual legacy execution evidence. |
 | SME | One frozen packet / one valid return per process, immutable question identity/Context/Metadata, Yes/No/Not sure, corrections retained | Corrections requiring new semantics remain blockers. A Yes on an unsupported-item description does not make its conversion supported. |
-| Knowledge | Standard mainframe catalog, editable application/vendor JSON catalog, content-based classification, per-process immutable snapshot, one background Markdown and confirmed-fact JSON/index pair | Recognition never grants conversion support. No semantic cross-process auto-approval or autonomous interpretation of corrected prose. |
+| Knowledge | Standard mainframe catalog, editable application/vendor JSON catalog, content-based classification, per-process immutable snapshot, bounded indexed Markdown and confirmed-fact JSON/index pair | Recognition never grants conversion support. No semantic cross-process auto-approval or autonomous interpretation of corrected prose. |
 | Connectors | Local-first typed transitive discovery, Zowe source/metadata reads, Db2 catalog lookup and explicit row exports | Account/service visibility and parser limits remain explicit. No schema allowlist; missing libraries/dynamic bindings/TPX-only facilities need exports or actual service mappings. |
 | UI | Local React intake/prompt/file workflow, real stage events, rule lineage, source coverage filters, review import, Pause/Resume/Cancel and downloads | No target business CICS screen modernization in this subset. Workbench screens and control APIs are not counted as business replacements. |
 | Reporting | One primary executive HTML report, six editable PPT slides, metric XLSX/CSV/JSON/history, complete source coverage JSON/CSV/XLSX/HTML, unique/membership counts, LOC and blockers | CICS/VSAM/interfaces unknown until evidenced. Db2 metric is distinct references in supplied SQL, not a confirmed estate table count. Physical/code LOC convention differs by source kind and is not equivalent complexity. |
 | Inspection | PPT reopened, editable table count and canvas bounds checked, hashes recorded | Six sample slides rendered and visually inspected through Artifact Tool. Native PowerPoint/LibreOffice, browser rendering and Windows launch remain unverified. |
+
+
+New agent-mode processes issue SME packet version 4; other modes retain version 3. Technical obligations group across
+programs by source-evidenced construct family, with explicit ASSUMPTION and
+unverified-obligation wording. Compound lines retain all observed families;
+missing/unknown/mixed evidence remains visible. Full original blockers, source
+spans, hashes and memberships remain bound to the packet; only display lists
+truncate at whole program names. Historical v1/v2 generation/fingerprints and
+issued packets remain unchanged. These family labels do not implement adapters
+or let human Yes answers clear unsupported semantics. The pictured 19-entry
+implementation was unavailable; current conservative classification is tested
+against actual referenced source evidence.
 
 ## Metric rules
 
@@ -152,7 +229,7 @@ Source assets deduplicate by kind, name and SHA256. Process memberships count re
 
 A known rule is credited only when its SME answer is Yes, its whole supported program has no source blockers or output differences, and both decision outcomes have witnesses. `known_rule_verification_percent` divides those rules by all **extracted known rules**. It is never called total modernization percentage. Unsupported lines, unknown rules, uncertainty, omitted behavior and coverage gaps are shown separately and prevent `COMPLETED`. Non-executable and explicit out-of-scope lines are separated from applicable lines. Every supplied file/line retains its disposition/reason. Mainframe-specific credit requires a concrete verified replacement; native DD/dataset/scheduler behavior is not inferred away.
 
-`COMPLETED` means the stated source-derived target profile finished its tests and report gates without recorded blockers. It does not prove all possible legacy inputs equivalent. `COMPLETED_WITH_BLOCKERS` records finished reporting with unresolved work. Waiting for discovery/Copilot are prerequisites, not conversion status. Report failure leaves `REPORTING_FAILED`; Resume preserves the SME quota.
+`COMPLETED` means the stated source-derived target profile finished its tests and report gates without recorded blockers. It does not prove all possible legacy inputs equivalent. `COMPLETED_WITH_BLOCKERS` records finished reporting with unresolved work. Waiting for retrieval/Claude analysis are prerequisites, not conversion status; historical ledger keys stay stable. Report failure leaves `REPORTING_FAILED`; Resume preserves the SME quota.
 
 The frozen declared estate is 166 batch COBOL, 599 JCL jobs, 174 PROCs, 245
 copybooks/layouts, 80 CICS screens, 108 Db2 tables, 450 CA7 schedules and 4 MQ
@@ -174,9 +251,13 @@ Coverage has one source-order row per original exported physical line: file/kind
 
 Applicable-line verification includes blocked/unverified in-scope lines in its denominator. Non-executable and out-of-scope lines are separate. Semantic-unit verification deduplicates rule spans. Known-rule verification covers extracted known rules, not all modernization. Empty denominators are unknown, not 100%. Intact frozen intake/source/analysis, human return, reproducible synthetic evidence, target artifacts and adversarial checks gate credit. Source accounting completeness alone is not equivalence.
 
-The UI/CLI use one Coordinator with durable controls, at most three transient stage attempts, one review quota, replay-safe artifacts and atomic final report acceptance. `prompts/START_MODERNIZATION.md` is the execution prompt for Copilot/Claude. this reference and core placement guards enforce seven process folders, content-addressed shared targets and one structured knowledge index. Watch requires actual reviewer attribution and has a bounded timeout; it never fabricates an answer.
+The UI/CLI use one Coordinator with durable controls, at most three transient stage attempts, one review quota, replay-safe artifacts and atomic final report acceptance. `prompts/START_MODERNIZATION.md` assigns Copilot retrieval and Claude local implementation roles in one workflow. This reference and core placement guards enforce seven process folders, content-addressed shared targets and one structured knowledge index. Watch requires actual reviewer attribution and has a bounded timeout; it never fabricates an answer.
 
 ## Folder ownership
+
+The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
+`executive-report.html` and `evidence.json`. Update these and the root operator
+`START_HERE.md` in place; do not add separate review, iteration or per-rule reports.
 
 | Location | Contents and ownership |
 |---|---|
@@ -187,6 +268,8 @@ The UI/CLI use one Coordinator with durable controls, at most three transient st
 | `processes/PROCESS_ID/input/sme-return-inbox.xlsx` | The single designated automatic return inbox. Requires explicit actual `--reviewer` attribution. |
 | `processes/PROCESS_ID/input/sme-return.xlsx` | Service-preserved accepted return. Never place a workbook here manually. |
 | `processes/PROCESS_ID/analysis/` | Structured analysis and source accounting, including reasons for unknown/unsupported/omitted lines. |
+| `processes/PROCESS_ID/analysis/requirements.md` | Mutable UI convenience copy of the latest saved process scope; never used in place of pinned evidence. |
+| `processes/PROCESS_ID/analysis/requirements/SHA256.md` | Immutable canonical Markdown conversion input, parsed and hash-pinned by Save. One document per scope revision, never per rule. |
 | `processes/PROCESS_ID/analysis/mainframe-knowledge.json` | Immutable standard/application knowledge snapshot used for that process; validated against its creation-time hash. |
 | `processes/PROCESS_ID/review/` | Frozen `packet.json` and the one `sme-checklist.xlsx`, `.docx`, `.html`. |
 | `processes/PROCESS_ID/synthetic/run-NNNN/` | Versioned source-derived expected outputs, actual results and comparisons. |
@@ -208,8 +291,8 @@ path traversal and symlinks are refused. Generated Python/database artifacts
 belong in `target` or `tests`, not analysis/review/input. Input allows only the
 manifest, source snapshot and two designated return paths. Use structured
 coverage records; never create a Markdown file per rule or per source line.
-The only process Markdown is the input manifest or an original source-export
-Markdown file preserved under `input/sources`.
+Process Markdown is limited to the input manifest, original source exports under
+`input/sources`, and the explicitly requested requirements copy/version paths above.
 
 
 ## Failure and recovery matrix
@@ -238,7 +321,7 @@ Markdown file preserved under `input/sources`.
 | Discovery pagination ends at a limit or data changes mid-scan | Cursors, counts and partial/complete account-visible evidence | Preserve the cursor and timestamps. Current discovery is not a transactional estate snapshot or automatic dependency fetcher. |
 | Source/target/catalog/SME/report bytes changed | Recorded immutable hashes, source/analysis replay, return identity and artifact checks | Restore an intact backup or start a separately identified process from the original evidence. Never recalculate hashes to certify modified history. |
 | Stale knowledge or hostile instructions in source/notes | Data-only bounded catalog; frozen provenance; no executable catalog fields or automatic approval | Review evidence for this source/version. Prior confirmations are interpretations, not permission to execute commands or approve changed rules. |
-| Too few or unrealistic synthetic records | Source-derived mandatory branches/boundaries/matches, deterministic interactions and witness counts | Record missing obligations explicitly. Four sample rows cannot certify 85 rules. Copilot mode uses a 4,096-case budget and requires 10–20 distinct valid states per supported logic; unreachable or unsupported obligations stay gaps. A budget is not exhaustive coverage. |
+| Too few or unrealistic synthetic records | Source-derived mandatory branches/boundaries/matches, deterministic interactions and witness counts | Record missing obligations explicitly. Four sample rows cannot certify 85 rules. New processes use a 4,096-case budget and requires at least 20 distinct valid states per supported logic; unreachable or unsupported obligations stay gaps. A budget is not exhaustive coverage. |
 | Expected results copied from target | Expectations frozen from independent source IR before target execution | Shared parser remains a common-mode risk; SME/source review and mutation checks help but cannot establish observed legacy parity. |
 | Invalid data accepted by exported Python | New target contract embeds input validation; direct target rejection is tested | Distinguish malformed input rejection from business-rule failure. JSON validation is not proof of native malformed EBCDIC-record behavior. |
 | Good tests miss a rule, overwritten effect or incorrect boundary | Per-rule mutation checks and explicit surviving/missing witness gaps | Treat masked or surviving mutations as unresolved; do not invent passing evidence. |
@@ -309,10 +392,15 @@ Development checks in the locked environment:
 python -m unittest discover -s tests
 PYTHONPATH=. python tools/review500.py
 PYTHONPATH=. python tools/review_expanded.py
-PYTHONPATH=. python tools/scenario_campaign.py --seed 20261003 --total-scenarios 600000
+PYTHONPATH=. python tools/scenario_campaign.py --seed 20261003 --total-scenarios 200000 --output .implementation/tmp/campaign-200000.json
+PYTHONPATH=. python tools/scenario_campaign.py --seed 20261003 --total-scenarios 600000 --output .implementation/tmp/campaign-600000.json
 python -m workbench.layout --workspace .
 python tools/check_handoff.py
 ```
+
+On macOS, set `TMPDIR` to the absolute nonsymlink workspace `.implementation/tmp`
+path before tests; the system `/var` symlink is intentionally rejected by fixture
+workspace validation.
 
 Install frontend development dependencies with `npm ci` in `frontend/`, then
 `npm run typecheck`, `npm run build`; from the repository root run
@@ -346,3 +434,490 @@ executive HTML remains historical; do not backfill evidence retroactively.
 File/utility-specific primary IBM references remain in the visible
 [mainframe catalog](../knowledge/mainframe-catalog.json) and its
 [editable-knowledge guide](../knowledge/README.md).
+
+- [FastMCP server transports](https://gofastmcp.com/deployment/running-server), [Db2 DDF three-part names](https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=widdip-three-part-names-aliases-in-distributed-data-applications)
+
+## Agent-mode intake, grouped decisions and rule reporting
+
+`--assistant claude_files` is the active local-file entrypoint over the existing
+Coordinator states and packet-v4 analysis contract. `--assistant agent` and older
+modes remain compatibility interfaces; immutable v1–v3 evidence retains its
+fingerprints. Both hosts use `.claude/skills/`; the single Start prompt assigns
+roles. Copilot retrieves files through approved MCP; Claude interprets local
+source and performs all implementation, tests and review without MCP.
+
+### Retrieval and local analysis handoff
+
+`python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE` reads the
+current task and pinned local evidence paths. Missing source/metadata is described
+in a bounded `--request-file REQUEST_JSON`, not an SME question. The Coordinator
+creates a stable, immutable request and a copyable Copilot prompt. Requests bind
+the process and current evidence; missing, ambiguous, denied or partial responses
+cannot imply source closure or conversion support. Continue uses the exact recorded
+inbox, never a broad filesystem search or guessed latest folder.
+
+| Local interface | Contract |
+|---|---|
+| `agent PROCESS_ID --workspace WORKSPACE` | Read the current analysis task, required local artifacts and continuation state. |
+| `agent ... --request-file REQUEST_JSON` | Validate a bounded retrieval request and preserve its immutable packet plus generated Copilot prompt. |
+| `agent ... --continue` | Inspect the recorded request inbox, validate response identities/paths/hashes, preserve accepted evidence and resume eligible work. Absent or invalid responses retain named gaps. |
+| `agent ... --refresh` | Recompute analysis after actual tested semantic changes; preserve earlier artifacts and require a fresh task-bound result. Changed loaded adapters require restarting the existing service first. |
+| `agent ... --analysis-file ANALYSIS_JSON` | Submit bounded structured Claude analysis against current task/lineage hashes. No test, parity or SME credit is granted by accepting a model assertion. |
+| `agent ... --measurement-file RECEIPT_JSON` | Import an actual attributed usage/effort receipt through the existing ledger; unknown charges remain Unknown. |
+| Copilot `workbench_retrieval_task(process_id)` | Read the pending retrieval packet only. Copilot's approved source/file tools perform the pull and write its exact local return folder. |
+
+Per-request placement below `processes/PROCESS_ID/analysis/retrieval/REQUEST_ID/`:
+
+- `request.json`: immutable requested identities, bounds, return schema and prompt.
+- `inbox/files/`: original files and requested metadata written by Copilot.
+- `inbox/response.json`: the completed response manifest, written after its files.
+- Accepted returns: frozen and registered by the existing Coordinator; later
+  responses never rewrite previously accepted snapshots or source evidence.
+
+Default discovery requests batch at most 128 needs without truncating the frozen
+lineage. The local view's `retrieval_state.total_need_count` and
+`remaining_need_count` expose the total and needs outside the current packet.
+Complete imports can advance to the next batch; explicit NOT_FOUND or AMBIGUOUS
+results stop at a visible checkpoint rather than issuing repeated automatic
+prompts. Inspect the unresolved reason before making a new request.
+
+The CLI `--request-file` input is exactly an object containing `needs`; analysis,
+request and measurement input files must be regular non-symlink JSON of at most
+128,000 bytes. The `needs` array contains 1–128 items with required `kind`, `name`, `reason` and
+optional `source`, `relationship`, `status`. The packet derives stable `need_id`
+values, a SHA-256 request ID, the source-generation/iteration/lineage bindings and
+a complete copyable prompt. `request.json` and `response.json` are each bounded
+at 512 KiB. The response has exactly `request_id` and `items`, with one item per
+need. A `FOUND` item has `need_id`, `status`, portable original relative `path`,
+`sha256` and `provenance`, with optional `staged_path`; `NOT_FOUND` has `reason`
+instead of path/hash, and `AMBIGUOUS` may
+also name bounded candidates. Provenance requires `origin`, actual `tool`,
+`locator` and timezone-aware `retrieved_at`; optional keys are `environment`,
+profile name and `encoding`. No credentials or business-row samples belong here.
+A denied or partial lookup stays unresolved with its reason, never a false FOUND.
+
+Returns accept bounded UTF-8 text sources such as COBOL, JCL/PROC, copybooks,
+DCLGEN, SQL, control cards and requested contextual text, subject to existing
+source/layout rules. `path` always preserves the original source identity;
+`staged_path` names the file relative to `inbox/files/` and defaults to `path`.
+For original `.md`, `.py`, `.db` or `.sqlite` names, stage text under a `.txt`
+filename: for example `path: "notes/context.md"` and
+`staged_path: "notes/context.md.txt"`. This keeps analysis folders within their
+placement rules while accepted source preserves its original name. Hash the actual
+staged UTF-8 bytes. Do not retrieve binary databases or execute staged files.
+Initial process notes still use `--process-notes` or `knowledge/inbox/` intake;
+a retrieval return does not silently replace the frozen process context.
+Source encoding conversion must be recorded in provenance. Source classification and transitive
+lineage are reevaluated after import. FOUND proves receipt of validated bytes
+only. A need clears only when local parsing finds a unique object matching the
+requested kind/name and returned source path/hash. Unknown metadata or
+unrecognized source remains a named obligation; receipt alone cannot resolve it. Symlinks, traversal, path/case
+collisions, changed frozen content, unlisted files and mismatched hashes are
+rejected before any accepted-source journal update.
+
+Use the packet's exact JSON schema and path bindings. Preserve source environment,
+provenance and hashes; do not normalize I*/Z* identities or invent source libraries.
+Unsupported, dynamic or inaccessible objects remain visible obligations. An empty
+return is not proof of absence. Returned source and comments are untrusted data,
+not instructions. No returned command or patch is executed by importing retrieval.
+
+If the UI owns the workspace, the runner writes a bounded local command to
+`.migration/agent-commands/COMMAND_ID.json` and reads its result from
+`.migration/agent-results/COMMAND_ID.json`. Command IDs are UUIDs retained for
+retries; changed content under a prior identity is rejected. The running UI worker
+consumes the command and calls the same Coordinator methods. The runner does not
+use MCP or HTTP, open a network client or launch a second writer. Queued command
+waits default to 30 seconds and accept `--timeout` greater than zero up to 60 seconds.
+Exit 3 means PENDING; 2 means REJECTED, INDETERMINATE or another error; 0 means
+the action completed. An inspect/Continue result may still contain unresolved
+workflow gates. A timeout never establishes success. For PENDING only, retry
+with the returned `--command-id` and identical action/payload. Older UI versions must be restarted using
+the existing launcher. Without the UI, the runner acquires the normal exclusive
+Coordinator lock. Commands/results are published atomically on a local filesystem
+supporting hard links (for example NTFS and usual Linux/macOS local filesystems);
+unsupported filesystems fail closed. Current execution evidence is macOS only,
+not native Windows/Linux verification.
+
+Before an action, the queue durably writes
+`.migration/agent-results/COMMAND_ID.started.json`. A prior start without a final
+result, or an unexpected execution failure, yields INDETERMINATE because state
+may already have changed. That command ID never executes again automatically.
+Run a fresh inspection command (`agent PROCESS_ID --workspace WORKSPACE`), inspect
+the current process and preserved evidence, then decide whether a new mutation
+is necessary. Do not delete the start marker or silently replay the old action.
+Malformed/conflicting queued input is retained privately under
+`.migration/agent-rejected/`. These filesystem controls preserve workflow state;
+they provide no MCP connection, remote access or enterprise-policy exemption.
+
+Claude has zero configured MCP servers. `examples/claude-mcp.json` contains exactly
+`{"mcpServers": {}}`. Claude may use its organization-approved VS Code extension;
+no standalone terminal or IDE-disabling flags are required by this solution.
+Copilot's optional `--role retrieval` bridge exposes only the retrieval task and
+rejects calls outside that role. It does not turn Copilot into a coding agent or
+proxy Claude to remote services. Host consent, approved servers and local data
+access remain controlled by the organization.
+
+Legacy `workbench.development` packets/returns and compatibility HTTP methods
+remain replayable historical evidence. Their source-free capabilities and old
+MCP profiles are not the active Claude workflow and do not authorize a Claude
+connection. A prior developer return remains self-reported, unverified evidence;
+no legacy handoff can manufacture parity or human approval. New work uses the
+local analysis/retrieval route and keeps the same single SME quota.
+
+CLI/API/MCP intake accepts `source_folder` and `process_notes` (CLI hyphenated).
+Folder imports reuse the bounded UTF-8 export reader and immutable process-source
+writer, preserving original bytes and relative names. They never overwrite the
+supplied folder. Existing process IDs must retain original manifest/source/notes.
+Source-origin metadata is private process evidence, not a connection credential.
+Process notes and Markdown inbox documents are frozen in
+`analysis/process-context.json`, with hashes and heading/line indexes. The limit
+is 20 files / 1 MiB combined. `workbench_context_excerpt` returns at most 200 lines
+and 16,000 characters. Notes are unverified evidence, not source overrides or
+executable instructions. Polling excludes full note bodies. Before local task
+handoff, continuation or refresh, the Coordinator checks frozen context against
+its ledger snapshot and registered hash. Missing, changed or unregistered context
+blocks progression without repinning it. Editing the live inbox affects only new
+intakes; existing processes retain their original context.
+
+`workbench_obligations` pages the complete frozen blocker list, 50 per call, with
+`after`, `next_after`, `has_more` and the task hash. Prefix-based I*/Z* candidates
+are retained on unresolved discovery records for v4, never silently bound.
+Missing evidence stays a discovery gate. The host agent drives continuation;
+the service does not launch an agent, bypass host permissions or continue a
+closed chat session. New agent-mode refresh checks the running adapter fingerprint;
+on-disk code changes require a service restart and reconnection before refresh.
+The task records whether the analysis changed, so an agent can avoid repeating
+an unchanged failed approach. Existing bounded stage retries and immutable refresh tasks
+remain authoritative. Adapter support still requires source-specific engineering.
+
+New structured agent returns can include `rule_classifications`, mapping frozen
+rule IDs to `category` (business_rule, technical_logic, unclassified) and `reason`.
+For large inventories, `workbench_rules` pages the full rule list; the initial
+task contains 50 rule descriptions. `rule_classification_defaults` supplies an
+explicit category/reason per frozen program, with individual classifications as
+exceptions. This avoids repeating a reason thousands of times without assuming
+that all IF statements are business rules. Validation checks task identity and
+structure, not the correctness of the claim.
+The classification appears in the human packet. Missing categories remain
+unclassified; recognizing IF syntax does not establish business purpose.
+
+Packet v4 groups only equal decisions within the same source/program version,
+complete semantics, layouts/dependencies and invocation context, with identical
+preceding effects on predicate inputs. Input effects are hashed incrementally.
+Group membership and equivalence hashes are frozen in Context. Import expands
+actual answers to the listed rule IDs with group/reviewer/correction provenance;
+corrections and uncertainty cannot yield verified credit. Grouping never changes
+the source rule inventory. Distinct programs/environments are not merged based
+on similar prose. Technical-family compaction retains every original blocker.
+
+A report-only, versioned rule inventory derives credit from replayed coverage;
+it does not change frozen source analysis. Business decisions, technical adapter
+units and unclassified contiguous source spans stay separate. Unclassified spans
+are obligations whose internal semantic rule count is unknown. Each identified
+rule retains source text/locations/version, memberships, target spans/version/text,
+verification evidence and status. Statuses are identified, implemented_unverified,
+converted_verified and blocked. Credit retains the existing whole-program gate;
+new classifications do not create finer proof than the underlying tests provide.
+
+Job totals deduplicate repeated invocations. Process totals count unique
+source-version occurrences; memberships across jobs are separate. Program views
+include owned copybook dependencies; their overlapping totals are not summed as
+unique process totals. Unassigned obligations remain listed. Denominators include
+all identified in-scope rules in that category; empty totals are N/A. V4 unknown
+classifications prevent an unblocked completion claim.
+
+The primary executive report presents the same rollups as Excel and PowerPoint.
+Its `rules.html` detail, `rules.json` and `rules.csv` preserve original/modernized
+mappings. These are immutable per-process report artifacts, not new public
+narrative documents. Spreadsheet text is escaped and large excerpts use numbered
+chunks. Existing accepted executive models remain replayable. The Coordinator
+passes its already verified coverage model into reporting to avoid a second
+expensive target replay during the same report stage.
+
+`workbench.backends` defines the versioned target boundary; only python-sqlite is
+registered. Future backends need generation/comparison implementations and the
+same coverage gates. SQLite currently stores comparison results; this is not
+proof of native Db2 transaction semantics or a converted application database.
+The factory UI/report adds an evidence-grounded Python/SQLite versus Python/Oracle
+assessment. Oracle is a future, unregistered target: qualification covers exact
+numeric/NULL/empty-string behavior, SQL dialect/errors/cursors, constraints,
+transaction/DDL boundaries, concurrency/recovery and operations. Only cited
+structural SQL/DCLGEN or selected Db2 lineage evidence can trigger the database
+assessment; filenames and generic utility names cannot. The backend registry
+continues to reject unimplemented targets. Service extraction requires independent
+business responsibility, data ownership and a verified transaction boundary.
+
+V4 synthetic coverage counts source predicate values **after** preceding source
+writes, not irrelevant input padding. Input layout and terminal units separately
+require 20 distinct randomized valid records. Finite domains, overwritten values,
+unreachable outcomes, mandatory boundaries and exhausted budgets remain explicit
+gaps; repeated runs cannot manufacture distinct states. Jobs compare complete
+ordered traces, skip decisions, records and return codes across randomized and
+boundary witnesses. Native scheduler/dataset I/O remains outside that adapter.
+
+Each supported program exports `tests/run-NNNN/PROGRAM/test_generated.py` plus
+`unit-results.json`. Run the Python file directly with Python 3, preserving the
+process folder hierarchy; it has only standard-library dependencies. It checks
+frozen suite and target byte hashes, invokes the real generated entry point for
+valid and invalid inputs, and compares canonical JSON types, full results and
+caller-input immutability. No oracle is recalculated from the target. Coverage
+regenerates the canonical test module, executes it and matches the receipt before
+crediting it. Missing/modified evidence revokes credit. Unit tests complement the
+independent source interpreter and adversarial mutation checks. The live factory
+view labels prior success **Recorded pass · not freshly verified**; reports derive
+current validation status from replayed coverage. These tests do not establish
+observed mainframe parity or exhaustive scenario coverage.
+
+
+Zowe `--check` inspects the selected project config/schema without network calls
+or credential access. `--normalize` only deduplicates secure declarations when
+structural/schema checks pass, preserving a hash-named private backup. External
+schema references are not fetched. No profile roles/defaults are deleted and
+credentials/connectivity remain UNVERIFIED until a permitted live read succeeds.
+Native Windows/Linux and both agent-host smoke evidence are required separately
+from local Python and frontend checks.
+
+The native platform smoke workflow exercises folder intake, CLI/ledger behavior,
+Zowe setup and rule reports on Windows and Ubuntu using locked dependencies.
+A configured workflow is not an executed native-platform receipt.
+
+### Consolidated program knowledge
+
+`workbench.program_insights` projects existing frozen analysis, requirements and
+replayed coverage. It does not add a parser authority, workflow or source mutation.
+The factory view's `program_insights` object includes an inventory over 17 frozen
+file classifications, separate file/selected-file/observed-definition counts,
+conservative unquoted Db2 `CREATE PROCEDURE` observations, and COBOL program pages.
+Statement literals, comments and CALL references do not become procedure definitions.
+Source-hash/line evidence and unresolved classifications remain visible. DCL means
+DCL/DCLGEN descriptors here; CICS BMS counts describe retained sources, not installed
+screens or verified replacements. Whole-estate totals remain Unknown.
+
+Each program has technical job/transaction entry mappings, parsed fields and
+dependencies, source-derived functionality observations, categorized/unclassified
+rules, default or saved Yes/No selections, validation obligations, risks and persona
+guidance. These are starting technical/functional documentation, not invented
+business requirements. A No rule retains the exact requirements exclusion reason;
+Yes is not conversion credit. Verified counts are Unknown until coverage replay.
+
+Factory pagination uses `program_after`, separately from obligation `after`, with
+20 programs per page. Detail lists cap at 30 and expose completeness flags; the
+existing source/coverage/rules artifacts retain complete accounting. New final
+reports freeze `program-insights.json` and `program-insights.html` alongside
+`factory.html` under `reports/report-NNNN/`. The HTML has a program index and source,
+technical, rule, validation and persona sections. Both artifacts are registered
+and pinned by report inspection. Historical reports are unchanged; no per-program
+Markdown, duplicate requirements document or additional SME checklist is created.
+
+## Factory contract and bounded online delivery
+
+New agent-mode intakes and online intakes carry factory contract version 1.
+`workbench_factory` and `GET /api/process/{id}/factory?after=0` expose the same
+assessment, discovery, target-design, implementation, human-review, verification
+and delivery projection. Obligations page in groups of 50 with stable evidence
+identities, investigation steps and recorded stage attempts. These are views over
+the existing Coordinator, not a second scheduler or ledger. The UI Evidence →
+Factory view and CLI status use the same projection. Capability recognition across
+14 domains never establishes blanket support for a language or subsystem.
+
+Online Markdown intake uses this table instead of the batch table:
+
+```text
+| Transaction | Program | Mapset | Map |
+|---|---|---|---|
+| ELIG | ELIGIBLE | | |
+```
+
+Blank map bindings mean unknown, not absent. If supplied, both Mapset and Map are
+required and the map must resolve within its named mapset. Transaction IDs are
+case-insensitive 1–4 alphanumeric characters. Intake freezes transactions and
+workload along with identity and source. Online roots resolve programs and maps
+transitively; no synthetic batch job is invented. Batch dependencies still need
+source-supported linkage and retain their existing accountability gates.
+
+A successfully tested flat-record program can be packaged under
+`target/RUN/online/` as a **local online candidate**: Python service, React form,
+OpenAPI description, source/target contract, Windows/POSIX launchers and HTTP
+comparison receipt. Business module filenames are content hashes under `modules/`
+to avoid Windows collisions with runtime files. The service invokes the existing
+generated program; it is not another COBOL converter. Expected cases come from
+the frozen source oracle and are compared through the actual HTTP interface.
+Unsupported programs receive no candidate. Generated candidates remain distinct
+from verified native CICS replacements in JSON, Excel, HTML and PowerPoint.
+
+The local runtime uses an explicitly supplied private `ONLINE_TOKEN` of at least
+32 characters, binds to loopback port 8766 by default and supports isolated,
+expiring sessions, revision checks, request idempotency and SQLite rollback.
+Requests are bounded at 64 KiB, active sessions at 1,000, and committed requests
+at 100 per session. Reusing a key with changed input fails. The browser retains a
+pending request across transport failure. Native CICS session state, BMS/AID
+behavior, RACF identity, Db2/VSAM/IMS transactions and distributed commits remain
+unverified obligations. SQLite stores local session/retry state, not a migrated
+enterprise database. No production authorization or automatic deployment is implied.
+
+Launch a reviewed candidate with the repository's locked Python environment and
+`python application.py` (or the supplied launcher). Keep the token in the launch
+environment. Mutable runtime state defaults outside the immutable package under
+`~/.pts-online-state/CONTRACT_HASH`; `ONLINE_STATE` can select an operator-owned
+local directory. `ONLINE_PORT` can choose another local port. Do not edit issued
+packages or run this service inside the workbench's control API.
+
+Consistency checks run at factory stage boundaries; violations record named
+findings and stop advancement. Existing source/hash, review and report replay
+checks remain authoritative. `python tools/check_factory.py` verifies shared
+MCP/HTTP exposure, skill presence and documentation bounds. Run it after changes,
+with focused regressions, then the full suite and required review/campaign checks
+at release gates. CI runs native Windows/Ubuntu smoke checks on pushes and pull
+requests; configured CI is not evidence of an executed native run. No periodic
+background audit or independent agent launcher is installed.
+
+## Pilot economics and forecast contract
+
+`workbench.economics` is a deterministic projection of the existing ledger,
+not another workflow engine. SQLite adds append-only status transitions, stage
+attempt timing, attributed measurement receipts and resumable work-session
+identities. Existing ledgers acquire these tables without rewriting history.
+Service attempt durations use monotonic clocks, including I/O; wall status time
+separates queue, agent/SME/discovery waits, pause and service stages. A crashed
+attempt has unknown duration. Historical partial timing cannot calibrate a whole
+process. Service, work effort and elapsed time can overlap and are never summed.
+
+The running UI owns all writes. Existing UI effort controls record work windows.
+The compatibility MCP API `workbench_begin_work` accepts `id`,
+`process_id`, `actor`, `stage`; `workbench_end_work` accepts `id` and optional
+`abandon`. Stages are discovery, analysis, mainframe, conversion, sql, validation,
+review, reporting, rework and framework. Framework uses null process_id. Use a
+unique stable session ID and actor/session identity; stop before human waits.
+Retry returns the existing receipt. A restart loses the monotonic session clock:
+abandon the session as unmeasured rather than charging downtime. Work windows
+measure agent session time, not human attendance or total project completeness.
+
+The compatibility `workbench_record_measurement` interface appends a bounded
+64 KiB receipt through the same Coordinator. Active Claude sessions use
+`runner agent PROCESS_ID --workspace WORKSPACE --measurement-file RECEIPT`,
+including the local queue when the UI is running; they never invoke MCP. `workbench_economics` reads live metrics; `workbench_forecast` previews
+a plan. HTTP equivalents are GET `/api/economics?process_id=ID`, POST
+`/api/economics/receipts`, `/api/economics/forecast`, `/api/economics/work/start`
+and `/api/economics/work/stop`. Mutation routes retain same-origin/token guards;
+preview is read-only but uses the same authenticated POST transport. With the UI
+stopped, `python -m workbench.runner measure --workspace WORKSPACE --file RECEIPT`
+uses the existing exclusive writer. Do not launch it beside the UI.
+
+Every receipt requires `id`, `kind`, `process_id` (nullable), `evidence` (a bounded
+source description/reference, never credentials), and `recorded_by`. IDs are
+idempotent; changed content under an old ID is rejected. Optional `supersedes`
+corrects a same-kind/scope receipt without deleting it. Process receipts freeze
+under `processes/ID/analysis/measurements/SHA256.json`; workspace/account receipts
+remain in the private ledger. Integrity failures withhold forecasts/conditional
+balances. Session/provider prefixes are reserved for internal observations.
+
+| Kind | Additional fields and meaning |
+|---|---|
+| `work` | `actor`, `stage`, decimal `hours`, timezone-aware `started_at`, `ended_at`; intervals must be in the past. Detail work cannot exceed its actor interval. `stage: pilot_total` with `complete: true` explicitly attests total repeatable process effort across all stages/actors, including rework. Stage detail is contained in this total, never added again. Framework investment is workspace-wide. |
+| `usage` | `provider`, `account`, `model`, timestamps and `quantities`, such as `{"credits":"5.25"}`. Default `coverage: partial`. `coverage: complete_process` requires a process and a whole-pilot credits-only total for that provider/account. Its detail receipts are not added again. Imported overlapping intervals, duplicate totals and conflicting attribution withhold affected totals/calibration. |
+| `budget` | `provider`, `account`, `unit: credits`, `allowance`, `consumed`, `period_start`, `period_end`, `snapshot_at`; process_id null. Show the dated actual balance and tracked subsequent usage separately. Conditional remaining assumes no untracked charges and becomes Unknown for expired or straddled periods. An allowance is not a live account connection. |
+| `plan` | process_id null and `plan` as below. This is an attributed scenario, never conversion credit. |
+
+Example scenario (assumptions, not measured pilot data):
+
+```json
+{"cohorts":[{"id":"batch-processes","unit":"process","total":100,
+"hours_per_unit":{"low":"15","base":"20","high":"30"}}],
+"capacity_hours_per_week":"40"}
+```
+
+Units are `process` plus the eight estate category keys. `sample_process_ids`
+selects calibration only; optional `process_ids` defines actual cohort membership.
+Repeated process cohorts require disjoint membership and `allocation_note`.
+Asset rates require separately allocated assumptions; whole-process and asset
+work cannot be added together. Different asset categories require a disjoint-work
+allocation explanation. Optional `usage_per_unit` entries carry provider, account,
+unit and low/base/high assumptions. Explicit rates retain ASSUMPTION provenance.
+Without rates, complete attributed effort and whole-pilot credit receipts from
+intact accepted COMPLETED non-demo/non-fixture processes calibrate min/mean/max.
+A one-pilot rate is provisional, not a statistical confidence interval. Provider,
+account and unit stay separate; raw tokens never become credits. Legacy provider
+counters are captured even on failed structured responses; cache reuse adds no
+new token charge. Claude/Copilot host charges require actual receipts.
+
+The model exposes sample IDs, completed/remaining units, estimated subset, unknown
+units, full remaining effort only when all cohorts have rates, capacity weeks,
+separate observed service/sequential elapsed projections and billing provenance.
+Declared estate totals remain unverified; the existing 1,829 versus 1,826 mismatch
+remains visible. Completed scope, comparable complexity, dependencies, waits,
+reuse and future framework work limit extrapolation. Optional stale plans produce
+an explicit forecast error and Unknown estimate without blocking modernization.
+No forecast certifies a finish date, observed mainframe parity or 100% conversion.
+
+Each new report freezes economics JSON/HTML/CSV and an Excel effort sheet beside
+its existing evidence; the primary executive report links the same snapshot.
+Reporting duration is still open at that snapshot and completes in the live
+ledger afterwards. Accepted report bytes are never refreshed in place. Learning
+summarizes scope, artifact types, tests, gaps and timing; its response displays
+up to 50 recent pilots while calculations use all eligible cohort members.
+
+
+## Operator requirements and selected conversion scope
+
+UI/local-file intake enables `requirements_selection`; job-led discovery must finish
+before `WAITING_REQUIREMENTS`. The shared Start command opts in with
+`--select-requirements`. Existing SDK callers and historical processes keep their
+original workflow unless explicitly opted in. Nothing is converted or issued for
+SME review until an operator Save. Default Yes selects scope; it never supplies
+SME approval. The pinned local requirements artifact is readable by Claude; the
+legacy MCP requirements endpoint is read-only, not a scope-answer tool.
+
+GET `/api/process/ID/requirements?after=0&path=FILE` pages 50 stable source units
+and returns the retained file inventory. Unit IDs bind path, source hash, physical
+span, kind and parsed rule identity. Rules remain individually selectable;
+contiguous technical/context spans are grouped. POST to the same route supplies
+`catalog_hash`, `revision`, `excluded_ids`, `saved_by`. It uses same-origin/session
+protection and compare-and-swap revisions. The UI attribution means the local
+operator clicked Save; it is not an authenticated named SME identity. An identical
+retry of the last request returns the saved revision; changed stale requests fail.
+Sources and selections are checked before use. The complete frozen UTF-8 source
+is downloadable through GET `/requirements/source?path=FILE`, with a verified hash
+and attachment disposition, including portable Unicode filenames.
+
+Save writes canonical UTF-8 Markdown (32 MiB maximum) containing an exact JSON
+selection and readable source/choice/replacement table. It freezes
+`analysis/requirements/SHA256.md`, parses those exact bytes as conversion input,
+commits the ledger revision, then updates `analysis/requirements.md`. A lost
+response/copy failure can be retried without duplicating the revision. The pinned
+snapshot is authoritative; manual draft edits cannot silently change conversion.
+Previous versions stay immutable. Save invalidates old agent tasks and queues
+analysis through the existing Coordinator. Changed adapter catalog identities
+preserve prior evidence and stable No choices but require a new operator Save.
+Packet issue locks scope; subsequent changes need a new process.
+
+The selected IR omits No rules, preserves original rules as `omitted_rules`, and
+binds target semantics to the requirements hash. An omitted writer consumed by
+retained logic blocks generation, including later conditional job steps, repeated
+program invocations and successive jobs sharing records. Excluded required
+layouts, COPY/platform dependencies and job behavior require a verified redesign;
+unknown semantics are never cleared by a No flag. Generated supported modules
+retain record validation, ordered effects, rule trace and source/requirements
+hashes. Real source-derived comparisons and adversarial mutation evidence remain
+mandatory; selected mode requires ten distinct valid states per applicable logic
+item plus the existing dependency/invalid/boundary witnesses. This is bounded
+semantic verification, not native mainframe parity or exhaustive proof.
+
+Coverage keeps every original line and marks explicit No rows with the exact
+reason “Not converted because selected No in requirements.” and the saved
+Markdown hash/path. `rules.json`/HTML include the entire source-unit comparison:
+source identity/span, choice, omission or replacement commentary, candidate versus
+evidenced replacement status, target versions/spans and test/evidence references.
+Non-runtime source structure has an explicit rationale, not executable credit.
+Rule JSON/CSV/Excel and job/program rollups separate original total, selected,
+verified, unverified/blocked and `excluded_by_requirements` counts. Percentages
+cover requested Yes scope; they do not claim complete original-source conversion.
+Executable omissions prevent whole-source asset credit and partial scopes cannot
+calibrate full-estate process effort/credits. Unknown business/technical categories
+remain visible; excluded unknowns do not masquerade as classified rules.
+
+The economics UI exposes GitHub Copilot credits used per provider/account from
+actual `usage` receipts (`quantities.credits`). Known zero and Unknown differ;
+conflicting/overlapping billing is withheld. No token-to-credit conversion or live
+GitHub billing connection is inferred. Optional budgets remain available in
+collapsed detail. Process polling keeps requirements/rule detail bounded; full
+selection, source and evidence load on demand.

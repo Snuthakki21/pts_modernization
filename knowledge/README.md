@@ -12,9 +12,9 @@ adapter and complete evidence.
 After setup, edit **`WORKSPACE/knowledge/application-knowledge.json`**. Setup copies
 the empty [template](../examples/application-knowledge.json) only if that file does
 not exist. This local file belongs to your application and remains private. Add
-existing Markdown knowledge articles together in **`WORKSPACE/knowledge/inbox/context.md`**
-(maximum 16 KB for automatic ingestion). Other inbox files are not automatically
-read. Keep
+Markdown knowledge articles under **`WORKSPACE/knowledge/inbox/`**. The current
+intake indexes up to 20 `.md` documents and 1 MiB combined, with bounded excerpt
+retrieval. Original process notes are included in this shared limit. Keep
 related material together instead of creating a file for each rule.
 
 The standard catalog contains 17 classification categories, 17 utility families
@@ -133,7 +133,7 @@ provenance. Batch COBOL comes from Endeavor; JCL/PROCs may also be in actual
 mainframe libraries.
 
 Every applicable business/technical source logic item needs explicit validation.
-New Copilot-mode fixtures require 10–20 distinct valid source logic states,
+New process fixtures require at least 20 distinct randomized valid source logic states,
 modeled outcomes/boundaries, invalid layouts and linked-group matching/mismatching
 keys. Freeze expectations from source before target execution. Unsupported
 numeric/file/Db2/CICS/utility semantics need reviewed adapters. Sample rows or

@@ -58,18 +58,33 @@ class PreflightTests(unittest.TestCase):
                 (self.root / 'Endeavor/ELIGIBLE.cbl').write_bytes(body)
                 self.assertEqual(self.check(self.inspect(), 'source_export')['status'], 'BLOCKED')
 
+    def assert_source_collision(self, paths, directories=()):
+        # Supply filesystem entries directly: macOS/Windows cannot physically
+        # create case/normalization-equivalent names. The real scanner still
+        # validates and reads the first entry before rejecting the collision.
+        from contextlib import contextmanager
+        from workbench.preflight import _read_sources
+        from workbench.domain import ValidationError
+        folder=self.root/'Endeavor';real_is_dir=Path.is_dir
+        class Entry:
+            def __init__(self,path):self.path=str(path)
+            def is_symlink(self):return False
+            def is_dir(self,follow_symlinks=False):return Path(self.path) in directories
+        @contextmanager
+        def scanned(path):
+            yield iter(Entry(p) for p in (paths if Path(path)==folder else ()))
+        def is_dir(path):return path in directories or real_is_dir(path)
+        with patch('workbench.preflight.os.scandir',scanned),patch.object(Path,'is_dir',is_dir):
+            with self.assertRaisesRegex(ValidationError,'collide'):_read_sources(self.root)
+
     def test_case_collisions_are_blocked(self):
-        (self.root / 'Endeavor/eligible.CBL').write_text(COBOL)
-        self.assertEqual(self.check(self.inspect(), 'source_export')['status'], 'BLOCKED')
+        self.assert_source_collision([self.root/'Endeavor/ELIGIBLE.cbl',self.root/'Endeavor/eligible.CBL'])
 
     def test_unicode_normalization_and_file_directory_collisions_are_blocked(self):
-        (self.root / 'Endeavor/caf\u00e9.cbl').write_text('A')
-        (self.root / 'Endeavor/cafe\u0301.cbl').write_text('B')
-        self.assertEqual(self.check(self.inspect(), 'source_export')['status'], 'BLOCKED')
-        (self.root / 'Endeavor/cafe\u0301.cbl').unlink()
-        (self.root / 'Endeavor/eligible.CBL').mkdir()
-        (self.root / 'Endeavor/eligible.CBL/nested').write_text('C')
-        self.assertEqual(self.check(self.inspect(), 'source_export')['status'], 'BLOCKED')
+        nfd=self.root/'Endeavor/cafe\u0301.cbl';nfd.write_text('A')
+        self.assert_source_collision([nfd,self.root/'Endeavor/caf\u00e9.cbl'])
+        directory=self.root/'Endeavor/ELIGIBLE.CBL'
+        self.assert_source_collision([directory,self.root/'Endeavor/ELIGIBLE.cbl'],[directory])
 
     def test_source_symlink_is_blocked_without_following_it(self):
         try: (self.root / 'Endeavor/other.cbl').symlink_to(self.manifest)
@@ -148,7 +163,8 @@ class PreflightTests(unittest.TestCase):
 
     def test_context_bounds_are_checked_before_any_workflow(self):
         context = self.root / 'knowledge/inbox/context.md'; context.parent.mkdir(parents=True)
-        context.write_bytes(b'x' * 16001)
+        from workbench.process_context import MAX_CONTEXT_BYTES
+        context.write_bytes(b'x' * (MAX_CONTEXT_BYTES+1))
         self.assertEqual(self.check(self.inspect(), 'background_context')['status'], 'BLOCKED')
 
     def test_initialization_is_explicit_and_never_overwrites_custom_knowledge(self):

@@ -406,6 +406,14 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                 if ref['relationship'] in {'executes', 'invokes_proc'}:
                     source_step_kinds[owner_node['name'], step_node['name'].upper(), ref['name']] = ref['kind']
 
+    for tx in manifest.get('transactions', []):
+        ev = _evidence(None, None, tx['id'], 'manifest')
+        root = node('manifest_transaction', tx['id'], evidence=ev, resolution='manifest_declaration')
+        root_nodes.append(root)
+        reference(root, 'program', tx['program'], 'transaction_entry', ev)
+        if tx.get('mapset'):
+            reference(root, 'bms_mapset', tx['mapset'], 'transaction_mapset', ev)
+            reference(root, 'bms_map', tx['map'], 'transaction_map', ev, library=tx['mapset'])
     for job in manifest.get('jobs', []):
         require(isinstance(job, dict) and isinstance(job.get('name'), str), 'Lineage jobs require a name')
         name = job['name'].upper(); ev = _evidence(None, None, name, 'manifest', job=name)
@@ -435,6 +443,10 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                'relationship': ref['relationship'], 'status': status, 'reason': reason,
                'evidence': [ref['evidence']], 'candidates': candidates_list or [],
                'local_repository_checked': True}
+        if manifest.get('sme_packet_version',1)>=4 and ref['name'][:1] in ('I','Z'):
+            alternate=('Z' if ref['name'].startswith('I') else 'I')+ref['name'][1:]
+            gap['environment_candidates']=[{'node':n['id'],'name':n['name'],'path':n.get('path'),'status':'UNVERIFIED_ENVIRONMENT_RELATIONSHIP'} for n in nodes.values() if n['kind']==ref['kind'] and n['name']==alternate]
+            if gap['environment_candidates']:gap['environment_mapping_requirement']='Confirm library/environment/version identity and call-site applicability; prefix similarity cannot resolve this binding'
         if gap not in gaps: gaps.append(gap)
         ident = node(ref['kind'], ref['name'], evidence=ref['evidence'], resolution=status,
                      candidates=candidates_list or [])
@@ -603,7 +615,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
     return {'schema_version': 1, 'stage': 'LINEAGE_MAPPING',
             'nodes': sorted(nodes.values(), key=lambda n: n['id']),
             'edges': sorted(edges, key=lambda e: (e['source'], e['target'], e['kind'], str(e['evidence'][0].get('line')))),
-            'scope': {'strategy': 'job_led_transitive_closure', 'root_jobs': [j['name'] for j in manifest.get('jobs', [])],
+            'scope': {'strategy': 'transaction_led_transitive_closure' if manifest.get('transactions') else 'job_led_transitive_closure', 'root_transactions': [t['id'] for t in manifest.get('transactions',[])], 'root_jobs': [j['name'] for j in manifest.get('jobs', [])],
                       'selected_files': selected_paths, 'retained_files': inventory_paths,
                       'excluded_files': [{'path': p, 'reason': 'Not reached from selected jobs under the bounded static parser; retained for inventory and review'} for p in inventory_paths if p not in selected_paths],
                       'local_repository_checked': True, 'original_file_count': len(original_paths),

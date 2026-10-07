@@ -1,0 +1,38 @@
+name: Native platform smoke
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-workflow:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked binary dependencies
+        run: python -m pip install --require-hashes --only-binary=:all: -r requirements.lock
+      - name: Exercise native intake, ledger, reports and CLI
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          scratch = Path.cwd() / '.implementation' / 'tmp'
+          scratch.mkdir(parents=True, exist_ok=True)
+          os.environ['TMPDIR'] = str(scratch)
+          os.environ['TEMP'] = str(scratch)
+          os.environ['TMP'] = str(scratch)
+          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py'):
+              subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
+          subprocess.run([sys.executable, '-m', 'workbench.layout', '--workspace', '.'], check=True)
+          subprocess.run([sys.executable, 'tools/check_handoff.py'], check=True)
+          subprocess.run([sys.executable, 'tools/check_factory.py'], check=True)

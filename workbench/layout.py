@@ -19,7 +19,7 @@ ROOT_DIRS = frozenset({
     '.implementation', '.superpowers', 'release-private', '.git', '.venv',
     'node_modules', 'workbench', 'tests', 'tools', 'scripts', 'frontend',
     'docs', 'prompts', 'examples', '__pycache__', '.github',
-    '.vscode', 'Visio', 'certificates',
+    '.vscode', '.claude', 'Visio', 'certificates',
 })
 PROCESS_DIRS = frozenset({'input', 'analysis', 'review', 'synthetic', 'target', 'reports', 'tests'})
 PRIVATE_DIRS = frozenset({'.migration', '.implementation', '.superpowers', 'release-private', '.git', '.venv', 'node_modules', '__pycache__'})
@@ -41,7 +41,7 @@ def output_path(root, process_id, relative):
         require(parts[0] in {'target', 'tests'} or parts[:2] == ('input', 'sources'),
                 'Executable target/database output belongs under target or tests')
     if path.suffix.lower() == '.md':
-        require(relative == 'input/process-input.md' or parts[0] == 'input' and len(parts) >= 3 and parts[1] == 'sources',
+        require(relative == 'input/process-input.md' or relative=='analysis/requirements.md' or len(parts)==3 and parts[:2]==('analysis','requirements') and re.fullmatch(r'[0-9a-f]{64}\.md',parts[2]) or parts[0] == 'input' and len(parts) >= 3 and parts[1] == 'sources',
                 'Use structured analysis and coverage files; do not create Markdown per rule')
     return path
 
@@ -65,7 +65,7 @@ def validate_workspace(root):
             issues.append(child.name + ': root directory is not allowlisted')
         elif not child.is_file() and not child.is_dir():
             issues.append(child.name + ': root entries must be regular files or directories')
-    for category in ('Endeavor', 'processes', 'shared', 'knowledge', '.vscode', 'Visio', 'certificates'):
+    for category in ('Endeavor', 'processes', 'shared', 'knowledge', '.vscode', '.claude', 'Visio', 'certificates'):
         folder = root / category
         if not folder.is_dir() or folder.is_symlink(): continue
         identities={}

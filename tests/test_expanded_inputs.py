@@ -312,12 +312,25 @@ class ExpandedInputTests(unittest.TestCase):
 
     def test_r551_process_id_case_collision_is_reported(self):
         """Two existing case-only process roots must not be portable distinct histories; R036 rejected individual malformed IDs."""
-        for name in ('Case','case'): (self.root/'processes'/name).mkdir(parents=True)
-        self.assertTrue(validate_workspace(self.root))
+        folder=self.root/'processes';original=folder/'Case';original.mkdir(parents=True)
+        self.assertFalse(validate_workspace(self.root))
+        # Model directory entries that cannot coexist on a case-insensitive host.
+        rglob=Path.rglob
+        def entries(path,pattern):
+            return iter((original,folder/'case')) if path==folder else rglob(path,pattern)
+        with patch.object(Path,'rglob',entries):
+            self.assertTrue(any('identity collides' in issue for issue in validate_workspace(self.root)))
 
     def test_r552_process_nested_portable_name_collision_is_reported(self):
         """Two sibling artifact names differing only by case must fail a workspace scan; prior output_path checks were single-path checks."""
-        self.place('processes/fictional/analysis/Rules.json');self.place('processes/fictional/analysis/rules.json');self.assertTrue(validate_workspace(self.root))
+        self.place('processes/fictional/analysis/Rules.json');self.assertFalse(validate_workspace(self.root))
+        folder=self.root/'processes';rglob=Path.rglob
+        def entries(path,pattern):
+            items=list(rglob(path,pattern))
+            if path==folder:items.append(folder/'fictional/analysis/rules.json')
+            return iter(items)
+        with patch.object(Path,'rglob',entries):
+            self.assertTrue(any('identity collides' in issue for issue in validate_workspace(self.root)))
 
     def test_r553_process_fifo_cannot_hide_issued_evidence(self):
         """A FIFO inside a reports directory must be visible as invalid evidence without blocking the scan; prior category checks tested regular files."""

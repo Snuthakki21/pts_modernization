@@ -134,6 +134,8 @@ def import_project_config(workspace, config_file, schema_file=None, user_config=
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check',action='store_true',help='Inspect selected project config with redacted structural diagnostics')
+    parser.add_argument('--normalize',action='store_true',help='Deduplicate secure declarations only, preserving all profiles/defaults and a private backup')
     parser.add_argument('--workspace', default=str(Path.cwd()))
     parser.add_argument('--profile', default='workbench_base', help='Base profile alias')
     parser.add_argument('--zosmf-profile', help='Paired z/OSMF service alias')
@@ -146,6 +148,10 @@ def main(argv=None):
     parser.add_argument('--secure',action='store_true',help='Run Zowe secure prompts locally after preparing declarations; requires a terminal')
     args = parser.parse_args(argv)
     try:
+        if args.check or args.normalize:
+            require(not(args.interactive or args.secure or args.import_config),'Choose inspection/normalization separately from setup')
+            result=inspect_project_config(args.workspace,normalize=args.normalize)
+            print(json.dumps(result,indent=2));return 2 if result['issues'] else 0
         require(not(args.interactive and args.import_config),'Import selected files first, then run guided profile setup')
         require(not(args.secure and args.import_config),'Import selected files first, then initialize the selected secure profile')
         if args.interactive or args.secure:
@@ -180,6 +186,75 @@ def main(argv=None):
         return 2
     print(json.dumps(result, indent=2))
     return 0
+
+
+
+
+def inspect_project_config(workspace, normalize=False):
+    """Redacted structural diagnostics; normalize only duplicate secure declarations.
+
+    No profiles/defaults/credentials are renamed or removed. This does not run
+    Zowe, read its credential store, or imply successful connectivity.
+    """
+    root = Path(workspace).absolute(); require_layout(root)
+    path = safe_path(root, 'zowe.config.json')
+    require(path.is_file() and path.stat().st_size <= 1024*1024, 'Provide a bounded project Zowe config')
+    raw = path.read_bytes(); config = decode(raw, 1024*1024)
+    require(isinstance(config, dict) and isinstance(config.get('profiles'), dict), 'Project profiles must be an object')
+    result = []; known = {}; duplicates = []; inline = False
+    def visit(profiles, prefix=''):
+        nonlocal inline
+        for name, profile in profiles.items():
+            require(isinstance(profile,dict), 'Profile must be an object')
+            alias = prefix+name; properties = profile.get('properties', {}); secure = profile.get('secure', [])
+            require(isinstance(properties,dict) and isinstance(secure,list) and all(isinstance(s,str) for s in secure), 'Invalid profile properties or secure fields')
+            inline |= any(properties.get(k) not in (None,'') for k in ('user','password','tokenValue','certKeyFile'))
+            unique = list(dict.fromkeys(secure))
+            if secure != unique:
+                duplicates.append(alias)
+                if normalize: profile['secure'] = unique
+            known[alias] = profile.get('type')
+            result.append({'alias':alias,'type':profile.get('type'),'property_names':sorted(properties),'secure_fields':unique})
+            children = profile.get('profiles', {})
+            require(isinstance(children,dict), 'Nested profiles must be an object')
+            visit(children, alias+'.')
+    visit(config['profiles'])
+    defaults = config.get('defaults', {})
+    require(isinstance(defaults,dict), 'Defaults must be an object')
+    issues = []
+    for kind, alias in defaults.items():
+        if not isinstance(alias,str) or known.get(alias) != kind: issues.append('Default '+kind+' does not select a matching profile type')
+    if inline: issues.append('Inline credential fields require local secure-store migration')
+    schema = safe_path(root,'zowe.schema.json')
+    schema_status = 'NOT_PRESENT'
+    if schema.exists():
+        require(schema.is_file() and schema.stat().st_size<=1024*1024,'Invalid project schema file')
+        document=decode(schema.read_bytes(),1024*1024)
+        pending=[document]; external=False
+        while pending:
+            item=pending.pop()
+            if isinstance(item,dict):
+                external |= isinstance(item.get('$ref'),str) and not item['$ref'].startswith('#')
+                pending.extend(item.values())
+            elif isinstance(item,list): pending.extend(item)
+        if external:schema_status='EXTERNAL_REFERENCES_NOT_FETCHED'
+        else:
+            from jsonschema.validators import validator_for
+            validator=validator_for(document);validator.check_schema(document)
+            errors=list(validator(document).iter_errors(config))
+            schema_status='INVALID' if errors else 'VALID'
+            issues.extend('Schema mismatch at '+'.'.join(map(str,e.absolute_path)) for e in errors)
+    changed=False
+    if normalize and duplicates:
+        require(not inline and not issues and schema_status=='VALID','Resolve profile/schema diagnostics before normalization')
+        from .domain import sha
+        backup=safe_path(root,'.implementation/tmp/zowe-config-'+sha(raw)+'.json')
+        if not backup.exists():write_new(backup,raw)
+        require(path.read_bytes()==raw,'Project config changed during inspection')
+        atomic_json(path,config);changed=True
+    return {'profiles':result,'defaults':defaults,'issues':issues,'duplicate_secure_declarations':duplicates,
+            'schema':schema_status,'changed':changed,'credentials':'UNVERIFIED','connectivity':'UNVERIFIED',
+            'boundary':'Structure only; preserve selected service roles and test an authorized read separately'}
 
 
 if __name__ == '__main__': raise SystemExit(main())

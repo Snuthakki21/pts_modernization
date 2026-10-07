@@ -159,7 +159,7 @@ def build_task(doc, source_files, analysis=None):
                             'Every unknown or unsupported behavior remains blocked until its reviewed implementation passes coordinator gates.',
                             'Never answer, alter or impersonate the SME; preserve the single-packet quota.',
                             'Do not claim observed mainframe parity or a completed adapter based on suggestions.',
-                            'Copilot token usage and model identity are not observed by this local bridge.'],
+                            'AI credits and model identity are unknown without an actual host receipt; never estimate credit counts from tokens.'],
             'scope': {'jobs': deepcopy(doc.get('jobs', [])), 'source_inventory': inventory,
                       'classifications': deepcopy(analysis.get('classifications', {})),
                       'selected_source_files': deepcopy(doc.get('lineage_scope', list(inventory))),
@@ -179,6 +179,66 @@ def build_task(doc, source_files, analysis=None):
                                 'adapter_task': {'id': 'GAP ID from this task', 'implementation_plan': 'source-supported implementation/evidence or named missing evidence', 'expected_tests': ['specific tests to implement/run']},
                                 'optional_agent': {'name': 'self-reported agent name', 'model': 'self-reported model or UNKNOWN', 'session_id': 'self-reported session ID or UNKNOWN'}},
             'usage': unknown_usage(), 'authority': 'UNVERIFIED_AGENT_SUGGESTIONS'}
+    if doc.get('process_context'):
+        task['context_documents']=[{k:v for k,v in d.items() if k!='text'} for d in doc['process_context']['documents']]
+        task['context_tool']='workbench_context_excerpt'
+    if doc.get('sme_packet_version',1)>=4:
+        task['continuation']={'previous_analysis_hash':doc.get('previous_analysis_hash'), 'current_analysis_hash':lineage['analysis_hash'], 'progress': 'UNCHANGED' if doc.get('previous_analysis_hash')==lineage['analysis_hash'] else 'CHANGED' if doc.get('previous_analysis_hash') else 'INITIAL', 'next_action':'Implement and test missing semantics, refresh after loading changed adapters, then submit current task. Do not repeat an unchanged failing approach.'}
+        task['kind']='EXTERNAL_AGENT_ANALYSIS_HANDOFF'
+        task['usage']['source']='external_agent_not_observed'
+        task['program_catalog']={name:{'source_hash':p['source_hash'],'rule_count':len(p['rules'])} for name,p in analysis['programs'].items()}
+        task['return_contract']['optional_rule_classification_defaults']='Explicit category/reason per frozen program for its extracted decisions; per-rule classifications override. Human questions expose categories; never infer business purpose from syntax.'
+        task['rule_catalog']={r['id']:{'description':r['plain'],'source_refs':r['source_refs']} for r in analysis['rules'][:50]}
+        task['rule_catalog_total']=len(analysis['rules'])
+        task['rule_catalog_complete']=len(analysis['rules'])<=50
+        task['rule_catalog_tool']='workbench_rules'
+        task['return_contract']['optional_rule_classifications']='Map frozen rule IDs to category (business_rule, technical_logic, unclassified) and a source-grounded reason. Never classify from syntax alone.'
+    if doc.get('factory_contract_version'):
+        from .factory import bounded_view
+        factory=bounded_view(doc)
+        task['factory']={key:factory[key] for key in ('schema_version','stage','counts','service_design','investigation_strategy')}
+        task['factory']['capabilities']=[{key:item[key] for key in ('id','state','source_count','gap_count')} for item in factory['capabilities']]
+        task['factory']['transactions']=[{key:item[key] for key in ('id','program','mapset','map')} for item in factory['transactions']]
+        task['factory_tool']='workbench_factory'
+    if doc.get('requirements'):
+        task['requirements']={'path':doc['requirements_artifact'],'sha256':doc['artifact_hashes'][doc['requirements_artifact']],
+            'revision':doc['requirements']['revision'],'excluded_count':len(doc['requirements']['excluded_ids']),
+            'tool':'workbench_requirements','authority':'Saved operator scope; never change choices or infer SME approval. Every No stays accounted, every Yes requires tested implementation.'}
+    if doc.get('development_contract_version'):
+        task['requested_analysis'] = ('Copilot inspects the selected process using frozen inventory, manifest, knowledge and bounded source evidence. '
+            'For coding work prepare a source-free workbench_prepare_development handoff to standalone Claude Code outside VS Code. '
+            'Inspect returned framework changes and test/review evidence; request a revised development handoff if needed. '
+            'Integrate only reviewed changes, run verification, restart the existing service when code changed, then refresh_analysis and retrieve a fresh task before submit_analysis. '
+            'Return evidence-grounded assumptions and review statements. Preserve missing evidence and unsupported gaps. Never send operational source to the development role or submit commands/SME answers.')
+        if 'continuation' in task:
+            task['continuation']['next_action'] = 'Copilot gathers evidence; standalone Claude develops through the source-free handoff; Copilot integrates, verifies, refreshes and submits the fresh task.'
+        task['host_roles'] = {
+            'copilot': 'VS Code discovery, approved source/Zowe/Db2 information, requirements and operational continuation',
+            'claude': 'Standalone external-terminal framework development through a source-free workbench_prepare_development handoff',
+            'integration': 'Inspect the development return, integrate exact framework content, run tests and independent review, restart the existing service if needed, refresh analysis and retrieve a new task. A return never clears gaps.',
+            'prepare_tool': 'workbench_prepare_development',
+            'adapter_fingerprint': doc.get('analysis_adapter_fingerprint')}
+        prior = doc.get('development_handoff')
+        if prior and prior.get('return_artifact'):
+            task['development_return'] = {'path': prior['return_artifact'],
+                'sha256': doc['artifact_hashes'][prior['return_artifact']],
+                'authority': 'UNVERIFIED_DEVELOPER_RETURN',
+                'requirement': 'Copilot must inspect actual integrated code and test/review evidence. Unresolved developer work remains visible; source-specific semantics still require Coordinator verification.'}
+    if doc.get('agent_transport')=='local_files':
+        for key in ('context_tool','rule_catalog_tool','factory_tool'):task.pop(key,None)
+        if 'requirements' in task:task['requirements'].pop('tool',None)
+        task['local_evidence']={'relative_to':'processes/'+doc['id'], 'source_directory':'input/sources',
+            'analysis':doc.get('analysis_artifact'), 'mainframe_knowledge':'analysis/mainframe-knowledge.json',
+            'context':'analysis/process-context.json' if doc.get('process_context') else None,
+            'instruction':'Read the bounded relevant spans from these local files. Full rules, classifications and blockers are in the frozen analysis. Do not configure or call MCP in Claude.'}
+        task['kind']='LOCAL_FILE_CLAUDE_ANALYSIS_TASK'
+        task['usage']={**unknown_usage(),'source':'claude_host_not_observed'}
+        task['host_roles']={
+            'copilot':'Retrieve requested evidence only; no development, analysis, testing or review',
+            'claude':'Analyze approved local files, develop, test and review without any MCP integration',
+            'transport':'python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE; local files and the existing Coordinator only'}
+        task['requested_analysis']='Claude reads frozen local source/context and requirements, performs evidence-backed analysis, implementation, randomized tests and independent review. Request missing source through runner agent --request-file; provide its Copilot retrieval prompt and exact inbox. On Continue validate and import those files before reassessing. Refresh after tested code changes, then submit the current task-bound analysis through runner agent --analysis-file. Never configure MCP in Claude or infer SME answers.'
+        if 'continuation' in task:task['continuation']['next_action']='Continue through the local-file runner. Copilot retrieves missing files only; Claude owns analysis, coding, testing and review.'
     task['task_hash'] = sha(encode(task))
     return task
 
@@ -197,19 +257,38 @@ def _text_list(value, label):
     return [_text(item, 2000, label, True) for item in value]
 
 
-def validate_submission(task, submitted):
+def validate_submission(task, submitted, source_analysis=None):
     """Validate structure and lineage; this explicitly does not certify semantics."""
     require(isinstance(task, dict) and isinstance(submitted, dict), 'Agent task and analysis must be objects')
     require(len(encode(submitted)) <= MAX_RETURN_BYTES, 'Copilot analysis exceeds 128 KB')
     fingerprint = sha(encode({key: value for key, value in task.items() if key != 'task_hash'}))
     require(task.get('task_hash') == fingerprint, 'Frozen Copilot task integrity failed')
     fields = {'process_id', 'task_hash', 'lineage_hash', 'summary', 'assumptions', 'questions', 'source_refs', 'adapter_tasks'}
-    require(fields <= set(submitted) <= fields | {'agent'}, 'Invalid Copilot analysis contract; SME answers, commands and completion claims are not accepted')
+    require(fields <= set(submitted) <= fields | {'agent','rule_classifications','rule_classification_defaults'}, 'Invalid Copilot analysis contract; SME answers, commands and completion claims are not accepted')
     for key in ('process_id', 'task_hash', 'lineage_hash'):
         require(submitted[key] == task[key], 'Copilot analysis does not match frozen ' + key)
     analysis = {'summary': _text(submitted['summary'], 8000, 'summary', True),
                 'assumptions': _text_list(submitted['assumptions'], 'assumptions'),
                 'questions': _text_list(submitted['questions'], 'questions')}
+    if 'rule_classification_defaults' in submitted:
+        defaults=submitted['rule_classification_defaults']
+        require(isinstance(defaults,dict) and len(defaults)<=10000,'Invalid classification defaults')
+        for name,entry in defaults.items():
+            require(name in task.get('program_catalog',{}) and isinstance(entry,dict) and set(entry)=={'category','reason'},'Classification default must reference a frozen program')
+            require(entry['category'] in ('business_rule','technical_logic','unclassified'),'Invalid rule category')
+            _text(entry['reason'],1000,'classification evidence',True)
+        analysis['rule_classification_defaults']=deepcopy(defaults)
+    if 'rule_classifications' in submitted:
+        categories=submitted['rule_classifications']
+        require(isinstance(categories,dict),'Invalid rule classifications')
+        if source_analysis is not None:
+            require(sha(encode(source_analysis))==task['lineage']['analysis_hash'],'Classification source analysis differs from task')
+        known={r['id'] for r in source_analysis['rules']} if source_analysis is not None else task.get('rule_catalog',{})
+        for rid,entry in categories.items():
+            require(rid in known and isinstance(entry,dict) and set(entry)=={'category','reason'},'Classification must reference a frozen rule')
+            require(entry['category'] in ('business_rule','technical_logic','unclassified'),'Invalid rule category')
+            _text(entry['reason'],1000,'classification evidence',True)
+        analysis['rule_classifications']=deepcopy(categories)
     refs = submitted['source_refs']; inventory = task['lineage']['sources']
     require(isinstance(refs, list) and 0 < len(refs) <= 100, 'Provide 1 to 100 source evidence references')
     for ref in refs:
@@ -230,7 +309,7 @@ def validate_submission(task, submitted):
         tests = _text_list(item['expected_tests'], 'adapter expected tests')
         require(tests, 'Each adapter gap requires meaningful expected tests')
     require(returned_ids == gaps, 'Address every adapter gap with an implementation/evidence plan; unresolved behavior remains blocked')
-    agent = submitted.get('agent', {'name': 'GitHub Copilot Chat', 'model': 'UNKNOWN', 'session_id': 'UNKNOWN'})
+    agent = submitted.get('agent', {'name': 'Claude Code (local files)' if task.get('kind')=='LOCAL_FILE_CLAUDE_ANALYSIS_TASK' else 'External agent' if task.get('kind')=='EXTERNAL_AGENT_ANALYSIS_HANDOFF' else 'GitHub Copilot Chat', 'model': 'UNKNOWN', 'session_id': 'UNKNOWN'})
     require(isinstance(agent, dict) and set(agent) == {'name', 'model', 'session_id'}, 'Invalid agent attribution')
     for key, value in agent.items(): _text(value, 256, 'agent ' + key, True)
     return {'status': 'AGENT_ANALYSIS_RETURNED', 'analysis': analysis,
@@ -241,5 +320,5 @@ def validate_submission(task, submitted):
                            'agent_identity': 'SELF_REPORTED_NOT_AUTHENTICATED',
                            'returned_analysis_hash': sha(encode(submitted)),
                            'validation': 'STRUCTURE_AND_FROZEN_SOURCE_LINEAGE_ONLY'},
-            'usage': unknown_usage(), 'live_ready': False,
+            'usage': {**unknown_usage(), 'source':'claude_host_not_observed' if task.get('kind')=='LOCAL_FILE_CLAUDE_ANALYSIS_TASK' else 'external_agent_not_observed' if task.get('kind')=='EXTERNAL_AGENT_ANALYSIS_HANDOFF' else 'github_copilot_chat_not_observed'}, 'live_ready': False,
             'authority': 'Unverified GitHub Copilot Chat suggestions; source evidence, actual SME answers and deterministic execution gates remain authoritative.'}

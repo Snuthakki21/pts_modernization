@@ -1,4 +1,5 @@
 """Loopback control API; explicit bounds and same-origin mutation protection."""
+import json
 import base64
 import secrets
 import asyncio
@@ -48,7 +49,11 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         result=decode(bytes(raw),limit);require(isinstance(result,dict),'Request must be a JSON object');return result
     def display_process(doc):
         # Polling never repeats full synthetic record bodies. Evidence is downloaded on demand.
-        result=dict(doc)
+        result={k:v for k,v in doc.items() if k!='process_context'}
+        if doc.get('requirements'):
+            result['requirements']={k:v for k,v in doc['requirements'].items() if k!='excluded_ids'}
+            result['requirements']['excluded_count']=len(doc['requirements']['excluded_ids'])
+        result.pop('requirements_draft_exclusions',None)
         result['blocker_count']=len(doc.get('blockers',[]))
         result['blockers']=doc.get('blockers',[])[:50]
         result['blockers_truncated']=result['blocker_count']>50
@@ -57,6 +62,11 @@ def create_app(root, origin='http://127.0.0.1:8765'):
             accounting=doc['analysis'].get('source_accounting')
             result['analysis']={k:v for k,v in doc['analysis'].items() if k not in ('programs','source_accounting')}
             result['analysis']['assets']=[{k:v for k,v in asset.items() if k not in ('source_text','coverage','rules','fields')} for asset in doc['analysis'].get('assets',[])]
+            result['analysis']['rule_count']=len(doc['analysis'].get('rules',[]))
+            result['analysis']['rules']=doc['analysis'].get('rules',[])[:50]
+            result['analysis']['rules_truncated']=result['analysis']['rule_count']>50
+            if doc['analysis'].get('requirements'):
+                result['analysis']['requirements']={'catalog_hash':doc['analysis']['requirements']['catalog_hash'],'excluded_count':len(doc['analysis']['requirements']['excluded_units'])}
             result['analysis']['blocker_count']=len(doc['analysis'].get('blockers',[]))
             result['analysis']['blockers']=doc['analysis'].get('blockers',[])[:50]
             result['analysis'].update(source_accounted_file_count=len(accounting) if isinstance(accounting,dict) else None,
@@ -73,8 +83,13 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return {'processes':[display_process(p) for p in c.ledger.list(True)],'portfolio':portfolio(c.ledger),'token':token,
                 'inventory_baseline':load_inventory(c.root),
                 'provider_usage':c.provider.usage_summary() if c.provider else empty_usage_summary(),
-                'capability':'Job-led discovery, Copilot Chat analysis and source accountability; executable credit requires verified semantic adapters.',
+                'capability':'Local job-led discovery, Claude analysis and Copilot file retrieval; executable credit requires verified semantic adapters.',
                 'connections':{'zowe_profile_configured':bool(__import__('os').environ.get('WB_ZOWE_PROFILE')),'db2_endpoint_configured':bool(__import__('os').environ.get('WB_DB2_MCP_URL')),'llm_configured':bool(c.provider),'local_source_export':(c.root/'Endeavor').is_dir()}}
+    @app.get('/api/session-token')
+    async def session_token():
+        # Developer-role mutations need CSRF material, not the operational state.
+        return {'token': token}
+
     @app.get('/api/setup')
     async def setup():
         from .setup import inspect_setup
@@ -117,7 +132,105 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         if sources is not None:
             require(isinstance(sources,dict) and all(isinstance(v,str) for v in sources.values()),'Uploaded sources must be text files')
             require(sum(len(v.encode('utf-8')) for v in sources.values())<=MAX_UI_SOURCE_BYTES,'Browser source upload exceeds 32 MiB; retain the complete repository in local Endeavor instead')
-        return await asyncio.to_thread(c.create,b['manifest'],sources,False,b.get('prompt',''),b.get('assistant_mode','copilot_chat'))
+        return await asyncio.to_thread(c.create,b['manifest'],sources,False,b.get('prompt',''),b.get('assistant_mode','claude_files'),b.get('source_folder'),b.get('process_notes'),True)
+
+    @app.get('/api/process/{pid}/requirements/source')
+    async def requirements_source(pid:str,path:str):
+        doc=c.ledger.get(pid);sources=await asyncio.to_thread(c.sources,doc)
+        require(path in sources,'Source file is outside this process snapshot')
+        return Response(sources[path],media_type='text/plain',headers={'Content-Disposition':"attachment; filename=\"source.txt\"; filename*=UTF-8''"+quote(Path(path).name,safe='')})
+
+    @app.get('/api/process/{pid}/requirements')
+    async def requirements(pid:str,after:int=0,path:str|None=None):
+        return await asyncio.to_thread(c.requirements_view,pid,after,path)
+
+    @app.post('/api/process/{pid}/requirements')
+    async def save_requirements(pid:str,request:Request):
+        return display_process(await asyncio.to_thread(c.save_requirements,pid,await body(request,4*1024*1024)))
+
+    @app.get('/api/economics')
+    async def economics(process_id:str|None=None):
+        return await asyncio.to_thread(c.economics,process_id)
+
+    @app.post('/api/economics/forecast')
+    async def preview_forecast(request:Request):
+        b=await body(request,65536);require(set(b)<={'process_id','plan'} and 'plan' in b,'Supply a forecast plan')
+        return await asyncio.to_thread(c.economics,b.get('process_id'),b['plan'])
+
+    @app.post('/api/economics/work/start')
+    async def start_work(request:Request):return c.begin_work(await body(request,4096))
+
+    @app.post('/api/economics/work/stop')
+    async def stop_work(request:Request):
+        b=await body(request,4096);require(set(b)<={'id','abandon'} and isinstance(b.get('id'),str) and type(b.get('abandon',False)) is bool,'Supply work session ID and optional abandon boolean')
+        return c.end_work(b['id'],b.get('abandon',False))
+
+    @app.post('/api/economics/receipts')
+    async def record_measurement(request:Request):
+        return await asyncio.to_thread(c.record_measurement,await body(request,65536))
+
+    @app.get('/api/process/{pid}/factory')
+    async def factory(pid:str,after:int=0,program_after:int=0):
+        from .factory import bounded_view
+        return bounded_view(c.ledger.get(pid),after,program_after)
+
+    @app.get('/api/process/{pid}/agent/rules')
+    async def agent_rules(pid:str,after:int=0):
+        require(after>=0,'Invalid rule cursor')
+        task=c.agent_task(pid)
+        frozen=json.loads(c.artifact(pid,task['analysis_reference']['path']).read_text(encoding='utf-8'))
+        rules=frozen['rules'];require(after<=len(rules),'Invalid rule cursor')
+        entries=rules[after:after+50]
+        return {'process_id':pid,'task_hash':task['task_hash'],'items':entries,'total':len(rules),'next_after':after+len(entries),'has_more':after+len(entries)<len(rules)}
+
+    @app.get('/api/process/{pid}/agent/obligations')
+    async def agent_obligations(pid:str,after:int=0):
+        require(after>=0,'Invalid obligation cursor')
+        task=c.agent_task(pid)
+        frozen=json.loads(c.artifact(pid,task['analysis_reference']['path']).read_text(encoding='utf-8'))
+        blockers=frozen['blockers'];require(after<=len(blockers),'Invalid obligation cursor')
+        entries=blockers[after:after+50]
+        return {'process_id':pid,'task_hash':task['task_hash'],'items':[{'index':after+i,**entry} for i,entry in enumerate(entries)],'total':len(blockers),'next_after':after+len(entries),'has_more':after+len(entries)<len(blockers)}
+
+    @app.get('/api/process/{pid}/agent/context')
+    async def agent_context(pid:str,document_id:str,start_line:int=1,end_line:int|None=None):
+        from .process_context import excerpt
+        snapshot=json.loads(c.artifact(pid,'analysis/process-context.json').read_text(encoding='utf-8'))
+        return excerpt(snapshot,document_id,start_line,end_line)
+
+    @app.get('/api/process/{pid}/local-agent')
+    async def local_agent(pid:str):return await asyncio.to_thread(c.local_agent_view,pid)
+
+    @app.post('/api/process/{pid}/local-agent/{action}')
+    async def local_agent_action(pid:str,action:str,request:Request):
+        return await asyncio.to_thread(c.local_agent_action,pid,action,await body(request,256000))
+
+    @app.get('/api/process/{pid}/retrieval')
+    async def retrieval_task(pid:str):
+        view=await asyncio.to_thread(c.local_agent_view,pid)
+        return {'process_id':pid,'retrieval':view['retrieval'],'retrieval_state':view['retrieval_state'],
+                'instruction':'Copilot retrieves requested files to the exact local inbox only. Claude owns analysis, development, testing and review without MCP.'}
+
+    @app.get('/api/process/{pid}/development')
+    async def development_view(pid:str):return await asyncio.to_thread(c.development_view,pid)
+
+    @app.post('/api/process/{pid}/development')
+    async def prepare_development(pid:str,request:Request):
+        require(await body(request,1024)=={},'Development preparation accepts no source or custom instructions')
+        return await asyncio.to_thread(c.prepare_development,pid)
+
+    @app.post('/api/process/{pid}/development/revise')
+    async def revise_development(pid:str,request:Request):
+        payload=await body(request,1024);require(set(payload)=={'reason','handoff_id'},'Supply the current handoff ID and revision reason')
+        return await asyncio.to_thread(c.revise_development,pid,payload['reason'],payload['handoff_id'])
+
+    @app.get('/api/development/{handoff_id}')
+    async def development_task(handoff_id:str):return await asyncio.to_thread(c.development_task,handoff_id)
+
+    @app.post('/api/development/{handoff_id}/return')
+    async def development_return(handoff_id:str,request:Request):
+        from .development import MAX_RETURN_BYTES
+        return await asyncio.to_thread(c.submit_development,handoff_id,await body(request,MAX_RETURN_BYTES))
 
     @app.get('/api/process/{pid}/agent/task')
     async def agent_task(pid:str):return await asyncio.to_thread(c.agent_task,pid)
@@ -169,7 +282,8 @@ def create_app(root, origin='http://127.0.0.1:8765'):
             # The accepted report keeps relative links for downloaded bundles. The
             # browser view points the fixed evidence links at verified local
             # artifact reads, leaving the frozen report bytes unchanged.
-            allowed={'coverage.html','metrics.json','management.pptx','inspection.json','../../analysis/source-analysis.json'}
+            from .executive import EVIDENCE_FILES
+            allowed=EVIDENCE_FILES
             def evidence_link(match):
                 name=match.group(1)
                 require(name in allowed,'Unsupported inline report evidence link')

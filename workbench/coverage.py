@@ -25,7 +25,7 @@ VERIFIED = {'mapped_verified', 'platform_replaced_verified'}
 COLUMNS = ('source_path', 'source_kind', 'source_hash', 'source_line', 'source_text',
            'source_line_hash', 'unit_id', 'source_start', 'source_end', 'disposition',
            'target_file', 'target_version', 'target_start', 'target_end', 'target_mappings',
-           'tests', 'reason', 'replacement', 'evidence')
+           'tests', 'reason', 'replacement', 'evidence', 'requirement_id', 'requirements_excluded')
 EXCEL_MAX_ROWS = 1048576
 
 
@@ -90,10 +90,15 @@ def _program_evidence(doc, root, base, name, p, global_errors, checkpoint=None):
         expected_raw = _read(expected_path); actual_raw = _read(actual_path)
         suite = json.loads(expected_raw)
         require(suite.get('coverage',{}).get('min_records_per_logic',0)==doc.get('logic_validation_min_records',0),
-                'Frozen per-logic validation record minimum differs from the process contract')
+                'Frozen expected suite per-logic validation record minimum differs from the process contract')
+        options={}
+        if doc.get('fixture_contract_version')==4:
+            require(suite.get('version')==4 and doc.get('authorization',{}).get('fixture_contract_version')==4,
+                    'Frozen fixture policy differs from process authorization')
+            options['fixture_contract_version']=4
         reproduced = plan_cases(p, doc.get('authorization', {}).get('seed', 21),
                                 doc.get('authorization', {}).get('max_cases_per_program', 256),
-                                suite.get('coverage',{}).get('min_records_per_logic',0))
+                                suite.get('coverage',{}).get('min_records_per_logic',0),**options)
         require(expected_raw == encode(reproduced), 'Frozen expected evidence changed or cannot be reproduced')
         require(actual_raw == encode(result), 'Stored actual evidence differs from its run record')
         replay = verify_program(p, code, suite, checkpoint=checkpoint)
@@ -113,6 +118,18 @@ def _program_evidence(doc, root, base, name, p, global_errors, checkpoint=None):
             {'file':expected_path.relative_to(root).as_posix(), 'sha256':sha(expected_raw), 'kind':'frozen_source_expectations'},
             {'file':actual_path.relative_to(root).as_posix(), 'sha256':sha(actual_raw), 'kind':'reproduced_target_comparison'},
             {'file':copy_path.relative_to(root).as_posix(), 'sha256':sha(raw), 'kind':'executed_target_version'}]
+        if doc.get('fixture_contract_version')==4:
+            from .unit_evidence import generate_unit_tests, run_unit_tests
+            module=safe_path(base/'tests',run_id+'/'+name+'/test_generated.py')
+            receipt=safe_path(base/'tests',run_id+'/'+name+'/unit-results.json')
+            script=generate_unit_tests(p,suite,version)
+            require(_read(module)==script.encode(),'Generated unit test module changed')
+            unit=run_unit_tests(script,module,checkpoint=checkpoint)
+            require(_read(receipt)==encode(unit) and unit['passed'],'Generated unit test receipt failed or changed')
+            expected_unit={**unit,'module':module.relative_to(base).as_posix(),'receipt':receipt.relative_to(base).as_posix()}
+            require(encode(result.get('unit_tests'))==encode(expected_unit),'Unit test run evidence differs')
+            state['evidence'] += [{'file':module.relative_to(root).as_posix(),'sha256':sha(script),'kind':'executable_unit_tests'},
+                                  {'file':receipt.relative_to(root).as_posix(),'sha256':sha(encode(unit)),'kind':'reproduced_unit_test_results'}]
         state['verified'] = not global_errors
         state['reason'] = 'SME-confirmed source IR, reproduced frozen synthetic expectations and matching target outputs; bounded local evidence.'
         if global_errors: state['reason'] = 'Source or analysis integrity failed; existing verification cannot receive credit.'
@@ -150,9 +167,9 @@ def _job_evidence(doc, root, base, global_errors, checkpoint=None):
         order_answer=(doc.get('answers') or {}).get('items',{}).get('G_ORDER',{})
         require(order_answer.get('answer')=='Yes' and not order_answer.get('correction'),'Job order/dispatch SME confirmation is unresolved')
         state['verified'] = not global_errors
-        state['tests'] = ['ordered_record_adapter_baseline']
+        state['tests'] = result.get('case_ids',['ordered_record_adapter_baseline'])
         state['evidence'] = [{'file':comparison_path.relative_to(root).as_posix(), 'sha256':sha(comparison_raw), 'kind':'reproduced_job_comparison'}]
-        state['reason'] = 'One reproduced ordered JSON-record adapter job baseline; native scheduler and dataset I/O are not reproduced.'
+        state['reason'] = str(result.get('integration_cases',1))+' reproduced ordered JSON-record adapter cases; native scheduler and dataset I/O are not reproduced.'
     except Exception as exc: state['reason'] = str(exc) or type(exc).__name__
     return state
 
@@ -165,14 +182,18 @@ def _manifest_integrity(doc,base):
     raw=_read(base/'input/process-input.md')
     require(sha(raw)==pinned,'Frozen manifest bytes changed from the pinned intake baseline')
     manifest=parse_manifest(raw.decode('utf-8'))
-    require(encode(manifest)==encode({key:doc.get(key) for key in ('id','name','jobs')}),
+    require(encode(manifest)==encode({key:doc.get(key) for key in manifest}),
             'Frozen manifest identity/name/jobs differ from the pinned process document')
+    require(manifest.get('transactions')==doc.get('transactions') and manifest.get('workload')==doc.get('workload'),'Online metadata differs from frozen intake')
     if 'mainframe_knowledge' in doc or 'analysis/mainframe-knowledge.json' in doc.get('artifact_hashes',{}):
         from .mainframe import validate_snapshot
         snapshot=doc.get('mainframe_knowledge');validate_snapshot(snapshot)
         raw=_read(base/'analysis/mainframe-knowledge.json')
         require(raw==encode(snapshot) and sha(raw)==doc.get('artifact_hashes',{}).get('analysis/mainframe-knowledge.json'),
                 'Frozen mainframe knowledge changed or is missing its recorded baseline')
+    if 'process_context' in doc:
+        raw=_read(base/'analysis/process-context.json')
+        require(raw==encode(doc['process_context']) and sha(raw)==doc.get('artifact_hashes',{}).get('analysis/process-context.json'),'Frozen process Markdown context changed')
     if 'inventory_baseline' in doc:
         from .inventory import validate_snapshot
         snapshot=doc['inventory_baseline'];validate_snapshot(snapshot)
@@ -244,6 +265,12 @@ def build_coverage(doc, workspace_root, checkpoint=None):
     for label,check in [('Manifest',lambda:_manifest_integrity(doc,base)),('SME review',lambda:_review_integrity(doc,base)),('Target database',lambda:_database_integrity(doc,root,base))]:
         try:check()
         except Exception as exc:errors.append(label+': '+(str(exc) or type(exc).__name__))
+    if doc.get('requirements'):
+        try:
+            from .requirements import verify_snapshot,catalog
+            verify_snapshot(doc,root,catalog(analysis))
+        except Exception as exc:errors.append('Requirements: '+str(exc))
+    excluded={(u['source_path'],n):u for u in analysis.get('requirements',{}).get('excluded_units',[]) for n in range(u['start_line'],u['end_line']+1)}
     for path, expected_hash in sorted(doc.get('source_files', {}).items()):
         frozen_text = assets.get(path, {}).get('source_text')
         if frozen_text is None:
@@ -381,12 +408,19 @@ def build_coverage(doc, workspace_root, checkpoint=None):
                 reason = state['reason']
             if errors and disposition in VERIFIED:
                 disposition = disposition.replace('_verified', '_unverified'); reason = 'Source or analysis integrity failed; mapping cannot receive verified credit.'
+            excluded_unit=excluded.get((path,line_no))
+            if excluded_unit:
+                from .requirements import NO_REASON
+                disposition='out_of_scope';reason=NO_REASON;replacement=NO_REASON;mappings=[];tests=[]
+                unit='requirements:'+excluded_unit['id'];start=excluded_unit['start_line'];end=excluded_unit['end_line']
+                evidence=[{'path':doc['requirements_artifact'],'sha256':doc.get('artifact_hashes',{}).get(doc['requirements_artifact'])}]
             target = mappings[0] if mappings else {}
             rows.append({'source_path':path, 'source_kind':kind, 'source_hash':doc['source_files'][path],
                          'source_line':line_no, 'source_text':original, 'source_line_hash':sha(original),
                          'unit_id':sha(doc['source_files'][path]+':'+unit), 'source_start':start, 'source_end':end,
                          'disposition':disposition, 'target_file':target.get('file'), 'target_version':target.get('version'),
                          'target_start':target.get('start'), 'target_end':target.get('end'), 'target_mappings':mappings,
+                         'requirements_excluded':bool(excluded_unit), 'requirement_kind':excluded_unit['kind'] if excluded_unit else None, 'requirement_id':excluded_unit['id'] if excluded_unit else None,
                          'tests':sorted(set(tests)), 'reason':reason, 'replacement':replacement, 'evidence':evidence})
     distribution=Counter(row['disposition'] for row in rows)
     counts = {d:distribution[d] for d in DISPOSITIONS}
@@ -404,7 +438,7 @@ def build_coverage(doc, workspace_root, checkpoint=None):
     fully_accounted = bool(doc.get('source_files')) and len(inventory) == len(doc['source_files']) and all(source_ok.values()) and len(rows) == sum(f['physical_lines'] for f in inventory)
     summary = {'fully_accounted':fully_accounted, 'completion_eligible':fully_accounted and not integrity and bool(applicable) and applicable == verified and bool(doc.get('verification_finished')) and not doc.get('cancel_requested') and not [b for b in doc.get('blockers',[]) if b.get('kind')!='source_accountability'],
                'source_files':len(inventory), 'source_lines':len(rows), 'in_scope_files':sum(f['selected'] for f in inventory),
-               'in_scope_lines':len(rows)-counts['out_of_scope'], 'out_of_scope_lines':counts['out_of_scope'],
+               'in_scope_lines':len(rows)-counts['out_of_scope'], 'out_of_scope_lines':counts['out_of_scope'], 'requirements_excluded_lines':sum(r['requirements_excluded'] for r in rows),
                'non_executable_lines':counts['non_executable'], 'applicable_lines':applicable,
                'verified_applicable_lines':verified, 'line_verification_percent':round(100*verified/applicable,2) if applicable else None,
                'dispositions':counts, 'semantic_units':{'total':len(units), 'applicable':len(unit_applicable), 'verified':unit_verified, 'dispositions':unit_dispositions,
@@ -427,6 +461,7 @@ def build_coverage(doc, workspace_root, checkpoint=None):
             'denominators':{'source_lines':'All frozen exported physical lines, including non-executable and explicitly out-of-scope lines.',
                             'line_verification_percent':'Verified applicable in-scope physical lines / all applicable in-scope physical lines. Blocked and unverified lines remain in the denominator.',
                             'semantic_units':'Rules share one stable unit across their source span; layouts and unsupported lines remain distinct units. This is not a count of all possible legacy business rules.',
+                            'requirements':'Selected No source lines remain accounted with the saved Markdown evidence. Conversion percentages cover requested Yes scope, not the complete original mainframe.',
                             'known_rules':'Extracted known-rule SME verification is a separate metric, never total modernization percentage.'},
             'summary':summary, 'files':inventory, 'rows':rows}
 

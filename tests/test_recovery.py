@@ -18,8 +18,8 @@ class RecoveryTests(unittest.TestCase):
     def test_pause_during_fixture_is_immediate_and_durable(self):
         self.prepared();entered=threading.Event();release=threading.Event()
         from workbench.coordinator import plan_cases
-        def blocked(*args):
-            entered.set();release.wait(3);return plan_cases(*args)
+        def blocked(*args,**kwargs):
+            entered.set();release.wait(3);return plan_cases(*args,**kwargs)
         with patch('workbench.coordinator.plan_cases',side_effect=blocked):
             task=threading.Thread(target=self.c.advance,args=('process-a',));task.start()
             self.assertTrue(entered.wait(2))
@@ -33,7 +33,7 @@ class RecoveryTests(unittest.TestCase):
     def test_cancel_observed_before_target_prevents_execution(self):
         self.prepared();entered=threading.Event();release=threading.Event()
         from workbench.coordinator import plan_cases
-        def blocked(*args):entered.set();release.wait(3);return plan_cases(*args)
+        def blocked(*args,**kwargs):entered.set();release.wait(3);return plan_cases(*args,**kwargs)
         with patch('workbench.coordinator.plan_cases',side_effect=blocked),patch('workbench.coordinator.verify_program') as execute:
             task=threading.Thread(target=self.c.advance,args=('process-a',));task.start();self.assertTrue(entered.wait(2))
             control=threading.Thread(target=self.c.control,args=('process-a','cancel'));control.start();control.join(.3)
@@ -120,7 +120,7 @@ class RecoveryTests(unittest.TestCase):
     def test_close_returns_bounded_and_keeps_lock_until_active_checkpoint(self):
         self.prepared();entered=threading.Event();release=threading.Event()
         from workbench.coordinator import plan_cases
-        def blocked(*args):entered.set();release.wait(3);return plan_cases(*args)
+        def blocked(*args,**kwargs):entered.set();release.wait(3);return plan_cases(*args,**kwargs)
         with patch('workbench.coordinator.plan_cases',side_effect=blocked):
             self.c.launch_worker();self.assertTrue(entered.wait(2));started=time.monotonic();self.c.close()
             self.assertLess(time.monotonic()-started,1)

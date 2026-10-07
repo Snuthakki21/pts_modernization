@@ -24,7 +24,8 @@ def check(root=ROOT):
         def handle_starttag(self, tag, attrs):
             if tag == 'a':
                 self.links.extend(value for key, value in attrs if key == 'href' and value)
-    for name in (*ENTRYPOINTS, 'docs/TECHNICAL_REFERENCE.md', 'docs/executive-report.html'):
+    skills=tuple(p.relative_to(root).as_posix() for p in (root/'.claude/skills').glob('*/SKILL.md'))
+    for name in (*skills,*ENTRYPOINTS, 'docs/TECHNICAL_REFERENCE.md', 'docs/executive-report.html'):
         path = root / name
         if not path.is_file() or path.is_symlink():
             issues.append(name + ': required handoff file is missing or unsafe'); continue

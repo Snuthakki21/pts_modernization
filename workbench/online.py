@@ -1,0 +1,83 @@
+"""Package an existing verified record adapter as a bounded online candidate."""
+import json
+from pathlib import Path
+from .domain import encode, sha, write_new, require
+from .target import run_generated
+
+LIMITATIONS=['Local JSON record API and generated form; BMS layout, AID keys and native CICS behavior are not replaced',
+             'Bearer token is local operator access, not RACF or enterprise user/role equivalence',
+             'SQLite session/idempotency transactions do not implement Db2, VSAM, IMS or distributed commits']
+
+
+def deliver(coordinator, doc, run):
+    """Freeze code and compare HTTP execution with independently frozen source cases."""
+    from fastapi.testclient import TestClient
+    from .online_runtime import create_app
+    root=coordinator.process_root(doc['id'])
+    output=root/'target'/run['id']/'online';output.mkdir(parents=True,exist_ok=True)
+    spec={};codes={};transactions={}
+    for tx in doc.get('transactions',[]):
+        name=tx['program'];p=doc['analysis']['programs'].get(name);result=run['programs'].get(name)
+        if not p or p['blockers'] or not result or result['differences'] or not result['coverage']['complete'] or not result.get('adversarial',{}).get('passed'):continue
+        code=(coordinator.root/'shared/target/python'/(doc['program_versions'][name]+'.py')).read_text()
+        codes[name]=code
+        spec[tx['id']]={'program':name,'source_path':p['path'],'source_hash':p['source_hash'],'target_hash':sha(code),'fields':p['fields'],'mapset':tx.get('mapset'),'map':tx.get('map'),'limitations':LIMITATIONS}
+        transactions[tx['id']]={'api':'/api/transactions/'+tx['id'],'screen':'/','state':'IMPLEMENTED_UNVERIFIED','limitations':LIMITATIONS}
+    if not spec:return {'transactions':{},'status':'BLOCKED','reason':'No fully tested business module available'}
+    files={'contract.json':encode(spec),'runtime.py':Path(__file__).with_name('online_runtime.py').read_bytes()}
+    for name,code in codes.items():files['modules/'+sha(code)+'.py']=code.encode()
+    files['application.py']=b'''# Local target launcher; never connects to a mainframe.
+import hashlib, importlib.util, json, os
+from pathlib import Path
+from runtime import create_app
+from fastapi.responses import FileResponse
+root=Path(__file__).resolve().parent
+spec=json.loads((root/'contract.json').read_text(encoding='utf-8'))
+programs={}
+for item in spec.values():
+    name=item['program']; path=root/'modules'/(item['target_hash']+'.py')
+    if path.resolve().parent!=root/'modules' or hashlib.sha256(path.read_bytes()).hexdigest()!=item['target_hash']:raise ValueError('Target integrity failed')
+    module_spec=importlib.util.spec_from_file_location('business_'+name,path)
+    module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(module)
+    programs[name]=module.run_program
+app=create_app(programs,spec,Path(os.environ.get('ONLINE_STATE',str(Path.home()/'.pts-online-state'/hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest())))/'sessions.sqlite',os.environ.get('ONLINE_TOKEN',''))
+@app.get('/')
+def screen():return FileResponse(root/'index.html')
+@app.get('/app.js')
+def script():return FileResponse(root/'app.js',media_type='text/javascript')
+if __name__=='__main__':
+    import uvicorn
+    uvicorn.run(app,host='127.0.0.1',port=int(os.environ.get('ONLINE_PORT','8766')))
+'''
+    files['index.html']=b'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Business transaction pilot</title><div id="root"></div><script src="/app.js" defer></script></html>'
+    # The React bundle is built once with the existing locked frontend toolchain.
+    bundle=Path(__file__).with_name('static')/'online.js';require(bundle.is_file(),'Build the online React client before delivery')
+    files['app.js']=bundle.read_bytes()
+    files['launch.sh']=b'#!/bin/sh\ncd "$(dirname "$0")" || exit 1\nexec "${WB_PYTHON:-python}" application.py\n'
+    files['launch.cmd']=b'@echo off\r\ncd /d "%~dp0"\r\nif not defined WB_PYTHON set WB_PYTHON=python\r\n"%WB_PYTHON%" application.py\r\n'
+    receipt={'passed':True,'cases':0,'transactions':{},'limitations':LIMITATIONS,'observed_mainframe_parity':False}
+    functions={name:(lambda row,code=code:run_generated(code,row)) for name,code in codes.items()}
+    # Runtime data is private development state; issued target files stay immutable.
+    import tempfile
+    scratch=coordinator.root/'.implementation/tmp';scratch.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=scratch) as temp:
+        app=create_app(functions,spec,Path(temp)/'test.sqlite','fixture-token-'+'x'*32)
+        files['openapi.json']=encode(app.openapi())
+        with TestClient(app) as client:
+            headers={'Authorization':'Bearer '+'fixture-token-'+'x'*32}
+            for tx,item in spec.items():
+                suite=json.loads((root/'synthetic'/run['id']/item['program']/'expected.json').read_text())
+                total=0;differences=[]
+                for case in suite['cases']:
+                    session=client.post('/api/sessions',json={'transaction':tx},headers=headers).json()
+                    response=client.post('/api/transactions/'+tx,headers={**headers,'X-Session-ID':session['session_id'],'Idempotency-Key':case['id']},json={'record':case['record'],'revision':0})
+                    expected=case['expected']
+                    matched=response.status_code==422 if expected.get('input_status')=='REJECT_INPUT' else response.status_code==200 and response.json().get('result')==expected
+                    if not matched:differences.append(case['id'])
+                    client.delete('/api/sessions/'+session['session_id'],headers=headers);total+=1
+                receipt['transactions'][tx]={'cases':total,'differences':differences};receipt['cases']+=total;receipt['passed'] &= total>0 and not differences
+    files['verification.json']=encode(receipt)
+    files['package.json']=encode({'schema_version':1,'profile':'LOCAL_ONLINE_CANDIDATE','files':{name:sha(data) for name,data in files.items()},'limitations':LIMITATIONS})
+    for name,data in files.items():
+        path=output/name;write_new(path,data);coordinator.register(doc,path.relative_to(root).as_posix())
+    return {'transactions':transactions,'status':'HTTP_COMPARISON_PASSED' if receipt['passed'] else 'HTTP_COMPARISON_FAILED','evidence':(output/'verification.json').relative_to(root).as_posix(),'package':(output/'package.json').relative_to(root).as_posix(),'cases':receipt['cases'],'native_cics_verified':False}

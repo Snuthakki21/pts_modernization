@@ -20,7 +20,7 @@ class CopilotSetupTests(unittest.TestCase):
         self.assertIsNone(question['answer'])
         self.assertEqual(question['options'][0]['value'], 'copilot_chat')
         self.assertIn('Recommended', question['options'][0]['label'])
-        self.assertEqual(result['configuration']['assistant_mode'], 'copilot_chat')
+        self.assertEqual(result['configuration']['assistant_mode'], 'claude_files')
 
     def test_copilot_choice_needs_no_endpoint_and_makes_no_network_call(self):
         with patch('urllib.request.build_opener', side_effect=AssertionError('No network during setup')):

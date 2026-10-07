@@ -15,12 +15,12 @@ _QUESTIONS = (
      (('local_endeavor', 'Local Endeavor folder'), ('upload', 'Upload source files'), ('needs_setup', 'Help preparing the export'))),
     ('manifest', 'Process intake', 'Is the process manifest ready with ordered jobs and steps?',
      (('ready', 'Manifest ready'), ('needs_setup', 'Prepare the manifest'))),
-    ('zowe', 'Read-only Zowe', 'Do you need read-only Zowe discovery for this process?',
+    ('zowe', 'Read-only Zowe', 'Does Copilot need approved read-only Zowe retrieval for this process?',
      (('not_needed', 'Not needed'), ('configured', 'Configured locally'), ('needs_setup', 'Help configuring Zowe'))),
-    ('db2', 'Read-only Db2', 'Do you need read-only Db2 catalog discovery for this process?',
+    ('db2', 'Read-only Db2', 'Does Copilot need approved read-only Db2 catalog retrieval for this process?',
      (('not_needed', 'Not needed'), ('configured', 'Configured locally'), ('needs_setup', 'Help configuring Db2'))),
-    ('llm', 'Analysis assistant', 'Use GitHub Copilot Chat after lineage discovery, or choose the existing deterministic/provider modes?',
-     (('copilot_chat', 'GitHub Copilot Chat (Recommended)'), ('disabled', 'Deterministic analysis'), ('opt_in', 'Legacy approved provider suggestions'))),
+    ('llm', 'Analysis workflow', 'Use Claude Code with local files and Copilot only for retrieval, or choose an explicit deterministic/provider alternative?',
+     (('copilot_chat', 'Claude Code + Copilot retrieval (Recommended)'), ('disabled', 'Deterministic analysis'), ('opt_in', 'Legacy approved provider suggestions'))),
     ('reviewer', 'Human reviewer', 'Is a real human reviewer available for the single SME workbook?',
      (('available', 'Reviewer available'), ('needs_setup', 'Arrange a reviewer'))),
 )
@@ -90,13 +90,14 @@ def _configuration(root, env):
 
 def _view(root, answers, env):
     config = _configuration(root, env)
-    config['assistant_mode'] = 'deterministic' if answers['llm'] == 'disabled' else answers['llm'] or 'copilot_chat'
+    # Keep the version-1 saved choice key; only its active workflow changes.
+    config['assistant_mode'] = {'disabled': 'deterministic', 'opt_in': 'opt_in'}.get(answers['llm'], 'claude_files')
     actions = {
         'source':f'Choose the complete local Endeavor export (up to {MAX_SOURCE_FILES:,} files, {MAX_SOURCE_FILE_BYTES // (1024 * 1024)} MiB per file, {MAX_SOURCE_BYTES // (1024 * 1024)} MiB combined and {MAX_SOURCE_LINES:,} physical lines) or upload up to {MAX_UI_SOURCE_BYTES // (1024 * 1024)} MiB in the browser. Keep larger exports in local Endeavor; preserve every original file and never execute the source.',
         'manifest':'Download the intake template, supply the real process ID and ordered jobs/steps, then mark the manifest ready. Setup does not invent process facts.',
         'zowe':'Install the approved Zowe CLI. From the workspace, run tools/setup_zowe.py with your actual z/OSMF host, port and project profile aliases, then run zowe config secure interactively. Enter user/password only at local Zowe prompts. Set WB_ZOWE_PROFILE and the paired WB_ZOWE_ZOSMF_PROFILE before launch. Preserve explicitly selected project config/schema files; never read home profiles here. WEDLX is application location context, with availability and input readiness still Unknown.',
         'db2':'Prepare the read-only Db2 gateway with tools/setup_db2.py. Replace placeholders with actual nonsecret host, port and database values. Put the approved CA certificate at certificates/DB2-CA.cert and retain TLS validation. Supply authentication privately in the launch environment, then set WB_DB2_MCP_URL for the gateway. Configuration and a certificate file do not prove live access; setup never submits SQL.',
-        'llm':'GitHub Copilot Chat needs no model endpoint or API token in this workbench. Complete selected-job lineage discovery first, then use the local MCP bridge in VS Code to retrieve the frozen task and source excerpts and submit source-grounded suggestions. Model identity and token usage remain Unknown. The one SME packet follows the validated handoff; actual human answers and deterministic tests remain required.',
+        'llm':'Claude Code reads approved local files and owns lineage analysis, development, testing and review with no MCP servers. GitHub Copilot in VS Code only retrieves requested source and metadata through already approved MCP connections into the exact local inbox. Return to Claude and say Continue; the existing Coordinator validates the files before resuming. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE for local task state. No model endpoint or API token is needed by this workflow. Actual credits remain Unknown without receipts. One authentic SME return and deterministic verification are still required.',
         'reviewer':'Arrange a real human reviewer for the one SME workbook. Availability is preparation only; the actual returned workbook and reviewer attribution remain required.',
     }
     complete = {

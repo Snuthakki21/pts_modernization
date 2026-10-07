@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from workbench import runner
 from workbench.domain import ValidationError, sha
 import test_review500_reporting as old_reviews
@@ -508,13 +508,13 @@ class ExpandedReportingTests(unittest.TestCase):
 
     def test_r893_job_rc_resets_between_independent_job_dispatches(self):
         from workbench.reference import run_reference
-        from workbench.target import run_generated
+        from workbench.target import prepare_generated
         def change_rc(fn):
             def call(*a,**kw):
                 result=fn(*a,**kw);result['return_code']=4;return result
             return call
         other=copy.deepcopy(self.doc['jobs'][0]);other['name']='JOBB';other['steps'][0]['condition']='RC=0';self.doc['jobs'].append(other)
-        with patch('workbench.orchestration.run_reference',side_effect=change_rc(run_reference)),patch('workbench.orchestration.run_generated',side_effect=change_rc(run_generated)):
+        with patch('workbench.orchestration.run_reference',side_effect=change_rc(run_reference)),patch('workbench.target.prepare_generated',side_effect=lambda code:change_rc(prepare_generated(code))):
             result=self.jobs()
         self.assertTrue(result['matched']);self.assertEqual(result['actual']['JOBB'][0]['return_code'],4)
 
@@ -524,7 +524,8 @@ class ExpandedReportingTests(unittest.TestCase):
         with patch('workbench.orchestration.run_reference',side_effect=AssertionError('skipped')):
             result=self.jobs()
         self.assertEqual(result['actual']['JOBA'],[{'step':'S010','status':'SKIPPED'},{'step':'S020','status':'SKIPPED'}])
-        self.assertTrue(result['matched'])
+        self.assertFalse(result['matched']);self.assertFalse(result['validation']['complete'])
+        self.assertTrue(all(case['matched'] for case in result['cases']))
 
     def test_r895_cancellation_checkpoint_interrupts_before_reference_execution(self):
         from workbench.orchestration import verify_jobs
@@ -535,22 +536,29 @@ class ExpandedReportingTests(unittest.TestCase):
         reference.assert_not_called()
 
     def test_r896_return_code_difference_revokes_ordered_job_match(self):
-        from workbench.target import run_generated
-        def changed(*a,**kw):
-            result=run_generated(*a,**kw);result['return_code']=8;return result
-        with patch('workbench.orchestration.run_generated',side_effect=changed):result=self.jobs()
+        from workbench.target import prepare_generated
+        def changed(code):
+            execute=prepare_generated(code)
+            def call(record):
+                result=execute(record);result['return_code']=8;return result
+            return call
+        with patch('workbench.target.prepare_generated',side_effect=changed):result=self.jobs()
         self.assertFalse(result['matched']);self.assertNotEqual(result['expected']['JOBA'][0]['return_code'],result['actual']['JOBA'][0]['return_code'])
 
     def test_r897_rejected_reference_input_never_runs_target_baseline(self):
-        with patch('workbench.orchestration.run_reference',return_value={'input_status':'REJECT_INPUT'}),patch('workbench.orchestration.run_generated') as target:
+        target=Mock()
+        with patch('workbench.orchestration.run_reference',return_value={'input_status':'REJECT_INPUT'}),patch('workbench.target.prepare_generated',return_value=target):
             result=self.jobs()
         target.assert_not_called();self.assertFalse(result['matched']);self.assertIn('rejected',result['reason'])
 
     def test_r898_program_trace_mismatch_revokes_integration_with_equal_records(self):
-        from workbench.target import run_generated
-        def changed(*a,**kw):
-            result=run_generated(*a,**kw);result['trace']=[];return result
-        with patch('workbench.orchestration.run_generated',side_effect=changed):result=self.jobs()
+        from workbench.target import prepare_generated
+        def changed(code):
+            execute=prepare_generated(code)
+            def call(record):
+                result=execute(record);result['trace']=[];return result
+            return call
+        with patch('workbench.target.prepare_generated',side_effect=changed):result=self.jobs()
         self.assertFalse(result['matched'])
         self.assertEqual(result['expected']['JOBA'][0]['record'],result['actual']['JOBA'][0]['record'])
 

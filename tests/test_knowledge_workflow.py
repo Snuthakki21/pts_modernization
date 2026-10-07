@@ -71,7 +71,8 @@ class KnowledgeWorkflowTests(unittest.TestCase):
     def test_optional_provider_receives_bounded_frozen_classification_context(self):
         from types import SimpleNamespace
         calls=[]
-        self.c.provider=SimpleNamespace(analyze=lambda source,prompt: calls.append(source) or {'analysis':{'questions':[],'assumptions':[]}})
+        from workbench.provider import empty_usage_summary
+        self.c.provider=SimpleNamespace(usage_summary=empty_usage_summary,analyze=lambda source,prompt: calls.append(source) or {'analysis':{'questions':[],'assumptions':[]}})
         doc=self.c.create(MANIFEST,{'ELIGIBLE.cbl':COBOL})
         self.c.start(doc['id']);self.c.advance(doc['id'])
         self.assertEqual(len(calls),1)

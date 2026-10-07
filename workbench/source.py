@@ -363,6 +363,11 @@ def analyze_sources(files, manifest):
             graph.append({'from':job['name']+'.'+step['name'],'to':name,'kind':'calls','inputs':step['inputs'],'outputs':step['outputs']})
             if name not in programs:blockers.append({'kind':'missing_source','message':'Program/utility source or supported adapter missing: '+name})
             if step['condition'].upper() not in ('ALWAYS','') and not re.fullmatch(r'RC\s*(?:<=|>=|=|<|>)\s*\d{1,5}',step['condition'],re.I):blockers.append({'kind':'unresolved_condition','message':'Unknown step condition: '+step['condition']})
+    for tx in manifest.get('transactions',[]):
+        blockers.append({'kind':'online_semantics_gap','message':'Transaction '+tx['id']+': native CICS/BMS session, map, AID, navigation, security and transaction semantics require explicit source-supported replacements; record APIs alone are insufficient'})
+        used.add(tx['program'])
+        graph.append({'from':tx['id'],'to':tx['program'],'kind':'transaction_entry','inputs':[],'outputs':[]})
+        if tx['program'] not in programs:blockers.append({'kind':'missing_source','message':'Transaction entry program missing: '+tx['program']})
     for p in programs.values():
         for book in p['copybooks']:graph.append({'from':p['name'],'to':book,'kind':'copybook'})
     # Validate the entire supported card grammar and reconcile source step order.
@@ -403,4 +408,7 @@ def analyze_sources(files, manifest):
     scoped_assets=assets
     result={'programs':scoped,'assets':scoped_assets,'rules':[r for p in scoped.values() for r in p['rules']], 'graph':graph,'blockers':blockers,'source_snapshot':sha('\n'.join(k+':'+sha(v) for k,v in sorted(files.items()))),'source_accounting':{p['name']:p['coverage'] for p in scoped.values()}, 'relationships':[r for p in scoped.values() for r in p['relationships']], 'evidence_basis':'SOURCE_DERIVED_EXPECTED'}
     if classifications is not None:result.update({'classifications':classifications,'utility_findings':findings})
+    if manifest.get('requirements'):
+        from .requirements import project
+        result=project(result,manifest['requirements'],manifest.get('jobs',[]))
     return result

@@ -63,8 +63,9 @@ def _locked(path):
     return False
 
 
-def _read_sources(root):
-    folder = safe_path(root, 'Endeavor')
+def _read_sources(root, source_folder=None):
+    folder = Path(source_folder).absolute() if source_folder is not None else safe_path(root, 'Endeavor')
+    require(not folder.is_symlink() and not any(p.is_symlink() for p in folder.parents),'Source folder must not contain symlink parents')
     require(folder.is_dir(), 'Endeavor is missing; provide the complete UTF-8 text export')
     files, portable, size, lines = {}, {}, 0, 0
     # Count entries before sorting, and never follow a directory symlink. A
@@ -130,7 +131,54 @@ def _manifest(path):
     return parse_manifest(text)
 
 
-def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coordinator_owned=False):
+def _locked_requirements(path):
+    """Read the generated hash lock strictly, selecting the current host's pins."""
+    try:
+        from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
+        from packaging.requirements import InvalidRequirement, Requirement
+        from packaging.utils import canonicalize_name
+        from packaging.version import InvalidVersion, Version
+    except ImportError as exc:
+        raise ValidationError('Dependency lock parser is missing; run the release setup script') from exc
+    selected, seen, pending = [], set(), []
+    for line_number, raw in enumerate(path.read_text().splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            require(not pending, 'Incomplete dependency lock continuation')
+            continue
+        continued = line.endswith('\\')
+        pending.append(line[:-1].rstrip() if continued else line)
+        if continued:
+            continue
+        entry = ' '.join(pending)
+        pending = []
+        match = re.fullmatch(r'(.+?)\s+--hash=sha256:[0-9a-f]{64}(?:\s+--hash=sha256:[0-9a-f]{64})*', entry)
+        require(match is not None, f'Invalid dependency lock entry or hashes at line {line_number}')
+        try:
+            requirement = Requirement(match.group(1))
+            specifiers = list(requirement.specifier)
+            require(not requirement.url and not requirement.extras and len(specifiers) == 1
+                    and specifiers[0].operator == '==' and '*' not in specifiers[0].version,
+                    f'Dependency lock must contain exact pins at line {line_number}')
+            expected = specifiers[0].version
+            Version(expected)
+        except (InvalidRequirement, InvalidVersion) as exc:
+            raise ValidationError(f'Invalid dependency lock requirement at line {line_number}') from exc
+        name = canonicalize_name(requirement.name)
+        require(name not in seen, f'Duplicate dependency lock package at line {line_number}')
+        seen.add(name)
+        try:
+            active = requirement.marker is None or requirement.marker.evaluate()
+        except (UndefinedComparison, UndefinedEnvironmentName, KeyError, ValueError) as exc:
+            raise ValidationError(f'Invalid dependency lock marker at line {line_number}') from exc
+        if active:
+            selected.append((name, expected))
+    require(not pending, 'Incomplete dependency lock continuation')
+    require(bool(seen), 'Dependency lock is missing or empty')
+    return selected
+
+
+def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coordinator_owned=False, source_folder=None, process_notes=None):
     """Return setup readiness separately from conversion support and live connectivity.
 
     This is a point-in-time diagnostic. It deliberately does not call connectors,
@@ -150,8 +198,7 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
     add('python', 'READY' if compatible else 'BLOCKED', 'CPython 3.12 is required by the release lock.',
         '' if compatible else 'Run scripts/Setup.ps1 or bash scripts/setup.sh with CPython 3.12 installed.')
     try:
-        locked = re.findall(r'^([A-Za-z0-9_-]+)==([^\s\\]+)', (REPOSITORY / 'requirements.lock').read_text(), re.M)
-        require(bool(locked), 'Dependency lock is missing or empty')
+        locked = _locked_requirements(REPOSITORY / 'requirements.lock')
         problems = []
         for name, expected in locked:
             try:
@@ -220,13 +267,11 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
             add('mainframe_knowledge', 'BLOCKED', 'Mainframe knowledge could not be validated: ' + str(exc),
                 'Restore the standard catalog or correct knowledge/application-knowledge.json; never overwrite frozen process snapshots.')
         try:
-            context = safe_path(root, 'knowledge/inbox/context.md')
-            if context.exists():
-                require(context.is_file() and context.stat().st_size <= 16000, 'Background context must be a regular UTF-8 Markdown file of at most 16,000 bytes')
-                with context.open('rb') as background: raw = background.read(16001)
-                require(len(raw) <= 16000, 'Background context exceeds 16,000 bytes'); raw.decode('utf-8')
-                add('background_context', 'READY', 'Background context is within the UTF-8 text bound; its content remains unverified.')
-            else: add('background_context', 'NOT_CONFIGURED', 'Optional background context was not supplied.', 'Put application articles in knowledge/inbox/context.md, at most 16,000 UTF-8 bytes.')
+            from .process_context import freeze_context
+            context=freeze_context(root,process_notes)
+            if context['documents']:
+                add('background_context','READY','Markdown context is indexed within the 20-file / 1 MiB combined bound; content remains unverified.')
+            else:add('background_context','NOT_CONFIGURED','Optional background context was not supplied.','Put Markdown in knowledge/inbox/ or supply --process-notes.')
         except (ValidationError, OSError, UnicodeError):
             add('background_context', 'BLOCKED', 'Background context is not readable UTF-8, exceeds its size bound, or has an unsafe path.', 'Correct knowledge/inbox/context.md before Start.')
     if manifest is None:
@@ -243,7 +288,7 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
         except (ValidationError, OSError, UnicodeError, ImportError) as exc:
             add('manifest', 'BLOCKED', str(exc), 'Correct the Markdown intake or Excel template; the agent runner accepts Markdown, while the UI accepts both.')
         try:
-            files, size = _read_sources(root)
+            files, size = _read_sources(root,source_folder)
             result['input'] = {'files':len(files), 'bytes':size}
             add('source_export', 'READY', f'{len(files)} source files passed path, count, UTF-8 and byte-limit checks.',
                 'Include referenced COPY/PROC/INCLUDE/control-card members and preserve export CCSID/record-format metadata separately.')
@@ -310,13 +355,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', '--root', default=str(Path.cwd()))
     parser.add_argument('--manifest', help='Optional Markdown or UI XLSX intake; also checks the local Endeavor export. The agent runner requires Markdown.')
+    parser.add_argument('--source-folder',help='Supplied complete export folder instead of workspace/Endeavor')
+    parser.add_argument('--process-notes',help='Original process Markdown for bounded context validation')
     parser.add_argument('--port', type=int, help='Check a loopback UI port without starting a server')
     parser.add_argument('--json', action='store_true', help='Print machine-readable diagnostics')
     parser.add_argument('--initialize-knowledge', action='store_true', help='Explicitly copy the application template if absent; never replace edits')
     args = parser.parse_args(argv)
     try:
         if args.initialize_knowledge: initialize_knowledge(args.workspace)
-        result = inspect_workspace(args.workspace, args.manifest, port=args.port)
+        result = inspect_workspace(args.workspace, args.manifest, port=args.port,source_folder=args.source_folder,process_notes=args.process_notes)
     except (ValidationError, OSError, UnicodeError) as exc:
         result = {'status':'BLOCKED', 'conversion_status':'UNVERIFIED', 'checks':[{'id':'preflight', 'status':'BLOCKED',
                   'message':str(exc), 'action':'Correct the reported local setup error and rerun preflight.'}], 'conversion_blockers':[]}

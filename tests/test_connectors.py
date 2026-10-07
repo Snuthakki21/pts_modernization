@@ -153,12 +153,24 @@ class GatewayTests(unittest.TestCase):
         class Connection:
             def __enter__(self):return self
             def __exit__(self,*args):pass
+            def close(self):self.closed=True
             def cursor(self):return cursor
         with patch.dict('sys.modules',{'pyodbc':SimpleNamespace(connect=lambda *a,**k:Connection())}),patch.dict(os.environ,{'WB_DB2_ODBC_CONNECTION':'fixture-only'}):
             page=gateway.execute('db2_list_schemas',{'limit':2,'after_schema':'0'})
         self.assertEqual(cursor.count,3);self.assertEqual(cursor.params,('0',))
         self.assertEqual(page['rows'],[{'CREATOR':'A'},{'CREATOR':'B'}])
         self.assertTrue(page['has_more']);self.assertEqual(page['next_cursor'],{'after_schema':'B'})
+
+    def test_configured_small_cap_also_bounds_catalog_lookahead(self):
+        from unittest.mock import Mock
+        cursor=Mock();cursor.description=[('CREATOR',)];cursor.fetchmany.return_value=[('A',)]
+        connection=Mock();connection.cursor.return_value=cursor
+        with patch.object(gateway,'connect',return_value=connection),patch.object(gateway,'configured_row_limit',return_value=1),patch.dict('sys.modules',{'pyodbc':SimpleNamespace()}):
+            page=gateway.execute('db2_list_schemas',{'limit':1})
+        self.assertIn('FETCH FIRST 1 ROWS ONLY',cursor.execute.call_args.args[0])
+        cursor.fetchmany.assert_called_once_with(1)
+        self.assertTrue(page['has_more']);self.assertEqual(page['next_cursor'],{'after_schema':'A'})
+        connection.close.assert_called_once()
 
     def test_catalog_cursor_is_parameterized_and_mutation_or_unknown_arguments_rejected(self):
         cursor="X' OR 1=1 --"

@@ -52,14 +52,19 @@ Use deterministic parsing/checks first; retrieve only relevant evidence spans.
 Keep optional model suggestions bounded and record actual usage. Never claim
 finite tests prove every scenario or that a configuration proves connectivity.
 
-The new Start/UI path uses Copilot Chat through `examples/mcp.json`, without a
-model endpoint/token. Perform job-led transitive discovery first; missing,
-ambiguous or dynamic objects stop before conversion/SME questions. Preserve the
-full export and scoped dispositions. Use the running UI's MCP bridge to avoid a
-second writer. Implement/test semantic adapters, then call
-`workbench_refresh_analysis` before submitting a fresh task-bound analysis.
-Never rewrite content-addressed evidence or clear a gap with a plan/flag. New
-fixtures require 10–20 distinct valid source logic states, linked-file witnesses,
+GitHub Copilot in VS Code only discovers and retrieves source/metadata through
+already approved MCP connections into exact request-bound local inboxes. Claude
+Code, including the approved VS Code extension, has no MCP servers and owns local
+analysis, development, tests and review using approved exports. Never tunnel MCP
+through a shell/HTTP wrapper or proxy Claude through Copilot. Use
+`python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE` and its
+local request/continue/refresh/analysis-file actions. With the UI running, its
+Coordinator consumes the local command inbox; never start another writer.
+Perform job-led transitive discovery first; missing, ambiguous or dynamic objects
+stop before conversion/SME questions. Preserve full exports and dispositions.
+After implementing/testing semantic adapters, refresh and submit a fresh
+hash-bound analysis. Never rewrite content-addressed evidence or clear a gap
+with a plan/flag. New fixtures require at least 20 distinct randomized valid source logic states, linked-file witnesses,
 actual target comparisons and adversarial checks. Unsupported logic stays a
 named unverified obligation. Use exact WEDLX/Tran Repository folder bindings and
 supplied Zowe config/schema; TPX session names are not physical/API locations.

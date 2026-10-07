@@ -8,7 +8,8 @@ from .domain import require, identity, safe_path, write_new, encode, decode, sha
 from .intake import parse_manifest
 from .ledger import Ledger, now
 from .source import analyze_sources
-from .target import emit_program, emit_jobs, check_generated
+from .target import emit_jobs, check_generated
+from .backends import get_backend, adapter_fingerprint
 from .fixtures import plan_cases, verify_program
 from .review import export_packet, read_answers
 from .knowledge import update_knowledge
@@ -26,7 +27,8 @@ class Coordinator:
         from .instance import InstanceLock
         require_layout(root)
         self.root=Path(root).resolve();self.instance=InstanceLock(self.root)
-        self.lock=threading.RLock();self.stopped=threading.Event();self.worker=None;self.closed=False;self.active=set();self.ledger=None
+        self.adapter_fingerprint=adapter_fingerprint()
+        self.lock=threading.RLock();self.provider_lock=threading.RLock();self.stopped=threading.Event();self.worker=None;self.closed=False;self.active=set();self.work_clocks={};self.ledger=None
         try:
             self.ledger=Ledger(self.root)
             from .provider import configured_provider
@@ -69,18 +71,25 @@ class Coordinator:
 
     def process_root(self,pid):return safe_path(self.root,'processes/'+identity(pid))
 
-    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None):
+    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=None, process_notes=None, requirements_selection=False):
         require_layout(self.root)
         manifest=parse_manifest(manifest_text)
+        require(type(requirements_selection) is bool,'Requirements selection mode must be a boolean')
+        require(source_folder is None or isinstance(source_folder,(str,Path)) and bool(str(source_folder).strip()),'Source folder must be a nonempty path')
+        require(process_notes is None or isinstance(process_notes,(str,Path)) and bool(str(process_notes).strip()),'Process notes must be a nonempty path')
+        require(source_folder is None or source_files is None,'Choose uploaded sources or one source folder')
         if source_files is None:
             from .preflight import _read_sources
-            source_files,_=_read_sources(self.root)
+            source_files,_=_read_sources(self.root,source_folder)
         require(isinstance(source_files,dict) and 0<len(source_files)<=MAX_SOURCE_FILES,f'Provide a source folder with 1 to {MAX_SOURCE_FILES:,} supported text files')
         require(all(isinstance(k,str) and isinstance(v,str) for k,v in source_files.items()),'Source filenames and contents must be text')
         require(all('\x00' not in value for value in source_files.values()),'Source contains NUL/binary content; provide readable source separately from data/load modules')
         require(sum(source_line_count(value) for value in source_files.values())<=MAX_SOURCE_LINES,f'Source export exceeds {MAX_SOURCE_LINES:,} physical lines')
         import os
         assistant_mode=assistant_mode or os.environ.get('WB_ASSISTANT_MODE','deterministic')
+        local_files=assistant_mode=='claude_files'
+        agent_mode=assistant_mode in ('agent','claude_files')
+        if agent_mode:assistant_mode='copilot_chat'
         require(assistant_mode in ('deterministic','disabled','copilot_chat','opt_in'),'Choose Copilot Chat, deterministic analysis, or the explicitly configured legacy provider')
         require(isinstance(prompt,str),'Analysis prompt must be text')
         try:
@@ -100,6 +109,8 @@ class Coordinator:
         require(not any('/'.join(path.split('/')[:i]) in portable for path in portable for i in range(1,len(path.split('/')))), 'Source file/directory names collide across supported platforms')
         from .mainframe import load_knowledge
         knowledge=load_knowledge(self.root)
+        from .process_context import freeze_context
+        context_snapshot=freeze_context(self.root,process_notes)
         with self.lock:
             require_layout(self.root)
             require(not self.process_root(manifest['id']).exists(),'Process directory already exists')
@@ -113,8 +124,21 @@ class Coordinator:
                 hashes={}
                 for path,raw in encoded_sources.items():hashes[path]=write_new(output_path(self.root,doc['id'],'input/sources/'+path),raw)
                 doc['source_files']=hashes;doc['manifest_hash']=sha(encoded_manifest);doc['prompt']=prompt[:16000]
-                doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=2
-                doc['logic_validation_min_records']=10 if assistant_mode=='copilot_chat' else 0
+                doc['requirements_selection']=requirements_selection
+                doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=4 if agent_mode else 3
+                doc['agent_host']='external' if agent_mode else assistant_mode
+                doc['development_contract_version']=2 if local_files else 1
+                if local_files:doc['agent_transport']='local_files'
+                if agent_mode or manifest.get('transactions'):doc['factory_contract_version']=1
+                doc['target_backend']={'name':'python-sqlite','contract_version':1}
+                doc['process_context']=context_snapshot
+                write_new(base/'analysis'/'process-context.json',encode(context_snapshot))
+                self.register(doc,'analysis/process-context.json')
+                doc['source_origin']={'kind':'folder' if source_folder is not None else 'workspace_or_upload', 'location':str(Path(source_folder).absolute()) if source_folder is not None else None}
+                write_new(base/'analysis'/'source-origin.json',encode(doc['source_origin']))
+                self.register(doc,'analysis/source-origin.json')
+                doc['logic_validation_min_records']=20
+                doc['fixture_contract_version']=4
                 from .inventory import snapshot_inventory
                 doc['inventory_baseline']=snapshot_inventory(self.root)
                 write_new(base/'analysis'/'inventory-baseline.json',encode(doc['inventory_baseline']))
@@ -134,7 +158,10 @@ class Coordinator:
         with self.lock:
             require_layout(self.root)
             doc=self.ledger.get(pid);self.manifest_integrity(doc);require(doc['status']=='READY','Process already started; use Resume when applicable')
-            doc['authorization']={'recorded':now(),'scope':dict(doc['source_files']),'target':'verified-adapters/python-sqlite','seed':21,'max_cases_per_program':4096 if doc.get('logic_validation_min_records') else 256,'max_repair_attempts':1,'source_operations':'read-only','mainframe_execution':False}
+            import secrets
+            seed=secrets.randbits(63) if doc.get('fixture_contract_version')==4 else 21
+            doc['authorization']={'recorded':now(),'scope':dict(doc['source_files']),'target':'verified-adapters/python-sqlite','seed':seed,'max_cases_per_program':4096 if doc.get('logic_validation_min_records') else 256,'max_repair_attempts':1,'source_operations':'read-only','mainframe_execution':False}
+            if doc.get('fixture_contract_version')==4:doc['authorization']['fixture_contract_version']=4
             return self.ledger.save_event(doc,'QUEUED_ANALYSIS','start','Start authorization recorded; source writes and mainframe execution are prohibited')
 
     def control(self,pid,action):
@@ -142,7 +169,7 @@ class Coordinator:
             doc=self.ledger.get(pid)
             require(doc['status'] not in ('COMPLETED','COMPLETED_WITH_BLOCKERS'),'Terminal evidence cannot be changed in place')
             if action=='pause':
-                require(doc['status'] in ('QUEUED_ANALYSIS','ANALYZING','WAITING_DISCOVERY','WAITING_COPILOT','WAITING_SME','QUEUED_VERIFY','VERIFYING','QUEUED_REPORT','REPORTING'),'There is no running stage to pause; use Resume to recover a failed stage')
+                require(doc['status'] in ('QUEUED_ANALYSIS','ANALYZING','WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT','WAITING_SME','QUEUED_VERIFY','VERIFYING','QUEUED_REPORT','REPORTING'),'There is no running stage to pause; use Resume to recover a failed stage')
                 doc['resume_status']={'ANALYZING':'QUEUED_ANALYSIS','VERIFYING':'QUEUED_VERIFY','REPORTING':'QUEUED_REPORT'}.get(doc['status'],doc['status']);status='PAUSED'
             elif action=='resume':
                 require(doc['status'] in ('PAUSED','FAILED','REPORTING_FAILED','WAITING_DISCOVERY'),'Nothing eligible to resume')
@@ -220,13 +247,23 @@ class Coordinator:
         raw=output_path(self.root,doc['id'],'input/process-input.md').read_bytes()
         require(sha(raw)==doc['manifest_hash'],'Frozen process manifest changed; existing evidence cannot be credited')
         frozen=parse_manifest(raw.decode('utf-8'))
-        require(all(frozen[key]==doc[key] for key in ('id','name','jobs')),'Process metadata differs from the frozen manifest')
+        require(all(frozen.get(key)==doc.get(key) for key in ('id','name','jobs','transactions','workload')),'Process metadata differs from the frozen manifest')
         if 'mainframe_knowledge' in doc or 'analysis/mainframe-knowledge.json' in doc.get('artifact_hashes',{}):
             from .mainframe import validate_snapshot
             snapshot=doc.get('mainframe_knowledge');validate_snapshot(snapshot)
             relative='analysis/mainframe-knowledge.json'
             raw=output_path(self.root,doc['id'],relative).read_bytes()
             require(raw==encode(snapshot) and sha(raw)==doc.get('artifact_hashes',{}).get(relative),'Frozen mainframe knowledge changed; preserve the original process evidence')
+        context_relative='analysis/process-context.json'
+        if 'process_context' in doc or context_relative in doc.get('artifact_hashes',{}) or context_relative in doc.get('artifacts',[]):
+            snapshot=doc.get('process_context')
+            require(isinstance(snapshot,dict) and context_relative in doc.get('artifacts',[]),
+                    'Frozen process context baseline is missing; preserve the original process evidence')
+            expected=encode(snapshot);path=output_path(self.root,doc['id'],context_relative)
+            require(path.is_file() and path.stat().st_size==len(expected),'Frozen process context is missing or changed')
+            with path.open('rb') as stream:raw=stream.read(len(expected)+1)
+            require(raw==expected and sha(raw)==doc.get('artifact_hashes',{}).get(context_relative),
+                    'Frozen process context changed or lacks its registered hash; preserve the original process evidence')
         if 'inventory_baseline' in doc:
             from .inventory import validate_snapshot
             validate_snapshot(doc['inventory_baseline'])
@@ -268,6 +305,9 @@ class Coordinator:
 
     def sources(self,doc):
         self.manifest_integrity(doc)
+        if doc.get('requirements'):
+            from .requirements import verify_snapshot
+            verify_snapshot(doc,self.root)
         self.recover_discovered_sources(doc)
         source_root=self.process_root(doc['id'])/'input'/'sources'
         inventory=set()
@@ -327,45 +367,458 @@ class Coordinator:
         self.checkpoint(doc)
         self.recover_discovered_sources(doc)
 
+    def requirements_view(self,pid,after=0,path=None):
+        from .requirements import catalog,verify_snapshot
+        with self.lock:
+            doc=self.ledger.get(pid);require(doc.get('analysis'),'Analysis is being prepared; refresh when the requirements stage is ready')
+            if doc.get('requirements'):verify_snapshot(doc,self.root)
+            model=catalog(doc['analysis']);require(path is None or path in {f['path'] for f in model['files']},'Unknown source file');require(type(after) is int and after>=0,'Invalid requirements cursor')
+            excluded=set((doc.get('requirements') or {}).get('excluded_ids',doc.get('requirements_draft_exclusions',[])))
+            rows=[{**r,'selected':r['id'] not in excluded} for r in model['items'] if path is None or r['source_path']==path]
+            require(after<=len(rows),'Invalid requirements cursor')
+            return {'process_id':pid,'status':doc['status'],'catalog_hash':model['hash'],'source_snapshot':model['source_snapshot'],
+                'revision':(doc.get('requirements') or {}).get('revision',doc.get('requirements_revision',0)),'files':model['files'],
+                'items':rows[after:after+50],'total':len(rows),'next_after':after+len(rows[after:after+50]),'has_more':after+50<len(rows),
+                'excluded_ids':sorted(excluded),'editable':not doc['packet_issued'] and doc['status'] in ('WAITING_REQUIREMENTS','WAITING_COPILOT'),
+                'markdown':doc.get('requirements_artifact'),'boundary':'Requirements select conversion scope. Default Yes is not SME approval. Every Yes needs verified implementation; every No remains source-accounted.'}
+
+    def save_requirements(self,pid,body):
+        from .requirements import catalog,render_markdown,parse_markdown,DRAFT
+        from .domain import atomic_bytes
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            require(isinstance(body,dict) and set(body)=={'catalog_hash','revision','excluded_ids','saved_by'},'Supply catalog hash, revision, excluded IDs and requirements attribution')
+            saved=doc.get('requirements')
+            if saved and type(body['revision']) is int and body['revision']==saved['revision']-1 and all(body[k]==saved[k] for k in ('catalog_hash','excluded_ids','saved_by')):
+                atomic_bytes(output_path(self.root,pid,DRAFT),self.artifact(pid,doc['requirements_artifact']).read_bytes())
+                return doc
+            require((doc.get('retrieval_request') or {}).get('status')!='IMPORTING','Complete importing retrieval evidence before changing requirements')
+            require(pid not in self.active and not doc['packet_issued'] and doc['status'] in ('WAITING_REQUIREMENTS','WAITING_COPILOT'),'Requirements are locked after the single review packet or while a stage is active; use a new process for changed scope')
+            current_revision=(doc.get('requirements') or {}).get('revision',doc.get('requirements_revision',0))
+            require(type(body['revision']) is int and body['revision']==current_revision,'Requirements changed in another session; reload before saving')
+            model=catalog(doc['analysis']);require(body['catalog_hash']==model['hash'],'Source analysis changed; reload requirements before saving')
+            selection={'schema_version':1,'process_id':pid,'source_snapshot':model['source_snapshot'],'catalog_hash':model['hash'],
+                'revision':current_revision+1,'excluded_ids':body['excluded_ids'],'saved_at':now(),'saved_by':body['saved_by']}
+            raw=render_markdown(selection,model).encode();require(len(raw)<=32*1024*1024,'Requirements exceed the Markdown size bound')
+            relative='analysis/requirements/'+sha(raw)+'.md';write_new(output_path(self.root,pid,relative),raw);self.register(doc,relative)
+            # The exact Markdown bytes are parsed as conversion input and pinned.
+            doc['requirements']=parse_markdown(raw,model);doc['requirements_artifact']=relative;doc['requirements_selection']=True
+            doc.pop('requirements_draft_exclusions',None);doc.pop('requirements_revision',None)
+            doc['analysis']=None;doc['llm']={'status':'NOT_CONFIGURED','live_ready':False}
+            doc['copilot_iteration']=doc.get('copilot_iteration',0)+1
+            if (doc.get('retrieval_request') or {}).get('status')=='WAITING':doc['retrieval_request']={**doc['retrieval_request'],'status':'STALE'}
+            for key in ('copilot_task_artifact','copilot_return_artifact','analysis_artifact'):doc.pop(key,None)
+            doc.setdefault('stage_attempts',{})['QUEUED_ANALYSIS']=0
+            result=self.ledger.save_event(doc,'QUEUED_ANALYSIS','requirements','Operator requirements saved as Markdown; selected scope queued for conversion',{'revision':selection['revision'],'excluded':len(selection['excluded_ids']),'artifact':relative})
+            atomic_bytes(output_path(self.root,pid,DRAFT),raw)
+            return result
+
     def agent_task(self,pid):
         with self.lock:
             doc=self.ledger.get(pid);sources=self.sources(doc)
             require(doc.get('copilot_task_artifact'),'Complete object discovery before requesting Copilot analysis')
             return decode(self.artifact(pid,doc['copilot_task_artifact']).read_bytes())
 
+    def local_agent_view(self, pid):
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            request=None
+            if doc.get('retrieval_request'):
+                request=decode(self.artifact(pid,doc['retrieval_request']['artifact']).read_bytes())
+            return {'process_id':pid,'status':doc['status'],'host_roles':{
+                'retrieval':'GitHub Copilot, approved MCP retrieval into the request inbox only',
+                'analysis':'Claude Code, local files only; no MCP'},
+                'task_file':str(self.artifact(pid,doc['copilot_task_artifact'])) if doc.get('copilot_task_artifact') else None,
+                'source_directory':str(self.process_root(pid)/'input/sources'),
+                'requirements_file':str(self.artifact(pid,doc['requirements_artifact'])) if doc.get('requirements_artifact') else None,
+                'analysis_return_inbox':str(output_path(self.root,pid,'analysis/agent-return-inbox.json')),
+                'retrieval':request,'retrieval_state':doc.get('retrieval_request'),
+                'unresolved_retrieval':list(doc.get('retrieval_unresolved',{}).values())[:128],
+                'unresolved_retrieval_count':len(doc.get('retrieval_unresolved',{})),
+                'message':'Claude reads the local task and evidence, performs analysis/coding/testing/review, then returns task-bound analysis. When evidence is missing, copy the retrieval prompt to Copilot; Continue validates its inbox. Requirements Save and the one actual SME return remain human gates.'}
+
+    @staticmethod
+    def _retrieval_need_key(need):
+        return sha(encode({k:need.get(k) for k in ('kind','name','source','relationship')}))
+
+    def request_retrieval(self, pid, needs=None):
+        from .retrieval import build_request,write_request,validate_binding,MAX_NEEDS
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            require(not doc['packet_issued'] and pid not in self.active and doc['status'] in ('WAITING_DISCOVERY','WAITING_COPILOT','WAITING_REQUIREMENTS'),
+                    'Request missing evidence only at a pre-review checkpoint')
+            existing=doc.get('retrieval_request')
+            if existing and existing.get('status') in ('WAITING','IMPORTING'):
+                require(needs is None,'Finish the outstanding retrieval before replacing it')
+                if existing['status']=='WAITING':validate_binding(decode(self.artifact(pid,existing['artifact']).read_bytes()),doc)
+                return self.local_agent_view(pid)
+            total=None
+            if needs is None:
+                fields=('kind','name','reason','source','relationship','status')
+                gaps=doc.get('lineage',{}).get('closure',{}).get('gaps',[])
+                candidates=[{k:g[k] for k in fields if k in g} for g in gaps]
+                candidates.extend(v['need'] for v in doc.get('retrieval_unresolved',{}).values())
+                unique={self._retrieval_need_key(n):n for n in candidates}
+                total=len(unique);needs=list(unique.values())[:MAX_NEEDS]
+            request=build_request(doc,needs);relative=write_request(self.root,request)
+            self.register(doc,relative)
+            doc['retrieval_request']={'id':request['request_id'],'artifact':relative,'status':'WAITING',
+                'total_need_count':total if total is not None else len(request['needs']),
+                'remaining_need_count':max(0,(total or len(request['needs']))-len(request['needs']))}
+            unresolved=doc.setdefault('retrieval_unresolved',{})
+            for need in request['needs']:
+                unresolved[self._retrieval_need_key(need)]={'need':{k:v for k,v in need.items() if k!='need_id'},
+                    'request_id':request['request_id'],'reason':'Awaiting requested local evidence'}
+            self.ledger.save_event(doc,None,'retrieval','Copilot retrieval request prepared; Claude continues from local returned files',{'request_id':request['request_id']})
+            return self.local_agent_view(pid)
+
+    def continue_retrieval(self, pid):
+        from .retrieval import inspect_response,validate_binding
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc);record=doc.get('retrieval_request')
+            require(not doc['packet_issued'] and pid not in self.active and doc['status'] in ('WAITING_DISCOVERY','WAITING_COPILOT','WAITING_REQUIREMENTS'),
+                    'Continue retrieval only at a pre-review checkpoint')
+            require(record and record['status'] in ('WAITING','IMPORTING'),'No outstanding retrieval request')
+            request=decode(self.artifact(pid,record['artifact']).read_bytes())
+            if record['status']=='WAITING':
+                validate_binding(request,doc)
+                result=inspect_response(self.root,request,doc['source_files'])
+                if result['status']=='WAITING_FOR_RESPONSE':return self.local_agent_view(pid)
+                relative='analysis/retrieval/'+request['request_id']+'/accepted-'+result['response_hash']+'.json'
+                data=encode(result);destination=output_path(self.root,pid,relative)
+                if destination.exists():require(destination.read_bytes()==data,'Retrieval response changed after acceptance')
+                else:write_new(destination,data)
+                self.register(doc,relative)
+                record={**record,'status':'IMPORTING','response_artifact':relative,'missing_items':result['missing_items']}
+                doc['retrieval_request']=record
+                self.ledger.save(doc)
+            else:
+                # Resume only the ledger-pinned acceptance, even if staging changes.
+                result=decode(self.artifact(pid,record['response_artifact']).read_bytes())
+            self.freeze_discovered_sources(doc,result['entries'])
+            doc=self.ledger.get(pid)
+            unresolved=doc.setdefault('retrieval_unresolved',{})
+            needs={n['need_id']:n for n in request['needs']}
+            for item in result['items']:
+                need=needs[item['need_id']];key=self._retrieval_need_key(need)
+                if item['status']=='FOUND':unresolved[key]={'need':{k:v for k,v in need.items() if k!='need_id'},
+                    'request_id':request['request_id'],'status':'RECEIVED','path':item['path'],'source_hash':item['sha256'],
+                    'reason':'Retrieved bytes require matching object type, identity and source evidence'}
+                else:unresolved[key]={'need':{k:v for k,v in need.items() if k!='need_id'},
+                    'request_id':request['request_id'],'reason':item['reason'],'status':item['status']}
+            doc['retrieval_request']={**record,'status':'CONSUMED'}
+            doc['analysis']=None;doc['llm']={'status':'NOT_CONFIGURED','live_ready':False}
+            doc['copilot_iteration']=doc.get('copilot_iteration',0)+1
+            for key in ('lineage','lineage_artifact','lineage_scope','copilot_task_artifact','copilot_return_artifact','analysis_artifact'):doc.pop(key,None)
+            doc.setdefault('stage_attempts',{})['QUEUED_ANALYSIS']=0
+            self.ledger.save_event(doc,'QUEUED_ANALYSIS','retrieval','Returned files frozen; reassessing local lineage and preserving unresolved retrieval results',{'request_id':request['request_id'],'accepted_files':len(result['entries']),'missing_items':len(result['missing_items'])})
+        self.advance(pid)
+        # Partial/unsuccessful retrieval is a visible checkpoint, not an automatic prompt loop.
+        if self.ledger.get(pid)['status']=='WAITING_DISCOVERY' and not self.ledger.get(pid).get('retrieval_unresolved') and result['complete'] and result['entries']:
+            return self.request_retrieval(pid)
+        return self.local_agent_view(pid)
+
+    def local_agent_action(self, pid, action, payload):
+        from .local_agent import ACTIONS
+        require(isinstance(action,str) and action in ACTIONS and isinstance(payload,dict),'Invalid local agent action')
+        expected={'analysis'} if action=='analysis' else {'receipt'} if action=='measurement' else set()
+        require(set(payload)==expected or action=='request' and set(payload)<={'needs'},'Unexpected local agent payload')
+        if action=='measurement':require(isinstance(payload['receipt'],dict) and payload['receipt'].get('process_id') in (pid,None),'Receipt must belong to this process or explicitly to the workspace')
+        migrated=False
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            require(pid not in self.active,'Wait for the current Coordinator stage to reach a checkpoint')
+            if action=='measurement':return self.record_measurement(payload['receipt'])
+            if action=='request' and 'needs' in payload:
+                from .retrieval import build_request
+                require(isinstance(payload['needs'],list),'Retrieval needs must be an array')
+                build_request(doc,payload['needs'])  # Validate nested input before changing host/task state.
+            if action=='analysis':
+                require(doc.get('agent_transport')=='local_files','Inspect this process with runner agent first, then return its fresh local analysis task')
+            if doc.get('agent_transport')!='local_files' and not doc['packet_issued']:
+
+                require(doc['status'] in ('READY','WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT'),'Enable local-file analysis at a stable checkpoint')
+                doc['agent_transport']='local_files';doc['assistant_mode']='copilot_chat';doc['development_contract_version']=2
+                if doc.get('development_handoff'):doc['historical_development_handoff']=doc.pop('development_handoff')
+                self.ledger.save_event(doc,None,'agent','Claude local-file workflow selected; Copilot limited to retrieval and prior handoff evidence preserved')
+                if doc['status']=='WAITING_COPILOT':self.refresh_analysis(pid);migrated=True
+        if migrated:self.advance(pid)
+        if action=='request':return self.request_retrieval(pid,payload.get('needs'))
+        if action=='refresh' and not migrated:self.refresh_analysis(pid)
+        if action=='analysis':
+            current=self.ledger.get(pid)
+            if current['status']!='WAITING_COPILOT':
+                require((current.get('llm') or {}).get('provenance',{}).get('returned_analysis_hash')==sha(encode(payload['analysis'])),'Process is not awaiting this analysis')
+            else:self.submit_agent_analysis(pid,payload['analysis'])
+        if action=='continue':
+            current=self.ledger.get(pid)
+            if (current.get('retrieval_request') or {}).get('status') in ('WAITING','IMPORTING'):return self.continue_retrieval(pid)
+            inbox=output_path(self.root,pid,'analysis/agent-return-inbox.json')
+            if current['status']=='WAITING_COPILOT' and inbox.exists():
+                require(inbox.is_file() and inbox.stat().st_size<=128000,'Local analysis return exceeds bound')
+                self.submit_agent_analysis(pid,decode(inbox.read_bytes(),128000))
+        current=self.ledger.get(pid)
+        if current['status'] in ('QUEUED_ANALYSIS','QUEUED_VERIFY','QUEUED_REPORT'):self.advance(pid)
+        current=self.ledger.get(pid)
+        if current['status']=='WAITING_DISCOVERY' and (current.get('retrieval_request') or {}).get('status') in (None,'STALE'):
+            return self.request_retrieval(pid)
+        return self.local_agent_view(pid)
+
+    def _current_development(self, doc, task):
+        handoff = doc.get('development_handoff')
+        return bool(handoff and handoff['task_hash'] == task['task_hash'])
+
+    def prepare_development(self, pid):
+        from .development import build_packet
+        with self.lock:
+            doc = self.ledger.get(pid)
+            require(doc.get('agent_transport')!='local_files','Claude uses local files without a development MCP handoff')
+            require(doc['status'] == 'WAITING_COPILOT' and not doc['packet_issued'],
+                    'Complete discovery and requirements before preparing development')
+            task = self.agent_task(pid)
+            if self._current_development(doc, task): return self.development_view(pid)
+            require(adapter_fingerprint() == self.adapter_fingerprint == doc.get('analysis_adapter_fingerprint'),
+                    'Restart the existing service if code changed, then refresh analysis before preparing development')
+            packet = build_packet(task, (doc.get('analysis') or {}).get('blockers', []), self.adapter_fingerprint)
+            raw = encode(packet); relative = 'analysis/development-handoff-' + packet['handoff_id'] + '.json'
+            destination = output_path(self.root, pid, relative)
+            if destination.exists(): require(destination.read_bytes() == raw, 'Development handoff evidence differs')
+            else: write_new(destination, raw)
+            self.register(doc, relative)
+            doc['development_handoff'] = {'id': packet['handoff_id'], 'task_hash': task['task_hash'],
+                                          'artifact': relative, 'return_artifact': None}
+            self.ledger.save_development_handoff(doc, packet['handoff_id'])
+            return self.development_view(pid)
+
+    def revise_development(self, pid, reason, handoff_id):
+        from .development import build_packet, REVISION_REASONS
+        with self.lock:
+            require(isinstance(reason, str) and reason in REVISION_REASONS, 'Choose a development revision reason')
+            doc = self.ledger.get(pid); view = self.development_view(pid)
+            require(view['status'] in ('READY', 'RETURNED_FOR_REVIEW') and not doc['packet_issued'],
+                    'Only a current development handoff can be revised')
+            previous = view['packet']; task = self.agent_task(pid)
+            prior_revision = previous.get('revision') or {}
+            if prior_revision.get('previous_handoff_id') == handoff_id and prior_revision.get('reason') == reason:
+                return view  # Retry of the already committed revision.
+            require(previous['handoff_id'] == handoff_id, 'Development handoff changed; reload before revising')
+            revision = {'number': (previous.get('revision') or {}).get('number', 0) + 1,
+                        'previous_handoff_id': previous['handoff_id'], 'reason': reason}
+            # Retain the analysis baseline while reworking a rejected patch; no code is credited.
+            packet = build_packet(task, (doc.get('analysis') or {}).get('blockers', []),
+                                  previous['binding']['adapter_fingerprint'], revision)
+            raw = encode(packet); relative = 'analysis/development-handoff-' + packet['handoff_id'] + '.json'
+            destination = output_path(self.root, pid, relative)
+            if destination.exists(): require(destination.read_bytes() == raw, 'Development revision evidence differs')
+            else: write_new(destination, raw)
+            self.register(doc, relative)
+            doc['development_handoff'] = {'id': packet['handoff_id'], 'task_hash': task['task_hash'],
+                                          'artifact': relative, 'return_artifact': None}
+            self.ledger.save_development_handoff(doc, packet['handoff_id'])
+            return self.development_view(pid)
+
+    def development_view(self, pid):
+        with self.lock:
+            doc = self.ledger.get(pid); record = doc.get('development_handoff')
+            empty = {'packet': None, 'result': None}
+            if not record:
+                return {**empty, 'status': 'NOT_PREPARED', 'next_action': 'Copilot inspects source, then prepares standalone development when needed.'}
+            if doc['status'] != 'WAITING_COPILOT' or not doc.get('copilot_task_artifact'):
+                return {**empty, 'status': 'STALE', 'next_action': 'The previous handoff is preserved. Retrieve the current Copilot task after analysis.'}
+            task = self.agent_task(pid)
+            if not self._current_development(doc, task):
+                return {**empty, 'status': 'STALE', 'next_action': 'Previous handoff is stale. Copilot uses the refreshed task or prepares a new development handoff.'}
+            packet = decode(self.artifact(pid, record['artifact']).read_bytes())
+            require(packet['handoff_id'] == record['id'] and
+                    packet['handoff_id'] == sha(encode({k:v for k,v in packet.items() if k != 'handoff_id'})),
+                    'Development handoff integrity differs')
+            result = decode(self.artifact(pid, record['return_artifact']).read_bytes()) if record.get('return_artifact') else None
+            return {'status': 'RETURNED_FOR_REVIEW' if result else 'READY', 'packet': packet, 'result': result,
+                    'next_action': 'Copilot reviews and integrates the returned patch, verifies it, restarts the existing service if code changed and refreshes analysis.' if result else 'Standalone Claude implements the source-free work items and returns evidence or unresolved obligations.'}
+
+    def _development_by_id(self, handoff_id):
+        from .development import valid_hash
+        require(valid_hash(handoff_id), 'Development handoff is unavailable or stale')
+        pid = self.ledger.development_owner(handoff_id)
+        view = self.development_view(pid)
+        require(view['packet'] and view['packet']['handoff_id'] == handoff_id, 'Development handoff is unavailable or stale')
+        return pid, view
+
+    def development_task(self, handoff_id):
+        with self.lock:
+            try:
+                _, view = self._development_by_id(handoff_id)
+                return {'status': view['status'], 'packet': view['packet'],
+                        'return_hash': view['result']['submission_hash'] if view['result'] else None}
+            except (ValidationError, OSError, KeyError) as exc:
+                # Developer consumers must not receive operational integrity paths/names.
+                raise ValidationError('Development handoff is unavailable or stale; ask Copilot to check the operational workspace') from exc
+
+    def submit_development(self, handoff_id, submitted):
+        from .development import validate_return
+        with self.lock:
+            try: pid, view = self._development_by_id(handoff_id)
+            except (ValidationError, OSError, KeyError) as exc:
+                raise ValidationError('Development handoff is unavailable or stale; ask Copilot to check the operational workspace') from exc
+            result = validate_return(view['packet'], submitted)
+            if view['result']:
+                require(view['result'] == result, 'Development return conflicts with the immutable recorded return')
+                return self.development_task(handoff_id)
+            doc = self.ledger.get(pid)
+            data = encode(result); relative = 'analysis/development-return-' + sha(data) + '.json'
+            destination = output_path(self.root, pid, relative)
+            if destination.exists(): require(destination.read_bytes() == data, 'Development return evidence differs')
+            else: write_new(destination, data)
+            self.register(doc, relative); doc['development_handoff']['return_artifact'] = relative
+            self.ledger.save_event(doc, None, 'development', 'Standalone development return recorded as unverified; Copilot integration and refresh required',
+                                   {'handoff_id': handoff_id, 'return_hash': result['submission_hash']})
+            return self.development_task(handoff_id)
+
     def submit_agent_analysis(self,pid,submitted):
         from .copilot import validate_submission
         with self.lock:
-            doc=self.ledger.get(pid);require(doc['status']=='WAITING_COPILOT','Process is not waiting for Copilot Chat analysis')
-            result=validate_submission(self.agent_task(pid),submitted)
+            doc=self.ledger.get(pid);require(doc['status']=='WAITING_COPILOT','Process is not waiting for agent analysis')
+            require(not doc.get('retrieval_unresolved') and (doc.get('retrieval_request') or {}).get('status') not in ('WAITING','IMPORTING'),'Finish outstanding retrieval before submitting analysis')
+            task=self.agent_task(pid)
+            require(not self._current_development(doc,task),'Development handoff requires a return, integration review and refresh before final analysis')
+            if doc.get('development_contract_version'):
+                require(adapter_fingerprint()==self.adapter_fingerprint==doc.get('analysis_adapter_fingerprint'),'Adapter code changed; restart the existing service and refresh analysis before final analysis')
+            result=validate_submission(task,submitted,doc.get('analysis'))
             data=encode(result);relative='analysis/copilot-return-'+sha(data)+'.json'
             write_new(output_path(self.root,pid,relative),data);self.register(doc,relative)
             doc['llm']=result;doc['copilot_return_artifact']=relative
-            return self.ledger.save_event(doc,'QUEUED_ANALYSIS','copilot','Copilot analysis accepted as review context; no conversion gaps cleared')
+            return self.ledger.save_event(doc,'QUEUED_ANALYSIS','agent','Agent analysis accepted as review context; no conversion gaps cleared')
 
     def refresh_analysis(self,pid):
         """Reassess actual adapter changes before the sole SME packet is issued."""
         with self.lock:
             doc=self.ledger.get(pid);self.sources(doc)
+            require((doc.get('retrieval_request') or {}).get('status') not in ('WAITING','IMPORTING'),'Finish outstanding retrieval before refreshing analysis')
             require(doc['status']=='WAITING_COPILOT' and not doc['packet_issued'],'Adapter reassessment is permitted only before the single SME packet')
+            if doc.get('development_handoff') and doc.get('copilot_task_artifact'):
+                view=self.development_view(pid)
+                if view['status'] in ('READY','RETURNED_FOR_REVIEW'):
+                    require(view['result'] is not None,'Record a development return, including unresolved work, before refresh')
+                    from .development import check_integrated_changes
+                    check_integrated_changes(view['result'])
+            if doc.get('sme_packet_version',1)>=4 or doc.get('development_handoff'):
+                require(adapter_fingerprint()==self.adapter_fingerprint,'Adapter code changed on disk. Restart the workbench service through its existing launcher, then refresh through the same workspace; never run a second writer.')
+                doc['previous_analysis_hash']=sha(encode(doc.get('analysis')))
             doc['analysis']=None;doc['llm']={'status':'NOT_CONFIGURED','live_ready':False}
             doc['copilot_iteration']=doc.get('copilot_iteration',0)+1
             for key in ('copilot_task_artifact','copilot_return_artifact','analysis_artifact'):doc.pop(key,None)
             doc.setdefault('stage_attempts',{})['QUEUED_ANALYSIS']=0
             return self.ledger.save_event(doc,'QUEUED_ANALYSIS','adapters','Reassessing actual adapter code; previous tasks/evidence preserved and SME quota unchanged')
 
+    def begin_work(self,document):
+        from .economics import fields, STAGES, text
+        fields(document,('id','process_id','actor','stage'))
+        require(isinstance(document['id'],str) and __import__('re').fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,99}',document['id']),'Invalid work session ID')
+        text(document['actor'],'actor');require(isinstance(document['stage'],str) and document['stage'] in STAGES and document['stage']!='pilot_total','Invalid work stage')
+        with self.lock:
+            if document['process_id'] is not None:self.ledger.get(document['process_id'])
+            require((document['process_id'] is None)==(document['stage']=='framework'),'Framework sessions are workspace-wide; other work requires a process')
+            sessions=self.ledger.work_sessions();existing=next((r for r in sessions if r['id']==document['id']),None)
+            if existing:
+                require(existing['document']==document,'Work session identity conflicts')
+                return existing
+            require(not any(r['document']['actor']==document['actor'] and not r['receipt_id'] for r in sessions),'Actor already has an open work session; account for it before starting another')
+            self.ledger.open_work_session(document);self.work_clocks[document['id']]=time.monotonic()
+            return next(r for r in self.ledger.work_sessions() if r['id']==document['id'])
+
+    def end_work(self,session_id,abandon=False):
+        from .economics import number
+        from decimal import Decimal
+        with self.lock:
+            session=next((r for r in self.ledger.work_sessions() if r['id']==session_id),None)
+            require(session is not None,'Work session not found')
+            if session['receipt_id']:return session
+            if abandon:
+                self.ledger.close_work_session(session_id,'UNMEASURED');self.work_clocks.pop(session_id,None)
+                return {'id':session_id,'state':'UNMEASURED','hours':None}
+            prior=next((r for r in self.ledger.measurements() if r['id']=='session-'+session_id),None)
+            if prior:
+                require(prior['document'].get('recorded_by')=='workbench work-session clock','Work clock receipt identity conflicts')
+                self.ledger.close_work_session(session_id,prior['id']);self.work_clocks.pop(session_id,None)
+                return {'id':prior['id'],'sha256':prior['fingerprint'],'path':prior['path'],'recorded':True}
+            # A lost clock after restart is not permission to count downtime as work.
+            require(session_id in self.work_clocks,'Session clock was lost on restart; abandon as unmeasured, then import actual work evidence if available')
+            doc=session['document'];hours=str(Decimal(str(time.monotonic()-self.work_clocks[session_id]))/3600)
+            receipt={'id':'session-'+session_id,'kind':'work','process_id':doc['process_id'],'actor':doc['actor'],
+                     'stage':doc['stage'],'hours':hours,'started_at':session['started'],'ended_at':now(),
+                     'evidence':'Observed agent work-session window; stop before human waits. Includes thinking and tool execution, not an attendance attestation.',
+                     'recorded_by':'workbench work-session clock'}
+            result=self.record_measurement(receipt,observed=True)
+            self.ledger.close_work_session(session_id,receipt['id']);self.work_clocks.pop(session_id,None)
+            return result
+
+    def record_measurement(self,record,observed=False):
+        from .economics import validate_receipt
+        validate_receipt(record,observed=observed)
+        require(observed or not record['id'].startswith(('session-','provider-')),'Receipt ID prefix is reserved for observed clocks and calls')
+        raw=encode(record);require(len(raw)<=65536,'Measurement exceeds 64 KiB')
+        if record['kind']=='usage' and record['provider']=='configured_api':require(not {'input_tokens','output_tokens','cached_input_tokens'}.intersection(record['quantities']),'Configured API token counters are already observed; import only actual credits')
+        fingerprint=sha(raw);pid=record['process_id'];relative=None
+        with self.lock:
+            if pid is not None:self.ledger.get(pid)
+            if record['kind']=='plan':self.economics(plan=record['plan'])
+            rows=self.ledger.measurements();by_id={r['id']:r for r in rows}
+            if record['id'] in by_id:
+                require(by_id[record['id']]['fingerprint']==fingerprint,'Measurement ID already belongs to different evidence')
+            if record.get('supersedes'):
+                previous=by_id.get(record['supersedes'])
+                require(previous is not None and previous['process_id']==pid and previous['document']['kind']==record['kind'], 'Correction must supersede the same kind and scope')
+                if record['kind'] in ('usage','budget'):require(all(record.get(k)==previous['document'].get(k) for k in ('provider','account','unit')),'Billing correction must retain provider/account/unit')
+                require(not any(r['document'].get('supersedes')==record['supersedes'] and r['id']!=record['id'] for r in rows),'Receipt already superseded')
+                require(record['supersedes']!=record['id'],'Receipt cannot supersede itself')
+            if pid is not None:
+                relative='analysis/measurements/'+fingerprint+'.json';path=output_path(self.root,pid,relative)
+                if path.exists():require(path.read_bytes()==raw,'Measurement evidence changed')
+                else:write_new(path,raw)
+            self.ledger.append_measurement(record,fingerprint,relative)
+        return {'id':record['id'],'sha256':fingerprint,'path':relative,'recorded':True}
+
+    def economics(self,pid=None,plan=None):
+        from .economics import economics_view
+        with self.lock:return economics_view(self.ledger,pid,plan)
+
+    def observed_analysis(self,doc,excerpts):
+        from uuid import uuid4
+        # Preserve real charges even when structured suggestions fail validation.
+        with self.provider_lock:
+            before=self.provider.usage_summary();started=now()
+            try:return self.provider.analyze(excerpts,doc.get('prompt') or 'Review this process and identify assumptions for its one SME checklist.')
+            finally:
+                after=self.provider.usage_summary()
+                counters={key:after[key]-before[key] for key in before if type(before[key]) is int}
+                if counters.get('requests') or counters.get('cache_hits'):
+                    self.record_measurement({'id':'provider-'+uuid4().hex,'kind':'provider_call','process_id':doc['id'],
+                        'provider':'configured_api','account':'configured_endpoint:'+sha(self.provider.url)[:16], 'model':self.provider.model,
+                        'started_at':started,'ended_at':now(),'counters':counters,'recorded_by':'workbench',
+                        'evidence':'Observed structured provider counters for this call; endpoint and credentials omitted.'},observed=True)
+
     def advance(self,pid):
         with self.lock:
             require_layout(self.root)
             doc=self.ledger.get(pid);stage=doc['status']
             if pid in self.active or stage not in ('QUEUED_ANALYSIS','QUEUED_VERIFY','QUEUED_REPORT') or doc.get('next_retry_at',0)>time.time():return doc
+            if doc.get('factory_contract_version'):
+                from .factory import consistency_findings
+                findings=consistency_findings(doc)
+                if findings:
+                    doc['factory_findings']=findings;doc['resume_status']=stage
+                    doc['blockers'].append({'kind':'factory_consistency','message':'Factory invariant failed; inspect factory_findings'})
+                    return self.ledger.save_event(doc,'REPORTING_FAILED' if stage=='QUEUED_REPORT' else 'FAILED','consistency','Factory transition blocked',{'findings':findings})
             self.active.add(pid);doc['_active_stage']=stage
             doc.setdefault('stage_attempts',{})[stage]=doc.get('stage_attempts',{}).get(stage,0)+1
             self.ledger.save(doc,{'QUEUED_ANALYSIS':'ANALYZING','QUEUED_VERIFY':'VERIFYING','QUEUED_REPORT':'REPORTING'}[stage])
+        timing_id=self.ledger.start_timing(pid,stage);timing_started=time.monotonic();timing_outcome='interrupted'
         try:
             {'QUEUED_ANALYSIS':self.analyze,'QUEUED_VERIFY':self.verify,'QUEUED_REPORT':self.report}[stage](doc)
+            timing_outcome='returned'
         except StageInterrupted:pass
         except Exception as exc:
+            timing_outcome='failed'
             with self.lock:
                 current=self.ledger.get(pid)
                 if current['status']=='PAUSED' or (current.get('cancel_requested') and stage!='QUEUED_REPORT') or self.closed:
@@ -384,6 +837,7 @@ class Coordinator:
             raise
         finally:
             with self.lock:
+                self.ledger.finish_timing(timing_id,time.monotonic()-timing_started,timing_outcome)
                 self.active.discard(pid)
                 if self.closed and (not self.worker or not self.worker.is_alive()):self._release()
         return self.ledger.get(pid) if self.ledger is not None else doc
@@ -395,7 +849,7 @@ class Coordinator:
         from .connectors import ReadOnlyLineageResolver
         strict=doc.get('assistant_mode')=='copilot_chat'
         if not doc.get('lineage') or (strict and not doc['lineage']['closure']['complete']):
-            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.from_environment() if strict else None)
+            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.from_environment() if strict and doc.get('agent_transport')!='local_files' else None)
             self.freeze_discovered_sources(doc,lineage.get('source_snapshots',[]))
             source_files=self.sources(doc)
             # Fetched text is retained in immutable source snapshots and journal,
@@ -405,20 +859,44 @@ class Coordinator:
             if path.exists():require(path.read_bytes()==data,'Lineage recovery differs from frozen evidence')
             else:write_new(path,data)
             self.register(doc,relative);doc['lineage']=lineage;doc['lineage_artifact']=relative
-        if strict and not doc['lineage']['closure']['complete']:
+        if doc.get('retrieval_unresolved'):
+            from .retrieval import unresolved_after_mapping
+            doc['retrieval_unresolved']=unresolved_after_mapping(doc,doc['lineage'])
+        if strict and (not doc['lineage']['closure']['complete'] or doc.get('retrieval_unresolved')):
             doc['blockers']=[{'kind':'lineage_unresolved','message':g.get('reason',g.get('message','Missing or ambiguous dependency')),'object':g} for g in doc['lineage']['closure']['gaps']]
+            doc['blockers'].extend({'kind':'retrieval_unresolved','message':v['reason'],'object':v['need'],'request_id':v['request_id']} for v in doc.get('retrieval_unresolved',{}).values())
             self.stage_success(doc,'QUEUED_ANALYSIS');self.checkpoint(doc,'WAITING_DISCOVERY')
             self.ledger.event(pid,'lineage','Discovery is incomplete; no conversion or SME packet has started',{'gaps':len(doc['blockers'])})
             return
         if strict:doc['lineage_scope']=doc['lineage']['scope']['selected_files']
         self.ledger.event(pid,'analysis','Extracting atomic source logic within the discovered job scope; unsupported semantics remain explicit adapter obligations')
-        analysis=doc.get('analysis') or analyze_sources(source_files,doc);self.checkpoint(doc);doc['analysis']=analysis;doc['blockers']=list(analysis['blockers'])
+        analysis=doc.get('analysis')
+        if analysis is None:
+            # Reassess the current adapter catalog before applying saved selections.
+            # Changed granularity needs a fresh operator Save, never silent defaults.
+            analysis=analyze_sources(source_files,{k:v for k,v in doc.items() if k!='requirements'})
+            if doc.get('requirements'):
+                from .requirements import catalog,project
+                model=catalog(analysis);saved=doc['requirements']
+                if model['hash']!=saved['catalog_hash']:
+                    doc['requirements_revision']=saved['revision']
+                    doc['requirements_draft_exclusions']=sorted(set(saved['excluded_ids']) & {r['id'] for r in model['items']})
+                    doc.pop('requirements');doc['requirements_selection']=True
+                    self.ledger.event(pid,'requirements','Adapter source breakdown changed; review retained choices and explicitly save a new scope revision. Previous Markdown evidence is preserved.')
+                else:analysis=project(analysis,saved,doc.get('jobs',[]))
+        self.checkpoint(doc);doc['analysis']=analysis;doc['blockers']=list(analysis['blockers'])
+        if doc.get('requirements_selection') and not doc.get('requirements'):
+            self.stage_success(doc,'QUEUED_ANALYSIS');self.checkpoint(doc,'WAITING_REQUIREMENTS')
+            self.ledger.event(pid,'requirements','Mainframe breakdown ready; all choices default to Yes. Save actual requirements before conversion.')
+            return
         context_path=self.root/'knowledge'/'inbox'/'context.md'
-        if context_path.exists() and 'knowledge_context' not in doc:
+        if doc.get('process_context',{}).get('documents') and 'knowledge_context' not in doc:
+            doc['knowledge_context']={'status':'UNVERIFIED_INPUT','artifact':'analysis/process-context.json', 'sha256':sha(encode(doc['process_context'])), 'documents':[{k:v for k,v in d.items() if k!='text'} for d in doc['process_context']['documents']]}
+        if context_path.exists() and 'knowledge_context' not in doc and 'process_context' not in doc:
             require(not context_path.is_symlink() and context_path.stat().st_size<=16000,'Knowledge context must be a regular Markdown file of at most 16 KB')
             doc['knowledge_context']={'text':context_path.read_text(),'sha256':sha(context_path.read_bytes()),'status':'UNVERIFIED_INPUT'}
         from .connectors import read_only_discovery
-        if 'discovery' not in doc:doc['discovery']=read_only_discovery()
+        if 'discovery' not in doc:doc['discovery']={'status':'COPILOT_RETRIEVAL_ONLY','operations':[]} if doc.get('agent_transport')=='local_files' else read_only_discovery()
         doc.setdefault('llm',{'status':'NOT_CONFIGURED','live_ready':False})
         if strict and doc['llm']['status']!='AGENT_ANALYSIS_RETURNED':
             analysis_bytes=encode(analysis);analysis_relative='analysis/source-analysis-'+sha(analysis_bytes)+'.json'
@@ -427,6 +905,7 @@ class Coordinator:
             else:write_new(frozen,analysis_bytes)
             self.register(doc,analysis_relative);doc['analysis_artifact']=analysis_relative
             from .copilot import build_task, unknown_usage
+            doc['analysis_adapter_fingerprint']=self.adapter_fingerprint
             task=build_task(doc,source_files,analysis);data=encode(task);relative='analysis/copilot-task-'+sha(data)+'.json'
             destination=output_path(self.root,pid,relative)
             if destination.exists():require(destination.read_bytes()==data,'Copilot task recovery differs')
@@ -434,7 +913,7 @@ class Coordinator:
             self.register(doc,relative);doc['copilot_task_artifact']=relative
             doc['llm']={'status':'WAITING_COPILOT','live_ready':False,'usage':unknown_usage()}
             self.stage_success(doc,'QUEUED_ANALYSIS');self.checkpoint(doc,'WAITING_COPILOT')
-            self.ledger.event(pid,'copilot','Frozen task ready for GitHub Copilot Chat through the workspace MCP bridge; no model endpoint required')
+            self.ledger.event(pid,'agent','Frozen task ready for Claude Code through local files; Copilot retrieves missing evidence only' if doc.get('agent_transport')=='local_files' else 'Frozen task ready for external agent analysis')
             return
         if self.provider and not strict and doc['llm']['status']=='NOT_CONFIGURED':
             try:
@@ -446,7 +925,7 @@ class Coordinator:
                            'application':doc['mainframe_knowledge']['application']}
                     context='Frozen mainframe context (bounded excerpt; full facts are in the SME packet):\n'+json.dumps(facts,ensure_ascii=False)[:4000]+'\nSource excerpts:\n'
                 excerpts=(context+'\n'.join(p['source_text'] for p in analysis['programs'].values())+'\nUnverified background knowledge:\n'+doc.get('knowledge_context',{}).get('text',''))[:16000]
-                doc['llm']={'status':'ANALYSIS_RETURNED',**self.provider.analyze(excerpts,doc.get('prompt') or 'Review this process and identify assumptions for its one SME checklist.')}
+                doc['llm']={'status':'ANALYSIS_RETURNED',**self.observed_analysis(doc,excerpts)}
             except ValidationError as exc:
                 doc['llm']={'status':'UNAVAILABLE','message':str(exc),'live_ready':False}
                 doc['blockers'].append({'kind':'llm_unavailable','message':str(exc)})
@@ -461,7 +940,7 @@ class Coordinator:
         for name,program in analysis['programs'].items():
             self.checkpoint(doc)
             if program['blockers']:continue
-            code=emit_program(program);check_generated(code)
+            code=get_backend(doc.get('target_backend',{}).get('name','python-sqlite')).generate(program);check_generated(code)
             version=sha(code);doc['program_versions'][name]=version
             path=self.root/'shared'/'target'/'python'/(version+'.py')
             if not path.exists():write_new(path,code.encode())
@@ -502,7 +981,9 @@ class Coordinator:
             if p['blockers']:continue
             self.checkpoint(doc)
             args=(p,doc['authorization']['seed'],doc['authorization']['max_cases_per_program'])
-            suite=plan_cases(*args,min_records_per_logic=doc['logic_validation_min_records']) if doc.get('logic_validation_min_records') else plan_cases(*args)
+            options={'min_records_per_logic':doc['logic_validation_min_records']} if doc.get('logic_validation_min_records') else {}
+            if doc.get('fixture_contract_version')==4:options['fixture_contract_version']=4
+            suite=plan_cases(*args,**options)
             self.checkpoint(doc)
             expected_path=runroot/name/'expected.json';write_new(expected_path,encode(suite));self.register(doc,f'synthetic/{run_id}/{name}/expected.json')
             target_path=self.root/'shared'/'target'/'python'/(doc['program_versions'][name]+'.py')
@@ -513,9 +994,21 @@ class Coordinator:
             from .fixtures import adversarial_review
             adversarial=adversarial_review(p,code,suite,checkpoint=lambda:self.checkpoint(doc,persist=False));self.checkpoint(doc)
             result['adversarial']=adversarial
+            unit_result=None
+            if doc.get('fixture_contract_version')==4:
+                from .unit_evidence import generate_unit_tests, run_unit_tests
+                script=generate_unit_tests(p,suite,sha(code))
+                unit_relative=f'tests/{run_id}/{name}/test_generated.py'
+                unit_path=output_path(self.root,pid,unit_relative)
+                write_new(unit_path,script.encode());self.register(doc,unit_relative)
+                unit_result=run_unit_tests(script,unit_path,checkpoint=lambda:self.checkpoint(doc,persist=False))
+                receipt_relative=f'tests/{run_id}/{name}/unit-results.json'
+                write_new(output_path(self.root,pid,receipt_relative),encode(unit_result));self.register(doc,receipt_relative)
+                result['unit_tests']={**unit_result,'module':unit_relative,'receipt':receipt_relative}
+                if not unit_result['passed']:doc['blockers'].append({'kind':'verification_gap','program':name,'message':'Generated unit comparison tests failed'})
             if suite['coverage'].get('logic_validation'):
                 logic_summaries.append({'program':name,**suite['coverage']['logic_validation'],
-                    'complete':suite['coverage']['complete'] and not result['differences'] and adversarial['passed'],
+                    'complete':suite['coverage']['complete'] and not result['differences'] and adversarial['passed'] and (unit_result is None or unit_result['passed']),
                     'target_matched':not result['differences'],'adversarial_passed':adversarial['passed']})
             write_new(runroot/name/'actual-and-comparison.json',encode(result));self.register(doc,f'synthetic/{run_id}/{name}/actual-and-comparison.json')
             self.checkpoint(doc)
@@ -530,20 +1023,35 @@ class Coordinator:
                 for name,result in run['programs'].items():db.executemany('INSERT INTO results VALUES(?,?,?)',[(name,r['case_id'],json.dumps(r['result'])) for r in result['actual']])
         finally:db.close()
         self.register(doc,f'target/{run_id}/target.sqlite')
-        if len(doc['program_versions'])==len(doc['analysis']['programs']) and not any(b['kind'] in ('missing_source','unresolved_condition','unsupported_jcl','scope_mismatch','unsupported_utility','source_classification','unsupported_source') for b in doc['blockers']):
+        job_validation=None
+        if doc['jobs'] and len(doc['program_versions'])==len(doc['analysis']['programs']) and not any(b['kind'] in ('missing_source','unresolved_condition','unsupported_jcl','scope_mismatch','unsupported_utility','source_classification','unsupported_source','requirements_dependency') for b in doc['blockers']):
             jobs=emit_jobs(doc,doc['program_versions']);write_new(root/'target'/run_id/'jobs.py',jobs.encode());self.register(doc,f'target/{run_id}/jobs.py')
             from .orchestration import verify_jobs
             self.checkpoint(doc)
             result=verify_jobs(doc,self.root,jobs,checkpoint=lambda:self.checkpoint(doc,persist=False));self.checkpoint(doc)
             write_new(root/'target'/run_id/'job-comparison.json',encode(result));self.register(doc,f'target/{run_id}/job-comparison.json')
+            job_validation=result.get('validation')
+            if job_validation:job_validation={**job_validation,'complete':job_validation['complete'] and bool(result['matched'])}
             if not result['matched']:doc['blockers'].append({'kind':'job_integration_gap','message':result['reason']})
         self.checkpoint(doc)
         if doc.get('logic_validation_min_records'):
             unsupported=len(doc['analysis']['blockers'])
             summary={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'programs':logic_summaries,'unsupported_obligations':unsupported,'complete':bool(logic_summaries) and not unsupported and all(s.get('complete') for s in logic_summaries),'basis':'SOURCE_DERIVED_EXPECTED','observed_legacy_parity':False}
+            if doc.get('fixture_contract_version')==4:
+                summary.update(fixture_contract_version=4,seed=doc['authorization']['seed'],jobs=job_validation,
+                               unit_test_count=sum(r.get('unit_tests',{}).get('tests_run',0) for r in run['programs'].values()))
+                summary['complete']=summary['complete'] and (not doc['jobs'] or bool(job_validation and job_validation['complete']))
             relative=f'synthetic/{run_id}/logic-validation.json';write_new(output_path(self.root,pid,relative),encode(summary));self.register(doc,relative)
             doc['logic_validation']={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'validated_programs':len(logic_summaries),'unsupported_obligations':unsupported,'complete':summary['complete'],'evidence':relative}
+            if doc.get('fixture_contract_version')==4:
+                doc['logic_validation'].update(fixture_contract_version=4,seed=doc['authorization']['seed'],unit_test_count=summary['unit_test_count'],job_cases=result.get('integration_cases') if job_validation else None)
             if not summary['complete']:doc['blockers'].append({'kind':'logic_validation_gap','message':'Every applicable source logic item requires distinct records and reproducible target evidence; unsupported, unreachable or undersampled obligations remain unverified'})
+        if doc.get('transactions'):
+            from .online import deliver
+            doc['online_delivery']=deliver(self,doc,run)
+            if doc['online_delivery']['status']!='HTTP_COMPARISON_PASSED':doc['blockers'].append({'kind':'online_delivery_gap','message':'Online HTTP comparison or executable module is incomplete'})
+            if not any(b['kind']=='online_semantics_gap' for b in doc['blockers']):
+                doc['blockers'].append({'kind':'online_semantics_gap','message':'Generated record APIs/forms do not prove native CICS/BMS session, AID, navigation, security or transaction equivalence; verify source-specific adapters'})
         doc['runs'].append(run);doc['verification_finished']=True;self.checkpoint(doc)
         doc['knowledge_records']=update_knowledge(self.ledger,doc)
         self.ledger.event(pid,'verification','Local target comparisons complete; source-derived expectations remain distinct from observed mainframe results',{'programs':len(run['programs']),'unresolved':len(doc['blockers'])})
@@ -564,18 +1072,25 @@ class Coordinator:
         doc['blockers']=[b for b in doc['blockers'] if b['kind']!='source_accountability']
         coverage=build_coverage(doc,self.root,checkpoint=lambda:self.target_checkpoint(doc));doc['coverage_summary']=coverage['summary']
         if not coverage['summary']['completion_eligible']:doc['blockers'].append({'kind':'source_accountability','message':'Source accounting, applicable verification or evidence integrity gate remains unmet'})
+        if doc.get('sme_packet_version',1)>=4:
+            from .rule_inventory import build_rule_inventory
+            inventory=build_rule_inventory(doc,coverage)
+            doc['blockers']=[b for b in doc['blockers'] if b['kind']!='unclassified_rules']
+            if inventory['summary']['unclassified']['selected']:
+                doc['blockers'].append({'kind':'unclassified_rules','message':'Source behavior remains unclassified; semantic rule totals are incomplete'})
         self.ledger.event(doc['id'],'report','Generating management metrics, source accounting and editable PowerPoint')
         root=self.process_root(doc['id']);versions=[int(p.name[7:]) for p in (root/'reports').glob('report-*') if p.name[7:].isdigit()]
         output=root/'reports'/f'report-{max([0,*versions])+1:04d}'
         generated_cancelled=bool(doc.get('cancel_requested'))
-        try:paths=generate_reports(self.ledger,doc,output,checkpoint=lambda:self.target_checkpoint(doc))
+        try:paths=generate_reports(self.ledger,doc,output,checkpoint=lambda:self.target_checkpoint(doc),coverage=coverage)
         finally:
             # Even an interrupted writer's partial files remain reviewable evidence.
             if output.exists():
                 for partial in output.rglob('*'):
                     if partial.is_file() and not partial.is_symlink():self.register(doc,str(partial.relative_to(root)))
         self.checkpoint(doc)
-        required={'metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json','coverage.json','coverage.csv','coverage.xlsx','coverage.html','executive-report.html'}
+        required={'economics.json','economics.html','economics.csv','metrics.json','metrics.csv','metrics.xlsx','management.pptx','inspection.json','coverage.json','coverage.csv','coverage.xlsx','coverage.html','executive-report.html','rules.html','rules.json','rules.csv'}
+        if doc.get('factory_contract_version'):required.update({'factory.json','factory.html','program-insights.json','program-insights.html'})
         require(required.issubset({Path(p).name for p in paths}),'Mandatory report or source coverage outputs missing')
         hashes={}
         for path in paths:
@@ -603,6 +1118,9 @@ class Coordinator:
         def loop():
             try:
                 while not self.stopped.wait(.1):
+                    from .local_agent import drain_commands
+                    try:drain_commands(self)
+                    except (ValidationError,OSError):pass
                     for p in self.ledger.list(True):
                         if self.stopped.is_set():break
                         if p['status'] not in ('QUEUED_ANALYSIS','QUEUED_VERIFY','QUEUED_REPORT'):continue

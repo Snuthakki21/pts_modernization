@@ -7,7 +7,7 @@ import shlex
 import time
 import zipfile
 from .coordinator import Coordinator
-from .domain import ValidationError, require, sha, write_new
+from .domain import decode, ValidationError, require, sha, write_new
 from .intake import parse_manifest
 from .layout import require_layout, output_path
 from .executive import accepted_executive, PRIMARY_REPORT
@@ -29,7 +29,7 @@ def manifest_integrity(coordinator, doc, supplied=None):
                 'Process ID already exists with a different manifest hash; use its original manifest or a new process ID')
 
 
-def start_process(coordinator, manifest_path, assistant_mode=None):
+def start_process(coordinator, manifest_path, assistant_mode=None, source_folder=None, process_notes=None, requirements_selection=False):
     path = Path(manifest_path)
     require(path.is_file() and not path.is_symlink() and not any(p.is_symlink() for p in path.absolute().parents),
             'Manifest must be a regular Markdown file with no symlink parents')
@@ -40,10 +40,18 @@ def start_process(coordinator, manifest_path, assistant_mode=None):
     manifest = parse_manifest(text)
     existing = next((p for p in coordinator.ledger.list(True) if p['id'] == manifest['id']), None)
     if existing:
+        if source_folder is not None:
+            from .preflight import _read_sources
+            supplied,_=_read_sources(coordinator.root,source_folder)
+            original=existing.get('authorization',{}).get('scope',existing['source_files'])
+            require({p:sha(t) for p,t in supplied.items()}==original,'Supplied folder differs from the frozen source; use a new process ID')
+        if process_notes is not None:
+            from .process_context import read_markdown
+            require(read_markdown(process_notes)['sha256'] in {d['sha256'] for d in existing.get('process_context',{}).get('documents',[])},'Process notes changed; use a new process ID')
         manifest_integrity(coordinator, existing, raw)
         coordinator.sources(existing)  # Never credit a modified input snapshot.
         return coordinator.start(existing['id']) if existing['status'] == 'READY' else existing
-    doc = coordinator.create(text,assistant_mode=assistant_mode)
+    doc = coordinator.create(text,assistant_mode=assistant_mode,source_folder=source_folder,process_notes=process_notes,requirements_selection=requirements_selection)
     return coordinator.start(doc['id'])
 
 
@@ -72,7 +80,7 @@ def wait_for_process(coordinator, pid, timeout=120, watch=False, reviewer=''):
     while True:
         doc = coordinator.ledger.get(pid)
         if doc['status'] in TERMINAL or doc['status'] in STOPPED: return doc, False
-        if doc['status'] in ('WAITING_DISCOVERY','WAITING_COPILOT'):return doc,False
+        if doc['status'] in ('WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT'):return doc,False
         if doc['status'] == 'WAITING_SME':
             inbox = output_path(coordinator.root, pid, INBOX)
             if inbox.exists():
@@ -155,18 +163,24 @@ def summary(coordinator, doc, timed_out=False):
                    'sme_return_inbox': str(root / INBOX),
                    'continuation': shlex.join(['python', '-m', 'workbench.runner', 'resume', pid,
                                               '--workspace', str(coordinator.root), '--reviewer', 'ACTUAL REVIEWER'])})
+    result['economics']=coordinator.economics(pid)
     accepted=accepted_executive(coordinator,doc)
     primary=accepted['executive_report']
     result['primary_report']=str(root/primary) if primary else None
     result['executive']=accepted['executive']
     result['supporting_reports']=[path for path in result['reports'] if path!=result['primary_report']] if primary else []
     if primary:result['reports']=[result['primary_report']]
+    if doc.get('factory_contract_version'):
+        from .factory import bounded_view
+        result['factory']=bounded_view(doc)
     if doc['status'] == 'WAITING_SME':
         result['message'] = 'Deliver the issued checklist for the one SME review. Preserve Context/questions. Place the actual returned workbook in sme_return_inbox and resume with reviewer attribution. Never generate SME answers.'
+    elif doc['status']=='WAITING_REQUIREMENTS':result['message']='Open the UI requirements breakdown, choose Yes/No and Save. The saved Markdown is the conversion input. Default Yes is scope, not SME approval.'
     elif doc['status']=='WAITING_DISCOVERY':result['message']='Read-only object discovery is incomplete. Inspect lineage gaps, supply original missing exports or local connector configuration, then resume. Conversion and the SME packet have not started.'
-    elif doc['status']=='WAITING_COPILOT':result['message']='Open GitHub Copilot Chat in VS Code with examples/mcp.json configured. Request the frozen task using workbench_next_task, inspect sources, implement required adapters with tests, then submit the structured analysis. No LLM endpoint is required.'
+    elif doc['status']=='WAITING_COPILOT':result['message']='Claude Code reads local evidence and performs analysis, development, testing and review without MCP. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE. Copilot retrieves missing files only.'
     elif timed_out: result['message'] = 'Bounded wait expired; evidence is preserved. Inspect status and run resume to continue.'
     elif doc['status'] in STOPPED: result['message'] = 'Stage stopped; inspect blockers and event ledger, correct the cause, then explicitly resume.'
+    if doc.get('agent_transport')=='local_files':result['local_agent']=coordinator.local_agent_view(pid)
     return result
 
 
@@ -178,14 +192,58 @@ def parser():
         c.add_argument('--workspace', '--workspace-path', '--root', required=True, help='Workspace containing the read-only Endeavor export')
         if name in ('run', 'start'):
             c.add_argument('--manifest', '--manifest-path', required=True)
-            c.add_argument('--assistant',choices=['copilot_chat','deterministic','opt_in'],default=None,help='Copilot Chat uses the local MCP bridge; no model endpoint/token')
+            c.add_argument('--assistant',choices=['claude_files','agent','copilot_chat','deterministic','opt_in'],default=None,help='claude_files uses local analysis and Copilot retrieval only; Claude needs no MCP')
+            c.add_argument('--select-requirements',action='store_true',help='Wait for explicit UI Yes/No scope Save before conversion')
+            c.add_argument('--source-folder',help='Complete local or mounted export to snapshot without altering originals')
+            c.add_argument('--process-notes',help='Original process Markdown to freeze as cited context')
         else: c.add_argument('process_id')
         if name in ('run', 'start', 'resume', 'import', 'report'):
             c.add_argument('--timeout', type=float, default=120, help='Bounded worker/watch wait, at most 3600 seconds')
             c.add_argument('--reviewer', default='', help='Actual person responsible for a returned SME workbook')
             c.add_argument('--watch', action='store_true', help='Wait locally for the designated SME inbox until timeout')
         if name == 'import': c.add_argument('--file', required=True)
+    c=commands.add_parser('measure')
+    c.add_argument('--workspace',required=True)
+    c.add_argument('--file',required=True,help='Actual attributed JSON receipt or explicit forecast plan; use runner agent --measurement-file when the UI is running')
+    c=commands.add_parser('agent',help='Claude local-file analysis and retrieval continuation; never uses MCP or HTTP')
+    c.add_argument('process_id');c.add_argument('--workspace',required=True)
+    action=c.add_mutually_exclusive_group()
+    action.add_argument('--continue',dest='agent_continue',action='store_true')
+    action.add_argument('--refresh',action='store_true')
+    action.add_argument('--analysis-file')
+    action.add_argument('--request-file',help='JSON object containing a needs array with kind, name and reason')
+    action.add_argument('--measurement-file',help='Actual attributed usage/work receipt; no estimated host credits')
+    c.add_argument('--timeout',type=float,default=30)
+    c.add_argument('--command-id',help='Retry the same queued command after a bounded wait')
     return p
+
+
+def agent_command(args):
+    from .local_agent import submit_command
+    require(0<args.timeout<=60,'Local agent wait must be 1–60 seconds')
+    action='continue' if args.agent_continue else 'refresh' if args.refresh else 'analysis' if args.analysis_file else 'request' if args.request_file else 'measurement' if args.measurement_file else 'inspect'
+    payload={};filename=args.analysis_file or args.request_file or args.measurement_file
+    if filename:
+        path=Path(filename).absolute()
+        require(not path.is_symlink() and not any(p.is_symlink() for p in path.parents) and path.is_file() and path.stat().st_size<=128000,'Agent input must be a bounded regular JSON file without symlinks')
+        value=decode(path.read_bytes(),128000)
+        if action=='request':
+            require(isinstance(value,dict) and set(value)=={'needs'},'Request file must contain only a needs array');payload=value
+        else:payload={'analysis' if action=='analysis' else 'receipt':value}
+    if args.command_id:
+        result=submit_command(Path(args.workspace),args.process_id,action,payload,args.timeout,args.command_id)
+    else:
+        coordinator=None
+        try:
+            try:coordinator=Coordinator(args.workspace)
+            except ValidationError as exc:
+                if 'Another workbench owns this workspace' not in str(exc):raise
+                result=submit_command(Path(args.workspace),args.process_id,action,payload,args.timeout)
+            else:result={'status':'DONE','result':coordinator.local_agent_action(args.process_id,action,payload)}
+        finally:
+            if coordinator:coordinator.close()
+    print(json.dumps(result,indent=2))
+    return 3 if result['status']=='PENDING' else 2 if result['status'] in ('REJECTED','INDETERMINATE') else 0
 
 
 def main(argv=None):
@@ -193,11 +251,15 @@ def main(argv=None):
     coordinator = None
     try:
         require_layout(args.workspace)
+        if args.command=='agent':return agent_command(args)
         if hasattr(args, 'timeout'):
             require(0 < args.timeout <= 3600, 'Timeout must be greater than zero and at most 3600 seconds')
             require(not args.watch or bool(args.reviewer.strip()), '--watch requires --reviewer attribution')
         coordinator = Coordinator(args.workspace)
-        if args.command in ('run', 'start'): doc = start_process(coordinator, args.manifest,args.assistant)
+        if args.command=='measure':
+            data=Path(args.file).read_bytes();require(len(data)<=65536,'Measurement exceeds 64 KiB')
+            print(json.dumps(coordinator.record_measurement(decode(data,65536)),indent=2));return 0
+        if args.command in ('run', 'start'): doc = start_process(coordinator, args.manifest,args.assistant,args.source_folder,args.process_notes,args.select_requirements)
         else: doc = coordinator.ledger.get(args.process_id)
         if args.command == 'import': doc = import_return(coordinator, doc['id'], args.file, args.reviewer)
         if args.command == 'resume' and doc['status'] in STOPPED|{'WAITING_DISCOVERY'}:

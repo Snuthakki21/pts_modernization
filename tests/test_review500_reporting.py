@@ -44,6 +44,9 @@ class FixtureLedger:
         return [p for p in self.documents if include_demo or not p.get('demo')]
     def history(self):
         return []
+    def measurements(self):return []
+    def measurement_timing(self):return [],[]
+    def work_sessions(self):return []
 
 
 class Review500ReportingTests(unittest.TestCase):
@@ -321,7 +324,7 @@ class Review500ReportingTests(unittest.TestCase):
     def test_r439_report_inspection_hashes_all_required_outputs(self):
         folder = self.base / 'reports/report-0001'
         inspection = json.loads((folder / 'inspection.json').read_text())
-        self.assertEqual(set(inspection['sha256']), {'executive-report.html', 'metrics.json', 'metrics.csv', 'metrics.xlsx', 'management.pptx', 'coverage.json', 'coverage.csv', 'coverage.xlsx', 'coverage.html'})
+        self.assertEqual(set(inspection['sha256']), {'economics.json','economics.html','economics.csv','executive-report.html', 'metrics.json', 'metrics.csv', 'metrics.xlsx', 'management.pptx', 'coverage.json', 'coverage.csv', 'coverage.xlsx', 'coverage.html', 'rules.html', 'rules.json', 'rules.csv'})
         self.assertTrue(all(sha((folder / name).read_bytes()) == h for name, h in inspection['sha256'].items()))
         self.assertFalse(inspection['powerpoint_render_checked'])
 
@@ -463,7 +466,10 @@ class Review500ReportingTests(unittest.TestCase):
     def test_r466_job_baseline_matches_independent_reference(self):
         result = self.jobs()
         self.assertTrue(result['matched']); self.assertEqual(result['actual'], result['expected'])
-        self.assertEqual(result['integration_cases'], 1)
+        self.assertGreaterEqual(result['integration_cases'],20)
+        self.assertGreaterEqual(result['randomized_cases'],20)
+        self.assertEqual(result['integration_cases'],len(result['cases']))
+        self.assertTrue(all(case['matched'] for case in result['cases']))
 
     def test_r467_job_result_explicitly_excludes_dataset_and_mainframe_parity(self):
         result = self.jobs()
@@ -510,7 +516,9 @@ class Review500ReportingTests(unittest.TestCase):
     def test_r476_rc_greater_skips_at_zero(self):
         self.doc['jobs'][0]['steps'][0]['condition'] = 'RC>0'
         result = self.jobs()
-        self.assertTrue(result['matched']); self.assertEqual(result['actual']['JOBA'][0]['status'], 'SKIPPED')
+        self.assertFalse(result['matched']); self.assertEqual(result['actual']['JOBA'][0]['status'], 'SKIPPED')
+        self.assertTrue(all(case['matched'] for case in result['cases']))
+        self.assertFalse(result['validation']['complete'])
 
     def test_r477_condition_whitespace_is_supported_consistently(self):
         self.doc['jobs'][0]['steps'][0]['condition'] = 'RC\t=\t0'

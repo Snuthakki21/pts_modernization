@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 from .domain import require
 
 PRIMARY_REPORT = 'executive-report.html'
+EVIDENCE_FILES=frozenset({'economics.html','factory.html','rules.html','coverage.html','metrics.json','management.pptx','inspection.json','../../analysis/source-analysis.json'})
 DENOMINATOR = ('Verified applicable in-scope physical source lines / all applicable in-scope physical source lines. '
                'Blocked and unverified lines remain in the denominator; comments, declarations without runtime behavior and excluded files are separate.')
 
@@ -97,6 +98,13 @@ def executive_summary(doc, metrics, coverage=None):
         require(isinstance(inventory,dict) and inventory.get('schema_version')==1 and len(inventory.get('rows',[]))==8,
                 'Executive inventory model is incomplete')
         result['inventory']=inventory
+    if 'rule_inventory' in doc:
+        result['rule_inventory']=doc['rule_inventory']
+        result['evidence'].append({'label':'Rules by job/program and original versus modernized behavior', 'file':'rules.html'})
+    if doc.get('factory_report'):result['evidence'].append({'label':'Factory capabilities and online transaction mappings','file':'factory.html'})
+    if doc.get('economics_summary'):
+        result['economics']=doc['economics_summary']
+        result['evidence'].append({'label':'Pilot effort, AI usage and conditional estate forecast','file':'economics.html'})
     if 'logic_validation_json' in m:result['logic_validation']=json.loads(m['logic_validation_json'])
     if 'adapter_priorities_json' in m:result['adapter_priorities']=json.loads(m['adapter_priorities_json'])
     return result
@@ -119,6 +127,10 @@ def render_executive(model):
     actions = ''.join('<li>'+esc(action)+'</li>' for action in model['next_actions'])
     unknowns = '<p class="boundary">Unknown scope: '+esc(', '.join(model.get('scope_unknowns',[])))+'.</p>' if model.get('scope_unknowns') else ''
     links = ''.join('<li><a href="'+esc(item['file'])+'">'+esc(item['label'])+'</a></li>' for item in model['evidence'])
+    economics_html=''
+    if model.get('economics'):
+        e=model['economics']; val=lambda k:esc(e.get(k) if e.get(k) is not None else 'Unknown')
+        economics_html='<h2>Pilot effort and scaling</h2><p>Recorded pilot effort: '+val('pilot_effort_hours')+' hours · service execution: '+val('service_hours')+' hours · one-time framework work: '+val('framework_hours')+' hours.</p><p>Conditional remaining effort: '+val('remaining_base_hours')+' hours · capacity weeks: '+val('capacity_base_weeks')+'. Measured as of '+val('as_of')+'. Unknown work and billing remain unknown. Forecast assumptions and sample coverage are in the effort report; this is not a delivery commitment.</p>'
     inventory_html=''
     inventory=model.get('inventory')
     if inventory:
@@ -128,10 +140,16 @@ def render_executive(model):
     adapter_html=''
     if adapters:
         adapter_html='<h2>Required conversion adapters</h2><p>Unsupported syntax remains unresolved conversion work. Priority follows blocked-line volume; recognition and SME agreement alone do not implement an adapter.</p><ol>'+''.join('<li>'+esc(group['label'])+': '+esc(number(group['blocked_lines']))+' blocked lines across '+esc(number(group['source_files']))+' source files.</li>' for group in adapters)+'</ol>'
+    rule_html=''
+    if model.get('rule_inventory'):
+        from .rule_inventory import render_rule_summary
+        rule_html=render_rule_summary({**model['rule_inventory'],'rules':[],'requirements_comparison':{}})
     validation=model.get('logic_validation')
     validation_html=''
     if validation:
-        validation_html='<h2>Logic validation records</h2><p>Minimum '+esc(number(validation.get('minimum_distinct_records_per_logic')))+' distinct valid source-predicate input states per supported logic item. '+esc(number(validation.get('logic_meeting_minimum')))+' of '+esc(number(validation.get('known_supported_logic',validation.get('applicable_logic_count'))))+' known items meet the minimum; '+esc(number(validation.get('known_logic_missing_minimum')))+' do not. Unknown legacy logic count: Unknown.</p><p class="boundary">Duplicate records and unused-field padding do not count. Unsupported behavior and cross-file/native I/O gaps remain unresolved. Ten records alone do not establish complete conversion or observed mainframe parity.</p>'
+        validation_html='<h2>Logic validation records</h2><p>Minimum '+esc(number(validation.get('minimum_distinct_records_per_logic')))+' distinct valid source-predicate input states per supported logic item. '+esc(number(validation.get('logic_meeting_minimum')))+' of '+esc(number(validation.get('known_supported_logic',validation.get('applicable_logic_count'))))+' known items meet the minimum; '+esc(number(validation.get('known_logic_missing_minimum')))+' do not. Unknown legacy logic count: Unknown.</p><p class="boundary">Duplicate records and unused-field padding do not count. Unsupported behavior and cross-file/native I/O gaps remain unresolved. Finite synthetic tests do not establish complete conversion or observed mainframe parity.</p>'
+    if validation and validation.get('fixture_contract_version')==4:
+        validation_html+='<p>Recorded random seed: '+esc(str(validation.get('seed','Unknown')))+' · Executed generated unit tests: '+esc(number(validation.get('unit_test_count')))+' · Job integration cases: '+esc(number(validation.get('job_cases')))+'.</p>'
     return '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Executive conversion report · '''+esc(model['process_id'])+'''</title>
@@ -142,8 +160,8 @@ def render_executive(model):
 <p><strong>Applicable-line verification: '''+esc(percent_text)+'''</strong> · '''+esc(number(progress['converted_lines']))+''' / '''+esc(number(scope['applicable_lines']))+''' lines.</p>
 <p class="muted">'''+esc(number(scope['source_files']))+''' exported files · '''+esc(number(scope['physical_lines']))+''' physical lines · '''+esc(number(scope['excluded_lines']))+''' excluded · '''+esc(number(scope['non_executable_lines']))+''' non-executable.</p>
 <p class="boundary">'''+esc(progress['denominator'])+'''</p>
-'''+inventory_html+'''<h2>Before → after</h2><table><thead><tr><th>Measure</th><th>Before</th><th>After</th><th>What it means</th></tr></thead><tbody>'''+rows+'''</tbody></table>'''+unknowns+'''
-'''+validation_html+adapter_html+'''<h2>Next actions</h2><ol>'''+actions+'''</ol>
+'''+inventory_html+economics_html+'''<h2>Before → after</h2><table><thead><tr><th>Measure</th><th>Before</th><th>After</th><th>What it means</th></tr></thead><tbody>'''+rows+'''</tbody></table>'''+unknowns+'''
+'''+rule_html+validation_html+adapter_html+'''<h2>Next actions</h2><ol>'''+actions+'''</ol>
 <p class="boundary">'''+esc(model['boundary'])+'''</p>
 <details><summary>Supporting evidence and slides</summary><ul>'''+links+'''</ul><p>Frozen source, target spans, test witnesses and reasons are available through the lineage report. Issued evidence is preserved by report version.</p></details>
 </main></body></html>'''
@@ -164,7 +182,7 @@ def inspect_executive(text, model):
     parsed=_Inspection(); parsed.feed(text)
     require(parsed.headings==1 and parsed.details==1 and not parsed.unsafe,
             'Executive HTML structure or collapsed disclosure inspection failed')
-    allowed_links={'coverage.html','metrics.json','management.pptx','inspection.json','../../analysis/source-analysis.json'}
+    allowed_links=EVIDENCE_FILES
     require(all(link in allowed_links for link in parsed.links), 'Executive evidence destination is unsafe or unsupported')
     require(parsed.links == [item['file'] for item in model['evidence']], 'Executive evidence links differ from the frozen model')
     require(html.escape(model['process_id'],quote=True) in text and html.escape(model['status'].replace('_',' '),quote=True) in text,

@@ -16,6 +16,9 @@ def emit_program(program):
     require(not program['blockers'], 'Unsupported program cannot receive a complete executable translation')
     contract_version(program)
     lines=['# Generated from source SHA256 '+program['source_hash'], '# Evidence class: SOURCE_DERIVED_EXPECTED', '# Semantic/dependency SHA256 '+program.get('semantic_hash',program['source_hash']), 'def run_program(record):']
+    if program.get('requirements_hash'):
+        lines.insert(3,'# Saved requirements SHA256 '+program['requirements_hash'])
+        lines.append('    '+repr('Apply the selected source rules in order to an independent validated record; return the record, source trace and status.'))
     if program.get('target_contract_version') == 2:
         # Keep the exported function self-contained: callers cannot bypass a
         # fixture-only adapter and accidentally accept a non-COBOL input value.
@@ -39,6 +42,7 @@ def emit_program(program):
         lines += ['    if errors:', "        return {'input_status': 'REJECT_INPUT', 'errors': errors, 'return_code': None}"]
     lines += ['    row = dict(record)', '    trace = []']
     for rule in program['rules']:
+        if program.get('requirements_hash'):lines.append('    # Source rule '+rule['id']+'; selected Yes in saved requirements.')
         lines.append('    if '+expression(rule['predicate'])+':')
         for effect in rule['then']:lines.append('        row['+repr(effect['field'])+'] = '+repr(effect['value']))
         lines.append('        trace.append('+repr({'rule_id':rule['id'],'branch':True,'source_refs':rule['source_refs']})+')')

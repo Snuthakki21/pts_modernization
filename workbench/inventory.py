@@ -153,6 +153,9 @@ def _verified_versions(entities,coverage):
     file_status={}
     for row in coverage.get('rows',[]):
         status=file_status.setdefault(row['source_path'],{'applicable':0,'complete':True})
+        if row.get('requirements_excluded') and row.get('requirement_kind') not in ('blank','comment','structure','paragraph'):
+            status['applicable']+=1;status['complete']=False
+            continue
         if row['disposition'] in ('out_of_scope','non_executable'):continue
         status['applicable']+=1
         status['complete'] &= row['disposition'] in ('mapped_verified','platform_replaced_verified')

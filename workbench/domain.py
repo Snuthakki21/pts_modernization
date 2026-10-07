@@ -136,10 +136,14 @@ def write_new(path, data):
 
 
 def atomic_json(path, value):
+    atomic_bytes(path, encode(value))
+
+
+def atomic_bytes(path, payload):
+    require(isinstance(payload, bytes), 'State payload must be bytes')
     path = Path(path)
     require(not path.is_symlink() and not any(p.is_symlink() for p in path.parents), 'Unsafe state path')
     require(not path.exists() or path.is_file(), 'State destination must be a regular file')
-    payload = encode(value)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.parent / ('.' + path.name + '.' + uuid.uuid4().hex)
     created = False

@@ -18,7 +18,10 @@ class HttpTests(unittest.TestCase):
             with socket.socket() as listener:
                 listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
             url=f'http://127.0.0.1:{port}'
-            service=subprocess.Popen([sys.executable,'-m','workbench','--root',root,'--port',str(port)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            # Drain service logs to disk: unread PIPE buffers can deadlock a chatty
+            # server while this test repeatedly polls the real HTTP workflow.
+            logs=tempfile.TemporaryFile();self.addCleanup(logs.close)
+            service=subprocess.Popen([sys.executable,'-m','workbench','--root',root,'--port',str(port)],stdout=logs,stderr=subprocess.STDOUT)
             try:
                 def get(path):return urllib.request.urlopen(url+path,timeout=10).read()
                 until=time.monotonic()+15
@@ -26,7 +29,7 @@ class HttpTests(unittest.TestCase):
                     try:state=json.loads(get('/api/state'));break
                     except (urllib.error.URLError,ConnectionError):
                         if service.poll() is not None or time.monotonic()>until:
-                            self.fail('Uvicorn startup failed: '+str(service.communicate(timeout=5)))
+                            logs.seek(0);self.fail('Uvicorn startup failed: '+logs.read().decode(errors='replace')[-4000:])
                         time.sleep(.05)
                 token=state['token']
                 def post(path,payload):
@@ -37,7 +40,7 @@ class HttpTests(unittest.TestCase):
                         p=next(x for x in json.loads(get('/api/state'))['processes'] if x['id']==pid)
                         if p['status'] in statuses:return p
                         time.sleep(.05)
-                    self.fail('Automatic worker did not reach '+str(statuses))
+                    self.fail('Automatic worker did not reach '+str(statuses)+'; last status: '+str(p.get('status'))+'; blockers: '+str(p.get('blockers')))
                 p=post('/api/demo',{});pid=p['id'];p=wait_for(pid,['WAITING_SME','FAILED']);self.assertEqual(p['status'],'WAITING_SME')
                 raw=get('/api/process/'+pid+'/artifact?path=review/sme-checklist.xlsx');book=load_workbook(BytesIO(raw))
                 for row in book['Checklist'].iter_rows(min_row=2):row[4].value='Yes';row[6].value='Fictional reviewer'
