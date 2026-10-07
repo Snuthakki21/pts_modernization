@@ -167652,7 +167652,7 @@
   "latest_repository_review": {
     "date": "2026-10-07T18:26:33.624477+00:00",
     "kind": "Independent bounded CICS discovery/semantics/delivery/frontend scoped review",
-    "functional_source_fingerprint": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+    "functional_source_fingerprint": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
     "receipts": {
       "discovery": {
         "path": ".implementation/tmp/cics-discovery-review/independent-scoped-review.json",
@@ -167668,7 +167668,11 @@
       }
     },
     "remaining_actionable_scoped_findings": 0,
-    "scope_note": "Fictional local fixtures only; native controller/database parity remains blocked."
+    "scope_note": "Fictional local fixtures only; native controller/database parity remains blocked.",
+    "portability_carry_forward": {
+      "path": ".implementation/tmp/cics-delivery-review/portability-carry-forward.json",
+      "sha256": "25e38f0e233dae94865d5e641dff94aec8aee6db07a43dcb723ccf7e3bcb9149"
+    }
   },
   "previous_revision_2026_10_07_before_windows11": {
     "date": "2026-10-07",
@@ -167956,45 +167960,45 @@
     }
   },
   "current_revision": {
-    "date": "2026-10-07T18:26:33.624477+00:00",
-    "base_commit": "b086a66cfdbfe86dc12c4b40ee0550bdced28fa3",
+    "date": "2026-10-07T18:37:31.793174+00:00",
+    "base_commit": "5eb7f8bc7f5adc091416703cb0135a1f4f4734db",
     "scope": "New versioned CICS discovery, process-specific requirements, bounded BMS character layout Python/FastAPI delivery, immutable source comparison and honest native gaps. Fictional qualification fixtures only.",
-    "functional_source_fingerprint": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+    "functional_source_fingerprint": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
     "fingerprint_scope_note": "Functional source/test/tool/knowledge/frontend-src fingerprint plus supplemental workflow/assets/entrypoint manifest. Public docs excluded. Local suite ran with real-path private TMPDIR/TEMP/TMP on macOS.",
     "source_and_asset_manifest": {
-      "path": ".implementation/tmp/cics-final-checks/source-and-assets.json",
-      "sha256": "54f43418e30145d598e9917fcc73e15d14b6f9b59b4ab7a2202c48c76d046e2d"
+      "path": ".implementation/tmp/cics-native-correction/source-and-assets.json",
+      "sha256": "aaa653dd93c0ea27ae646a1367c3f94ef4f511578c851501bc63ee0a7b1d7c2e"
     },
     "full_suite": {
-      "created": "2026-10-07T18:19:23.386854+00:00",
-      "source_before": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
-      "source_after": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+      "created": "2026-10-07T18:36:41.213991+00:00",
+      "source_before": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
+      "source_after": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
       "source_unchanged": true,
       "tests": 1950,
-      "elapsed_seconds": 198.437,
+      "elapsed_seconds": 196.608,
       "failures": 0,
       "errors": 0,
       "skips": 0,
       "returncode": 0,
       "passed": true,
-      "log_sha256": "9467aac744beed97c31ff6f1879f2ad2267b0f6e8c5b04ccf7da57319af04bd4",
+      "log_sha256": "09110a422a5abf451a4b14c237602d77305fb31d0266732defe177eb523fe789",
       "scope": "Complete local software suite; fictional sources, no native CICS/mainframe parity or exhaustive correctness claim",
       "receipt": {
-        "path": ".implementation/tmp/cics-final-checks/full-final-receipt.json",
-        "sha256": "1b870b798ca98ae2fcd5a175d473e5b7a7f560b85630fe443ae137c1a209d268"
+        "path": ".implementation/tmp/cics-native-correction/full-final-receipt.json",
+        "sha256": "7add46c76bdf19382daa75d028b86cd5054ca82dc11c2238eb05599573cd20e1"
       }
     },
     "original_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T18:16:22.750625+00:00",
+      "created": "2026-10-07T18:33:42.389233+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+      "source_fingerprint": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "58810706650ec83e8857e4aee9bf6acccd249ed7b0ea9d21a519437e8a7e5c81",
+      "execution_log_sha256": "9942892944f41aff3b1a46bc304a2e9e614f9ce09ffce9fc301051684dea41a2",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
@@ -168003,15 +168007,15 @@
     },
     "expanded_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T18:16:28.078359+00:00",
+      "created": "2026-10-07T18:33:47.097087+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+      "source_fingerprint": "f608ca8bab880943caee78f4ce3c53e8119a6fe93494b38181bc910474b07e2e",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "fb05b2004a4dadc6fca2955f8d05adebe904f14f22b6f1f42a12e34e2848c24b",
+      "execution_log_sha256": "52b097f05a23d2bf134c29e9c472119243cb77e8a3360582b3f20363dd69bfc3",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
@@ -168024,12 +168028,12 @@
       "skips": 0,
       "receipts": [
         {
-          "path": ".implementation/tmp/cics-final-checks/review500-final/receipt.json",
-          "sha256": "a6b185390bc4f795655533ceb167268352993d8c92b8c0a0ffa7dda90822ac28"
+          "path": ".implementation/tmp/cics-native-correction/review500-final/receipt.json",
+          "sha256": "6da3b59923365dfe1f30304b880a3b4d874689710db3540d1b4a3208a74d395c"
         },
         {
-          "path": ".implementation/tmp/cics-final-checks/review-expanded-final/receipt.json",
-          "sha256": "a8be637bd7496f9506f77585d22e7cd59e8174915f8b44e281de1f4007f591a3"
+          "path": ".implementation/tmp/cics-native-correction/review-expanded-final/receipt.json",
+          "sha256": "ccd4cbed8dbc55ace2c9a235c99c8079723c75fd101b2676355034f8a21a8bb6"
         }
       ],
       "scope": "These named checks also occur in the complete suite; counts are not added as distinct tests or independent reviewers.",
@@ -171396,7 +171400,7 @@
       "divergences": [],
       "duplicate_candidates_rejected_before_execution": 11568,
       "duplicate_executions": 0,
-      "elapsed_seconds": 2.366716,
+      "elapsed_seconds": 2.360005,
       "executed": 200000,
       "expected_invalid_inputs": 40000,
       "expected_valid_inputs": 160000,
@@ -176288,10 +176292,10 @@
       "unique_source_programs": 200,
       "valid_inputs": 160000,
       "receipt": {
-        "path": ".implementation/tmp/cics-final-checks/scenario-final.json",
-        "sha256": "35a970a9b0bad583cae69729568da72d739a8340a4af34977b876d030d42f415"
+        "path": ".implementation/tmp/cics-native-correction/scenario-final.json",
+        "sha256": "07f05039add62536a2c123b46428e919a5790ae03acd84b316f56cfcc6ac433e"
       },
-      "scope_note": "Separate flat caller-owned LINKAGE campaign. It supplies no CICS controller, layout or database qualification."
+      "scope_note": "Separate flat caller-owned LINKAGE campaign; no CICS controller, layout or database qualification."
     },
     "frontend": {
       "tests": 121,
@@ -176383,7 +176387,12 @@
           "sha256": "e72881cbabb87484d56d933845efeda54ec6019eb3bd7d9ee810b0af885ef73d"
         }
       },
-      "method": "Independent scoped execution, actual Chrome controls, source/target/HTTP/tamper/cancellation/SME gate probes. Fictional sources and attributions; no actual human operational acceptance manufactured."
+      "method": "Independent scoped execution, actual Chrome controls, source/target/HTTP/tamper/cancellation/SME gate probes. Fictional sources and attributions; no actual human operational acceptance manufactured.",
+      "portability_carry_forward": {
+        "path": ".implementation/tmp/cics-delivery-review/portability-carry-forward.json",
+        "sha256": "25e38f0e233dae94865d5e641dff94aec8aee6db07a43dcb723ccf7e3bcb9149"
+      },
+      "scope_note": "Original CICS implementation hashes are unchanged; independent exact two-line fixture delta and final source fingerprint are bound by carry-forward review. No engine semantics changed."
     },
     "windows_and_linux": {
       "native_ci": {
@@ -176394,7 +176403,8 @@
           "test_cics*.py",
           "test_lineage_discovery.py",
           "test_discovery_workflow.py"
-        ]
+        ],
+        "expected_tests_per_os": 453
       },
       "previous_accepted_native_ci": {
         "status": "PASS",
@@ -176574,26 +176584,42 @@
     "campaign_llm_calls": 0,
     "preliminary_validation": {
       "initial_unconfigured_temp_run": "Failed on macOS symlink-parent temporary paths; retained full-initial.log. Environment corrected using real private TMPDIR/TEMP/TMP; not counted as reproduced code defects.",
-      "draft_complete_suite": "1938 tests passed before final source corrections; historical draft only."
+      "draft_complete_suite": "1938 tests passed before final source corrections; historical draft only.",
+      "initial_native_failure": {
+        "concern": "One newline portability concern at two new test fixture sites; four Windows assertion failures. Exact UTF8 byte writes corrected fixtures; no source safety gate was weakened.",
+        "red_reproduction": {
+          "path": ".implementation/tmp/cics-discovery-review/windows-newline-red.json",
+          "sha256": "df473c7fad2bb6b45fc83d8ae00bdf4d07f55739f05c7a63aa16ccd46d12d90c"
+        },
+        "focused_correction": {
+          "path": ".implementation/tmp/cics-discovery-review/windows-fixture-fix-receipt.json",
+          "sha256": "768492509934c1cc20a979b34063d91e4000024577f88ad93167df3d5bd5a6b9"
+        },
+        "native_run_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37667039232",
+        "native_failure_log": {
+          "path": ".implementation/tmp/cics-final-checks/native-windows-failed.log",
+          "sha256": "9d4a39a6071582fb317c0c76cf42f9f39c12e1bb5c47ca31dbafbfd669e44021"
+        }
+      }
     },
     "layout": {
       "passed": true,
       "receipt": {
-        "path": ".implementation/tmp/cics-final-checks/layout-final.log",
+        "path": ".implementation/tmp/cics-native-correction/layout-final.log",
         "sha256": "ef43b0bc6092267f1be737777a2a9b9e3c4d6f42a1b9727d8a85102c54bbb45c"
       }
     },
     "handoff": {
       "passed": true,
       "receipt": {
-        "path": ".implementation/tmp/cics-final-checks/handoff-final.log",
+        "path": ".implementation/tmp/cics-native-correction/handoff-final.log",
         "sha256": "a8baa28baec3c71dd8d1f24ddc782e88f84551ea98a4ad62a226dffe2cd1b38f"
       }
     },
     "factory_consistency": {
       "passed": true,
       "receipt": {
-        "path": ".implementation/tmp/cics-final-checks/factory_consistency-final.log",
+        "path": ".implementation/tmp/cics-native-correction/factory_consistency-final.log",
         "sha256": "326e73caa3759bf4a620c003b9ccb4f1d12e3cba24e0ed3007977bb1d5411748"
       }
     },
@@ -178793,5 +178819,28 @@
       },
       "git_transport_scope_note": "Three ordinary Git pushes returned remote internal server errors; SSH was unavailable. CLI body-input failures are preserved separately as publication tooling failures, not product regressions."
     }
+  },
+  "previous_revision_2026_10_07_before_cics_native_fixture_fix": {
+    "implementation_commit": "5eb7f8bc7f5adc091416703cb0135a1f4f4734db",
+    "published_evidence": "https://github.com/Snuthakki21/pts_modernization/blob/5eb7f8bc7f5adc091416703cb0135a1f4f4734db/docs/evidence.json",
+    "functional_source_fingerprint": "6c6546667c5895a99411bd71e259e308793503bcca4b3452d98dc043bfaac5b6",
+    "full_suite": {
+      "path": ".implementation/tmp/cics-final-checks/full-final-receipt.json",
+      "sha256": "1b870b798ca98ae2fcd5a175d473e5b7a7f560b85630fe443ae137c1a209d268"
+    },
+    "native_run": {
+      "path": ".implementation/tmp/cics-final-checks/native-run-failed.json",
+      "sha256": "5c2a70d65667233968e133289b5b1cb1a6c25b751913e0b9da5fd3b1273a2a7a"
+    },
+    "native_windows_log": {
+      "path": ".implementation/tmp/cics-final-checks/native-windows-failed.log",
+      "sha256": "9d4a39a6071582fb317c0c76cf42f9f39c12e1bb5c47ca31dbafbfd669e44021"
+    },
+    "native_linux_log": {
+      "path": ".implementation/tmp/cics-final-checks/native-linux-initial.log",
+      "sha256": "f790f84793ebc6fde994c89b5ce58c3fc9ab55b5828ac100fa7da1f9955a69be"
+    },
+    "native_result": "Linux passed; Windows failed four assertions at two fixture byte-writing sites. CICS layout group passed. Engine rejected actual altered export digests correctly.",
+    "run_url": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37667039232"
   }
 }

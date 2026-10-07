@@ -141,7 +141,7 @@ class CicsRetrievalWorkflowTests(unittest.TestCase):
                 with self.subTest(kind=kind,path=path,origin=origin,tool=tool),tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
                     root=Path(temp);doc={'id':'transport-audit','source_files':{},'cics_contract_version':1}
                     request=build_request(doc,[{'kind':kind,'name':'APP.CUSTOMER','reason':'Actual schema needed'}]);write_request(root,request)
-                    inbox=root/request['return_folder'];(inbox/'files'/path).write_text(source)
+                    inbox=root/request['return_folder'];(inbox/'files'/path).write_bytes(source.encode('utf-8'))
                     provenance={'origin':origin,'tool':tool,'locator':'APP.CUSTOMER','retrieved_at':'2026-10-07T16:00:00Z'}
                     item={'need_id':request['needs'][0]['need_id'],'status':'FOUND','path':path,'sha256':sha(source),'provenance':provenance}
                     (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[item]}))
@@ -157,7 +157,7 @@ class CicsRetrievalWorkflowTests(unittest.TestCase):
             root=Path(temp);doc={'id':'transport-audit','source_files':{},'cics_contract_version':1}
             request=build_request(doc,[{'kind':'copybook','name':'CUSTOMER','reason':'Original source'},
                                        {'kind':'db2_table','name':'APP.CUSTOMER','reason':'Actual catalog'}]);write_request(root,request)
-            inbox=root/request['return_folder'];raw='01 CUSTOMER.\n05 ID PIC X(9).\n';path='CUSTOMER.cpy';(inbox/'files'/path).write_text(raw)
+            inbox=root/request['return_folder'];raw='01 CUSTOMER.\n05 ID PIC X(9).\n';path='CUSTOMER.cpy';(inbox/'files'/path).write_bytes(raw.encode('utf-8'))
             items=[{'need_id':need['need_id'],'status':'FOUND','path':path,'sha256':sha(raw),'provenance':
                     {'origin':'zowe_cli','tool':'zowe files view ds','locator':'APP.COPY(CUSTOMER)','retrieved_at':'2026-10-07T16:00:00Z'}} for need in request['needs']]
             (inbox/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':items}))
