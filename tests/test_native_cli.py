@@ -39,6 +39,22 @@ class NativeZoweTests(unittest.TestCase):
             self.assertIn('IABC.SOURCE(HELLO)', start.call_args.args[0])
             self.assertFalse(start.call_args.kwargs['shell'])
 
+    def test_reader_retains_windows_runtime_environment_without_unrelated_secrets(self):
+        runtime = {
+            'PATH': 'approved runtime', 'PATHEXT': '.COM;.EXE;.BAT;.CMD',
+            'HOME': 'fictional home', 'USERPROFILE': 'fictional user',
+            'APPDATA': 'fictional appdata', 'LOCALAPPDATA': 'fictional localappdata',
+            'TEMP': 'fictional temp', 'TMP': 'fictional tmp', 'SystemRoot': 'fictional windows',
+            'ZOWE_CLI_HOME': 'fictional zowe home', 'NODE_EXTRA_CA_CERTS': 'fictional certificate',
+        }
+        with patch.dict(os.environ, {**runtime, 'UNRELATED_SECRET': 'fictional secret',
+                                     'NODE_OPTIONS': '--require fictional.js'}, clear=True), \
+             patch('workbench.connectors.bounded_command', return_value={'success': True, 'data': 'source'}) as start:
+            connectors.ZoweReader('approved').read_member('IABC.SOURCE(HELLO)')
+        self.assertEqual(start.call_args.args[1], runtime)
+        self.assertNotIn('UNRELATED_SECRET', start.call_args.args[1])
+        self.assertNotIn('NODE_OPTIONS', start.call_args.args[1])
+
     def test_windows_secure_input_uses_the_same_native_command_resolver(self):
         with tempfile.TemporaryDirectory() as directory:
             prefix, package = self.installation(directory)
@@ -128,8 +144,13 @@ class NativeZoweTests(unittest.TestCase):
             if os.name == 'nt': shutil.copy2(node, prefix / 'node.exe')
             else: (prefix / 'node.exe').symlink_to(node)
             arguments = ['IAPP.SOURCE(MEMBER)', 'ZAPP.SOURCE(OTHER)', 'space value', 'x&y', 'x%PATH%', '\"quoted\"', '0000123']
+            # Capture the real reader's filtered environment. An explicit env
+            # replaces inheritance, so PATH alone is not a valid Windows fixture.
+            with patch('workbench.connectors.bounded_command', return_value={'success': True, 'data': 'source'}) as reader:
+                connectors.ZoweReader('approved').read_member('IAPP.SOURCE(MEMBER)')
+            environment = reader.call_args.args[1]
             with patch('sys.platform', 'win32'), patch('shutil.which', return_value=str(prefix / 'zowe.cmd')):
-                result = connectors.bounded_command(['zowe', *arguments], {'PATH': os.environ.get('PATH', '')})
+                result = connectors.bounded_command(['zowe', *arguments], environment)
             self.assertEqual(result, {'success': True, 'args': arguments})
 
 

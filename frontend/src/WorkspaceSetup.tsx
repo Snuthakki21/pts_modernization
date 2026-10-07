@@ -2,8 +2,11 @@ import React,{useEffect,useRef,useState} from 'react';
 
 export type WorkstationSettings={source_mode:'folder'|'upload';source_folder:string|null;process_notes:string|null;wedlx_folder:string|null;tran_repository_folder:string|null;zowe_profile:string|null;zowe_zosmf_profile:string|null;db2_metadata_url:string|null};
 type ZoweMode='off'|'existing'|'create'|'import';
-export type WorkstationConnections={copilot:boolean;zowe:{mode:ZoweMode;host:string|null;port:number|null;config_file:string|null;schema_file:string|null}};
-export type WorkstationConnectionDraft={copilot:boolean;zowe:{mode:ZoweMode;host:string;port:string;config_file:string;schema_file:string}};
+type Db2Mode='off'|'existing'|'gateway';
+type Db2Choices={mode:Db2Mode;host:string|null;port:number|null;database:string|null;location:string|null;certificate_file:string|null;mcp_port:number|null;row_limit:number|null;driver:string|null};
+type Db2Draft={mode:Db2Mode;host:string;port:string;database:string;location:string;certificate_file:string;mcp_port:string;row_limit:string;driver:string};
+export type WorkstationConnections={copilot:boolean;zowe:{mode:ZoweMode;host:string|null;port:number|null;config_file:string|null;schema_file:string|null};db2?:Db2Choices};
+export type WorkstationConnectionDraft={copilot:boolean;zowe:{mode:ZoweMode;host:string;port:string;config_file:string;schema_file:string};db2?:Db2Draft};
 export type ConnectionSetup={choices:WorkstationConnections;status:string;checks:{id:string;status:string;message:string;action?:string}[];commands:{id:string;label:string;command:string;required:boolean}[];files:{kind:string;path:string;status:string}[];remaining:{id:string;message:string}[];runtime:{platform:string;zowe_cli:string};claude_mcp_servers:number;connectivity:string};
 export type WorkstationSetupModel={version:number;saved:boolean;settings:WorkstationSettings;readiness:{status:'NEEDS_SETUP'|'READY_FOR_INTAKE';remaining:string[];connectivity_verified:boolean;source_verified:boolean;conversion_verified:boolean};checks:{id:string;status:string;message:string;action?:string}[];workflow:{assistant_mode:'claude_files';copilot_role:'retrieval_only';claude_mcp_servers:number};metrics:{network_requests:number;[key:string]:unknown};connection_setup?:ConnectionSetup};
 
@@ -13,30 +16,48 @@ export function workstationReady(model:WorkstationSetupModel|null|undefined,{loa
 
 // Empty settings have one representation. An explicit Off choice also clears retrieval aliases.
 export function setupSettingsPayload(settings:WorkstationSettings,connections?:WorkstationConnections):{settings:WorkstationSettings;connections?:WorkstationConnections}{
- const clean=(value:string|null)=>value?.trim()||null;
- return {settings:{source_mode:settings.source_mode,source_folder:settings.source_mode==='folder'?clean(settings.source_folder):null,process_notes:clean(settings.process_notes),wedlx_folder:clean(settings.wedlx_folder),tran_repository_folder:clean(settings.tran_repository_folder),zowe_profile:connections?.zowe.mode==='off'?null:clean(settings.zowe_profile),zowe_zosmf_profile:connections?.zowe.mode==='off'?null:clean(settings.zowe_zosmf_profile),db2_metadata_url:clean(settings.db2_metadata_url)},...(connections===undefined?{}:{connections})};
+ const clean=(value:string|null)=>value?.trim()||null,db2=connections?.db2;
+ const db2_metadata_url=db2?.mode==='off'?null:db2?.mode==='gateway'?'http://127.0.0.1:'+db2.mcp_port+'/mcp':clean(settings.db2_metadata_url);
+ if(db2?.mode==='existing'&&!db2_metadata_url)throw new Error('Enter the approved Db2 MCP endpoint.');
+ return {settings:{source_mode:settings.source_mode,source_folder:settings.source_mode==='folder'?clean(settings.source_folder):null,process_notes:clean(settings.process_notes),wedlx_folder:clean(settings.wedlx_folder),tran_repository_folder:clean(settings.tran_repository_folder),zowe_profile:connections?.zowe.mode==='off'?null:clean(settings.zowe_profile),zowe_zosmf_profile:connections?.zowe.mode==='off'?null:clean(settings.zowe_zosmf_profile),db2_metadata_url},...(connections===undefined?{}:{connections})};
 }
+const emptyDb2Draft=(mode:Db2Mode='off'):Db2Draft=>({mode,host:'',port:'',database:'',location:'',certificate_file:'',mcp_port:'',row_limit:'',driver:''});
 export function setupConnectionDraft(model:WorkstationSetupModel|null):WorkstationConnectionDraft{
- const choices=model?.connection_setup?.choices;
- return {copilot:choices?.copilot??false,zowe:{mode:choices?.zowe.mode??(model?.settings.zowe_profile?'existing':'off'),host:choices?.zowe.host??'',port:choices?.zowe.port===null||choices?.zowe.port===undefined?'':String(choices.zowe.port),config_file:choices?.zowe.config_file??'',schema_file:choices?.zowe.schema_file??''}};
+ const choices=model?.connection_setup?.choices,db2=choices?.db2;
+ return {copilot:choices?.copilot??false,zowe:{mode:choices?.zowe.mode??(model?.settings.zowe_profile?'existing':'off'),host:choices?.zowe.host??'',port:choices?.zowe.port===null||choices?.zowe.port===undefined?'':String(choices.zowe.port),config_file:choices?.zowe.config_file??'',schema_file:choices?.zowe.schema_file??''},...(db2?{db2:{mode:db2.mode,host:db2.host??'',port:db2.port===null?'':String(db2.port),database:db2.database??'',location:db2.location??'',certificate_file:db2.certificate_file??'',mcp_port:db2.mcp_port===null?'':String(db2.mcp_port),row_limit:db2.row_limit===null?'':String(db2.row_limit),driver:db2.driver??''}}:{})};
 }
 export function selectSetupConnectionMode(settings:WorkstationSettings,connections:WorkstationConnectionDraft,mode:ZoweMode){
  return {settings:mode==='create'?{...settings,zowe_profile:settings.zowe_profile?.trim()?settings.zowe_profile:'workbench_base',zowe_zosmf_profile:settings.zowe_zosmf_profile?.trim()?settings.zowe_zosmf_profile:'workbench_zosmf'}:settings,connections:{...connections,zowe:{...connections.zowe,mode,port:mode==='create'?connections.zowe.port||'443':connections.zowe.port}}};
 }
+export function selectSetupDb2Mode(settings:WorkstationSettings,connections:WorkstationConnectionDraft,mode:Db2Mode){
+ const current=connections.db2??emptyDb2Draft(settings.db2_metadata_url?'existing':'off');
+ return {settings,connections:{...connections,copilot:mode==='gateway'?true:connections.copilot,db2:{...current,mode,...(mode==='gateway'?{mcp_port:current.mcp_port||'8766',row_limit:current.row_limit||'500000',driver:current.driver||'IBM DB2 ODBC DRIVER'}:{})}}};
+}
+function wholeSetupValue(value:string,maximum:number,label:string){
+ if(typeof value!=='string'||!/^\d+$/.test(value.trim())||Number(value)<1||Number(value)>maximum)throw new Error('Enter a whole-number '+label+' from 1 to '+maximum+'.');
+ return Number(value);
+}
+function requiredSetupValue(value:string,label:string){
+ if(typeof value!=='string'||!value.trim())throw new Error('Enter the actual Db2 '+label+'.');
+ return value.trim();
+}
 export function setupConnectionPayload(draft:WorkstationConnectionDraft):WorkstationConnections{
- const zowe=draft.zowe;
+ const zowe=draft.zowe;let selected:WorkstationConnections['zowe'];
  if(zowe.mode==='create'){
-  const host=zowe.host.trim(),port=zowe.port.trim();
-  if(!host)throw new Error('Enter the actual z/OSMF host.');
-  if(!/^\d+$/.test(port)||Number(port)<1||Number(port)>65535)throw new Error('Enter a whole-number z/OSMF port from 1 to 65535.');
-  return {copilot:draft.copilot,zowe:{mode:'create',host,port:Number(port),config_file:null,schema_file:null}};
- }
- if(zowe.mode==='import'){
+  const host=zowe.host.trim();if(!host)throw new Error('Enter the actual z/OSMF host.');
+  selected={mode:'create',host,port:wholeSetupValue(zowe.port,65535,'z/OSMF port'),config_file:null,schema_file:null};
+ }else if(zowe.mode==='import'){
   const config_file=zowe.config_file.trim(),schema_file=zowe.schema_file.trim()||null;
   if(!config_file)throw new Error('Enter the exact local Zowe config file path.');
-  return {copilot:draft.copilot,zowe:{mode:'import',host:null,port:null,config_file,schema_file}};
+  selected={mode:'import',host:null,port:null,config_file,schema_file};
+ }else selected={mode:zowe.mode,host:null,port:null,config_file:null,schema_file:null};
+ const result:WorkstationConnections={copilot:draft.copilot,zowe:selected},db2=draft.db2;
+ if(db2){
+  if(db2.mode==='gateway'){
+   result.db2={mode:'gateway',host:requiredSetupValue(db2.host,'host'),port:wholeSetupValue(db2.port,65535,'Db2 port'),database:requiredSetupValue(db2.database,'database'),location:requiredSetupValue(db2.location,'DDF location'),certificate_file:db2.certificate_file.trim()||null,mcp_port:wholeSetupValue(db2.mcp_port,65535,'MCP loopback port'),row_limit:wholeSetupValue(db2.row_limit,500000,'row limit'),driver:requiredSetupValue(db2.driver,'driver name')};result.copilot=true;
+  }else result.db2={mode:db2.mode,host:null,port:null,database:null,location:null,certificate_file:null,mcp_port:null,row_limit:null,driver:null};
  }
- return {copilot:draft.copilot,zowe:{mode:zowe.mode,host:null,port:null,config_file:null,schema_file:null}};
+ return result;
 }
 export function setupDraftDirty(settings:WorkstationSettings|null,connections:WorkstationConnectionDraft|null,model:WorkstationSetupModel|null){
  return !!settings&&!!connections&&!!model&&(JSON.stringify(setupSettingsPayload(settings))!==JSON.stringify(setupSettingsPayload(model.settings))||JSON.stringify(connections)!==JSON.stringify(setupConnectionDraft(model)));
@@ -77,6 +98,8 @@ export function WorkspaceSetup({model,loading,error,disabled=false,onRetry,onSav
  const ready=!dirty&&!saving&&!saveError&&workstationReady(model,{loading,error,disabled}),info=model.connection_setup;
  const field=(key:Exclude<keyof WorkstationSettings,'source_mode'>,value:string)=>edit({...draft,[key]:value});
  const zoweField=(key:Exclude<keyof WorkstationConnectionDraft['zowe'],'mode'>,value:string)=>edit(draft,{...connections,zowe:{...connections.zowe,[key]:value}});
+ const db2=connections.db2??emptyDb2Draft(draft.db2_metadata_url?'existing':'off');
+ const db2Field=(key:Exclude<keyof Db2Draft,'mode'>,value:string)=>edit(draft,{...connections,copilot:db2.mode==='gateway'?true:connections.copilot,db2:{...db2,[key]:value}});
  const connectionStatus=info?.remaining.length?'ACTION_REQUIRED':info?.status;
  return <section className="setup-card workstation-setup" aria-labelledby="workstation-setup-title" aria-busy={loading||saving}>
   <div className="sectionhead"><div><p className="eyebrow">WORKSPACE SETUP</p><h2 id="workstation-setup-title">Your folders. One save.</h2></div>{ready&&<span className="status-pill">Intake settings saved</span>}</div>
@@ -93,10 +116,10 @@ export function WorkspaceSetup({model,loading,error,disabled=false,onRetry,onSav
     <label htmlFor="setup-wedlx">WEDLX folder<input id="setup-wedlx" type="text" value={draft.wedlx_folder||''} onChange={event=>field('wedlx_folder',event.target.value)} disabled={locked} maxLength={2048} autoComplete="off" spellCheck={false}/></label>
     <label htmlFor="setup-tran">Tran Repository folder<input id="setup-tran" type="text" value={draft.tran_repository_folder||''} onChange={event=>field('tran_repository_folder',event.target.value)} disabled={locked} maxLength={2048} autoComplete="off" spellCheck={false}/></label>
    </div></details>
-   <fieldset className="setup-connectors"><legend>Optional: MCP and Zowe setup</legend>
-    <p>Prepare approved retrieval tools here. Credentials stay in their secure clients; saving does not prove host access.</p>
-    <label className="setup-checkbox" htmlFor="setup-copilot"><input id="setup-copilot" type="checkbox" checked={connections.copilot} disabled={locked} onChange={event=>edit(draft,{...connections,copilot:event.target.checked})}/>Prepare Copilot retrieval-only MCP</label>
-    <p className="field-help">Save prepares this workspace’s VS Code MCP file and preserves other server bindings. You still review trust and start the servers in VS Code.</p>
+   <fieldset className="setup-connectors"><legend>Approved mainframe connections</legend>
+    <p>Db2 catalog/data uses an approved MCP server. Mainframe files/metadata use Zowe CLI. You can defer connections for approved exported-source intake. Credentials stay in their secure clients; saving does not prove host access.</p>
+    <label className="setup-checkbox" htmlFor="setup-copilot"><input id="setup-copilot" type="checkbox" checked={connections.copilot} disabled={locked||db2.mode==='gateway'} onChange={event=>edit(draft,{...connections,copilot:event.target.checked})}/>Prepare Copilot retrieval-only MCP</label>
+    <p className="field-help">Save prepares this workspace’s VS Code MCP file and preserves other server bindings. You still review trust and start the servers in VS Code.{db2.mode==='gateway'&&' Gateway preparation also selects Copilot’s retrieval-only connection.'}</p>
     <label htmlFor="setup-zowe-mode">Zowe configuration<select id="setup-zowe-mode" value={connections.zowe.mode} disabled={locked} onChange={event=>{const selected=selectSetupConnectionMode(draft,connections,event.target.value as ZoweMode);edit(selected.settings,selected.connections);}}>
      <option value="off">No Zowe setup now</option><option value="existing">Use existing local profiles</option><option value="create">Create secure profile configuration</option><option value="import">Import a supplied config and schema</option>
     </select></label>
@@ -114,7 +137,23 @@ export function WorkspaceSetup({model,loading,error,disabled=false,onRetry,onSav
      <label htmlFor="setup-zowe-schema">Supplied Zowe schema file <span className="optional-label">optional</span><input id="setup-zowe-schema" type="text" value={connections.zowe.schema_file} onChange={event=>zoweField('schema_file',event.target.value)} disabled={locked} maxLength={2048} autoComplete="off" spellCheck={false} placeholder="Full local path to zowe.schema.json"/></label>
      <p className="field-help">Choose the supplied local files and their exact profile aliases. Import preserves the file bytes; conflicting project files produce an error.</p>
     </>}
-    <label htmlFor="setup-db2">Approved Db2 metadata endpoint <span className="optional-label">optional</span><input id="setup-db2" type="url" value={draft.db2_metadata_url||''} onChange={event=>field('db2_metadata_url',event.target.value)} disabled={locked} maxLength={8192} autoComplete="off" spellCheck={false} placeholder="https://approved-host/metadata" aria-describedby="setup-db2-help"/><span className="field-help" id="setup-db2-help">For an approved Db2 MCP server. With Copilot preparation selected, Save adds its secure VS Code token prompt. Do not paste credentials here.</span></label>
+    <label htmlFor="setup-db2-mode">Db2 MCP setup<select id="setup-db2-mode" value={db2.mode} disabled={locked} onChange={event=>{const selected=selectSetupDb2Mode(draft,connections,event.target.value as Db2Mode);edit(selected.settings,selected.connections);}}><option value="off">No Db2 setup now</option><option value="existing">Use an approved existing MCP server</option><option value="gateway">Prepare the local Db2 MCP gateway</option></select></label>
+    {db2.mode==='existing'&&<label htmlFor="setup-db2">Approved Db2 MCP endpoint<input id="setup-db2" type="url" value={draft.db2_metadata_url||''} onChange={event=>field('db2_metadata_url',event.target.value)} required disabled={locked} maxLength={8192} autoComplete="off" spellCheck={false} placeholder="https://approved-host/mcp" aria-describedby="setup-db2-help"/><span className="field-help" id="setup-db2-help">Use the approved server endpoint. With Copilot preparation selected, Save adds its secure VS Code token prompt. Do not paste credentials here.</span></label>}
+    {db2.mode==='gateway'&&<>
+     <div className="fields">
+      <label htmlFor="setup-db2-host">Actual Db2 host<input id="setup-db2-host" type="text" value={db2.host} onChange={event=>db2Field('host',event.target.value)} required disabled={locked} maxLength={253} autoComplete="off" spellCheck={false}/></label>
+      <label htmlFor="setup-db2-port">Db2 port<input id="setup-db2-port" type="number" value={db2.port} onChange={event=>db2Field('port',event.target.value)} required disabled={locked} min={1} max={65535} step={1}/></label>
+      <label htmlFor="setup-db2-database">Db2 database<input id="setup-db2-database" type="text" value={db2.database} onChange={event=>db2Field('database',event.target.value)} required disabled={locked} maxLength={253} autoComplete="off" spellCheck={false}/></label>
+      <label htmlFor="setup-db2-location">DDF location<input id="setup-db2-location" type="text" value={db2.location} onChange={event=>db2Field('location',event.target.value)} required disabled={locked} maxLength={253} autoComplete="off" spellCheck={false}/></label>
+     </div>
+     <label htmlFor="setup-db2-driver">Registered Db2 ODBC driver name<input id="setup-db2-driver" type="text" value={db2.driver} onChange={event=>db2Field('driver',event.target.value)} required disabled={locked} maxLength={253} autoComplete="off" spellCheck={false}/><span className="field-help">Use the actual registered name for your approved IBM driver. Missing drivers remain a separate installation action.</span></label>
+     <label htmlFor="setup-db2-certificate">Approved Db2 CA certificate file <span className="optional-label">optional if already prepared</span><input id="setup-db2-certificate" type="text" value={db2.certificate_file} onChange={event=>db2Field('certificate_file',event.target.value)} disabled={locked} maxLength={2048} autoComplete="off" spellCheck={false} placeholder="Full local path to the approved CA certificate"/><span className="field-help">Save copies the supplied certificate bytes. Leave blank to retain a valid workspace CA; a missing certificate stays an explicit prerequisite.</span></label>
+     <div className="fields">
+      <label htmlFor="setup-db2-mcp-port">Local MCP loopback port<input id="setup-db2-mcp-port" type="number" value={db2.mcp_port} onChange={event=>db2Field('mcp_port',event.target.value)} required disabled={locked} min={1} max={65535} step={1}/></label>
+      <label htmlFor="setup-db2-row-limit">Maximum rows per query<input id="setup-db2-row-limit" type="number" value={db2.row_limit} onChange={event=>db2Field('row_limit',event.target.value)} required disabled={locked} min={1} max={500000} step={1}/></label>
+     </div>
+     <p className="field-help">The gateway listens only on 127.0.0.1. Save prepares its local configuration and Copilot connection with SSL validation enabled. Run the returned interactive command to enter username, password and token securely. No packages, drivers or servers start here.</p>
+    </>}
    </fieldset>
    <p className="notice setup-workflow"><strong>Claude Code builds and tests from local files.</strong> Copilot retrieves missing evidence through your approved connections. Claude uses no MCP servers.</p>
    {saveError&&<p className="error" role="alert">{saveError}</p>}{loading&&<p role="status">Refreshing saved settings…</p>}
@@ -128,11 +167,11 @@ export function WorkspaceSetup({model,loading,error,disabled=false,onRetry,onSav
     <p>{connectionStatus==='ACTION_REQUIRED'?'Local configuration needs the actions below.':connectionStatus==='CONFIGURATION_READY'?'Selected local configuration is prepared.':connectionStatus==='NOT_CONFIGURED'?'No connector preparation is selected.':'Local connection configuration needs review.'} Host access remains unverified.</p>
     <p className="fine-print">Local checks for {info.runtime.platform}. Zowe CLI: {humanStatus(info.runtime.zowe_cli)}. CLI availability does not verify authentication or read access.</p>
     {info.checks.length>0&&<ul className="compact-list">{info.checks.map(check=><li key={check.id}>{check.message}{check.action&&<> {check.action}</>}</li>)}</ul>}
-    {info.files.length>0&&<><h3>Connection files</h3><dl className="setup-connection-files">{info.files.map((file,index)=><React.Fragment key={file.kind+index}><dt>{file.kind==='copilot'?'Copilot MCP':file.kind==='zowe'?'Zowe project configuration':file.kind==='zowe_schema'?'Zowe schema':file.kind} · {humanStatus(file.status)}</dt><dd><code>{file.path}</code></dd></React.Fragment>)}</dl></>}
+    {info.files.length>0&&<><h3>Connection files</h3><dl className="setup-connection-files">{info.files.map((file,index)=><React.Fragment key={file.kind+index}><dt>{file.kind==='copilot'?'Copilot MCP':file.kind==='zowe'?'Zowe project configuration':file.kind==='zowe_schema'?'Zowe schema':file.kind==='db2_config'?'Db2 gateway configuration':file.kind==='db2_certificate'?'Db2 CA certificate':file.kind} · {humanStatus(file.status)}</dt><dd><code>{file.path}</code></dd></React.Fragment>)}</dl></>}
     {info.remaining.length>0&&<><h3>Actions still required</h3><ul className="compact-list">{info.remaining.map(item=><li key={item.id}>{item.message}</li>)}</ul></>}
     {info.commands.length>0&&<div className="setup-commands">{info.commands.map((command,index)=><div className="setup-command" key={command.id}><label htmlFor={'setup-command-'+index}>{command.label}{!command.required&&<span className="optional-label">optional</span>}</label><textarea id={'setup-command-'+index} ref={node=>{if(node)commandFields.current.set(index,node);else commandFields.current.delete(index);}} value={command.command} readOnly disabled={locked} rows={Math.max(3,Math.min(6,command.command.split('\n').length+1))} spellCheck={false}/><button type="button" disabled={locked} aria-label={'Copy command: '+command.label} onClick={()=>void copy(index,command.command)}>Copy command</button>{copyNotice?.index===index&&<p className="field-help" role="status">{copyNotice.message}</p>}</div>)}</div>}
    </>:<p className="fine-print">Save the selected choices to prepare local configuration. No connection is being verified.</p>}
-   <button type="button" disabled={loading||saving} onClick={retry}>Recheck MCP and Zowe setup</button><p className="fine-print">Recheck inspects local files and CLI availability. Enter credentials in the returned secure prompt, and review or start MCP servers in VS Code.</p>
+   <button type="button" disabled={loading||saving} onClick={retry}>Recheck MCP and Zowe setup</button><p className="fine-print">Recheck inspects local files and prerequisites. Run returned commands for secure credentials and gateway startup, then review or start MCP servers in VS Code.</p>
   </div>
   <p className="fine-print setup-scope">Setup checks local settings only. Connectivity and conversion are verified separately when the relevant evidence is available.</p>
  </section>;

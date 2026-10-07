@@ -163,7 +163,13 @@ def settings(env: Mapping[str, str] | None = None, env_file: Path | str | None =
 
 
 def _certificate(path: Path) -> None:
-    content = _read(path, MAX_CERT_BYTES)
+    validate_certificate(_read(path, MAX_CERT_BYTES))
+
+
+def validate_certificate(content: bytes) -> None:
+    """Validate the exact bounded CA bytes without network or credential access."""
+    require(isinstance(content, bytes) and 0 < len(content) <= MAX_CERT_BYTES,
+            'Supply an actual bounded Db2 CA certificate')
     try:
         if content.lstrip().startswith(b'-----BEGIN CERTIFICATE-----'):
             # Permit a PEM CA bundle, but reject keys and trailing unrelated data.

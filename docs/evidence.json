@@ -168022,66 +168022,66 @@
   },
   "current_revision": {
     "date": "2026-10-07",
-    "base_commit": "e896e5f73d7c4d553bfbd3fd867b374de8958760",
-    "scope": "Windows compatibility, repository consistency and one-screen approved Copilot MCP/Zowe configuration preparation",
-    "functional_source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+    "base_commit": "9bf97385fd3f625129af606ec0a5977776112a79",
+    "scope": "One-screen approved Db2 MCP gateway and Zowe CLI preparation, native Windows runtime fixture correction and repository consistency",
+    "functional_source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
     "fingerprint_scope_note": "Existing tools.review_iterations fingerprint covers workbench, tests, tools, scripts, knowledge and frontend/src, including ignored local knowledge hashes. Supplemental independent manifests cover frontend/test-ui.mjs, built assets and platform workflow. Private content and diagnostics remain ignored.",
     "full_suite": {
-      "tests": 1833,
+      "tests": 1849,
       "failures": 0,
       "errors": 0,
       "skips": 0,
-      "elapsed_seconds": 182.638,
-      "source_before": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
-      "source_after": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "elapsed_seconds": 175.266,
+      "source_before": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
+      "source_after": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
       "source_unchanged": true,
       "passed": true,
-      "log_sha256": "74e65672dc91dd5b26f600dc53d7a6749d07867ecdf427f8bf91b5235d946579",
+      "log_sha256": "cd13b25ba44b314677be10800876ca87d2b92501ffc050ffc954ad10fa71e507",
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-reporting-suite-receipt.json",
-        "sha256": "3841c43c9cb4943c1c8c85b3caa706b0931c279c572c98f19d91bb695dc99a91"
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-release-suite-receipt.json",
+        "sha256": "731d3ee060a9aec19ac6daa49b9459cd2251841bb79c34cd7d0b9a9d57668972"
       }
     },
     "original_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T13:16:30.120485+00:00",
+      "created": "2026-10-07T13:50:31.942225+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "3bc34f9cce8dc954977939372092f4731a17b672c61e6f3e5a577770a4fb79f1",
+      "execution_log_sha256": "975bf35926164b8526172e16fad87585a3c7c097dcbab831556d7bdac7b9c03e",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-reporting-review500/receipt.json",
-        "sha256": "a1b5dda4ad7075d5b3892164f8d65c83ec7a44393e2b8749870e2e543a5d74ef"
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-review500/receipt.json",
+        "sha256": "9d3d6c931ba7549f5ae2813c8bbfc0d7dfb19d0c187cb24f1434ab1b0bdae7f0"
       }
     },
     "expanded_named_checks": {
       "schema_version": 1,
-      "created": "2026-10-07T13:16:34.655009+00:00",
+      "created": "2026-10-07T13:50:36.723548+00:00",
       "method": "500 individually named executable review scenarios; not 500 complete-suite runs, independent reviewers, or exhaustive proof",
-      "source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_fingerprint": "8e728a17962a7090df08516334bbd9646929c2a654fb4ed63159c7f90f238d59",
       "source_unchanged": true,
       "planned": 500,
       "executed": 500,
       "passed": 500,
       "unverified": 0,
-      "execution_log_sha256": "770e6b9eeb7e3b9518367cb44925756732d2ba0b7a46f057773d5396c83651f8",
+      "execution_log_sha256": "ccec48253c2512fd64cd53ae1778c3795221f8b1fe073404bb2437fe6308f59c",
       "limitations": [
         "Local fictional fixtures only; live connections and native platform behavior remain separately unverified",
         "Passing tests do not add unsupported conversion semantics or establish observed mainframe parity"
       ],
       "accepted": true,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-reporting-expanded/receipt.json",
-        "sha256": "c2852e64482bd800cbd6a9ea8fb5e0190bff1a2e7a5edadf6a765082264b2d29"
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-expanded/receipt.json",
+        "sha256": "aa5a123ba3dd73019da72404756489947c8b0d6e25dd087585890148945aa331"
       }
     },
     "named_check_ids": {
@@ -168105,7 +168105,7 @@
       "divergence_count": 0,
       "branch_targets": 520,
       "branches_observed": 512,
-      "elapsed_seconds": 2.321682,
+      "elapsed_seconds": 2.340046,
       "scenario_sequence_sha256": "42f7673752ed917227b3a5c20dcf3ef39bd07632c7d2c43f13799369fd3971e6",
       "source_unchanged_during_campaign": true,
       "limitations": [
@@ -168115,71 +168115,116 @@
         "Decision outcomes include provably unreachable boundaries; missing outcomes remain explicit.",
         "This engineering campaign does not alter the separately configured per-process fixture budget, frozen historical version-1/version-2 evidence or any human SME gate."
       ],
+      "compiled_programs": 200,
       "receipt": {
-        "path": ".implementation/tmp/setup-ui-audit/native-reporting-campaign.json",
-        "sha256": "e955ac7e15fb4ac028bab95575a38f0862a4ae7d61982ab2ce7e358fe918dc2f"
+        "path": ".implementation/tmp/setup-ui-audit/db2-gateway-campaign.json",
+        "sha256": "5ddb03062639eaa0b5538529e8061e89450aae9e9be3adf26220e33d727bb30c"
       }
     },
     "frontend": {
-      "tests": 96,
+      "tests": 103,
       "failures": 0,
       "skips": 0,
       "typescript": "PASS",
       "production_build": "PASS",
       "source_and_asset_manifest": {
-        "path": ".implementation/tmp/setup-ui-audit/frontend-manifest.json",
-        "sha256": "b0bd9063a0705f7cd450a6e315ba7a15e617f538409455eeb9aa4fc68c202d9a"
+        "path": ".implementation/tmp/db2-setup-ui-audit/frontend-manifest.json",
+        "sha256": "df76a0ec6161d208a48893dcce4a3f2437a905776fa1270a1df8d0067a813564"
       },
       "manifest_files": 31,
       "ui_log": {
-        "path": ".implementation/tmp/setup-ui-audit/ui-final.log",
-        "sha256": "039bb708cefea361b569ed902e2ad93d06c2fc2d9d72c5fe57607ef21e17ae54"
+        "path": ".implementation/tmp/db2-setup-ui-audit/ui-final.log",
+        "sha256": "ddd85c293696a2f42cd229893eb6f18de5b8b46cd8a5eb9bd5ab7dfac89671c2"
       },
+      "typecheck_log_sha256": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73",
+      "build_log_sha256": "73106ad6d12c2efa650cbdf71b7b9963f7cb0ab265af6aacbae12c7f0713f5ee",
       "independent_write_false_bundle_comparison": {
         "files": 6,
         "all_match": true,
         "receipt": {
-          "path": ".implementation/tmp/setup-frontend-independent-review/asset-review.json",
-          "sha256": "f3d74f8d51d82815a58c66ed0b105b906a62a3cb88be975c6c39f104a96a1153"
+          "path": ".implementation/tmp/db2-setup-frontend-independent-review/asset-review.json",
+          "sha256": "6229d39212a0aea34a347b93e2c8699414b777dda233649bf604c0f80945263c"
         }
       },
-      "app_js_sha256": "6d1391c535adca8a9892311e421987ea13d50eac15cfd33150e0718dd8077aa0",
-      "typecheck_log_sha256": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73",
-      "design_scope_note": "Existing brand/layout was retained. Eight Impeccable aesthetic patterns were verified as incumbent, not connector regressions. Full Premium/Impeccable or internal design-system compliance is not asserted."
+      "app_js_sha256": "3cf9a6a030c0cde897b02ec16cb82584c92369f3270ee22700cc8350dad43935",
+      "design_scope_note": "Existing identity/styles retained. Scoped Impeccable detector found no added aesthetic issues in changed form files; full internal design-system/Premium compliance is not asserted.",
+      "author_summary": {
+        "path": ".implementation/tmp/db2-setup-ui-audit/frontend-summary.json",
+        "sha256": "ee1d67852271d7dba0b6916d327ffb7283b15445140daba0bc329ca6660f6caa"
+      }
     },
     "setup": {
       "single_form_single_save": true,
-      "configuration_modes": [
-        "off",
-        "existing",
-        "create",
-        "import"
-      ],
+      "configuration_modes": {
+        "zowe": [
+          "off",
+          "existing",
+          "create",
+          "import"
+        ],
+        "db2": [
+          "off",
+          "existing",
+          "gateway"
+        ]
+      },
       "prepared_files": [
         ".migration/workstation.json",
         ".migration/connections.json",
         ".vscode/mcp.json",
         "zowe.config.json",
-        "declared approved local Zowe schema"
+        "declared approved local Zowe schema",
+        ".migration/db2-config.json",
+        "certificates/DB2-CA.cert"
       ],
       "copilot_role": "retrieval_only",
       "claude_mcp_servers": 0,
       "save_cli_executions": 0,
       "save_network_calls": 0,
       "save_model_calls": 0,
-      "credentials": "Native Zowe secure command and VS Code password prompt; no plaintext fields added to setup.",
+      "credentials": "Native Zowe secure store, private Db2 server terminal prompts and secure VS Code token input; no plaintext browser fields.",
       "safety": "Existing approved servers/inputs preserved; conflicts, schema/alias/path failures and concurrent edits stop Save. Ordinary failed writes restore prior bytes. Not an atomic transaction across external clients or process crashes.",
       "remaining_client_steps": [
-        "Install the organization-approved Node/npm and Zowe runtime if unavailable",
+        "Install organization-approved Node/npm and Zowe when the selected route requires them",
         "Enter Zowe credentials in its native secure store",
-        "Review and start approved servers in VS Code",
-        "Enter any approved Db2 token at the secure VS Code prompt"
+        "For a local Db2 gateway, install approved pyodbc and IBM driver when unavailable and provide an approved CA",
+        "Run the displayed existing Db2 MCP server command and enter credentials/token privately in its terminal",
+        "Review/start the approved retrieval servers in VS Code and enter the same token at the secure prompt"
       ],
       "connectivity": "UNVERIFIED",
       "focused_setup_checks": 173,
       "new_configuration_regressions": 29,
       "randomized_configuration_roundtrips": 20,
-      "roundtrip_note": "Configuration tests only; not semantic source-logic fixtures and not evidence of mainframe parity."
+      "roundtrip_note": "Configuration tests only; not semantic source-logic fixtures and not evidence of mainframe parity.",
+      "access_routes": {
+        "mainframe_source_and_dataset_metadata": "Zowe CLI",
+        "db2_catalog_and_data": "Approved typed read-only MCP",
+        "claude": "Local exports only, no MCP"
+      },
+      "db2_gateway": {
+        "fields": [
+          "host",
+          "service port",
+          "database",
+          "DDF location",
+          "registered IBM ODBC driver",
+          "approved CA path",
+          "loopback MCP port",
+          "read limit"
+        ],
+        "uses_existing_server": "tools/db2_mcp_server.py",
+        "save_prepares_nonsecret_files_only": true,
+        "pem_der_exact_bytes": true,
+        "tls_and_hostname_validation": true,
+        "typed_select_only": true,
+        "driver_and_certificate_checked_before_private_prompt": true,
+        "interactive_startup_query_executions": 0,
+        "actual_registered_driver_and_credentials_verified": false,
+        "source_selected_config_concurrent_changes_preserved": true,
+        "same_save_legacy_payload_compatibility": true
+      },
+      "prior_setup_checks_scope_note": "173 setup checks/29 configuration regressions and 20 configuration roundtrips belong to the preceding MCP/Zowe extension. The 15 new gateway tests and current 268 independent focused tests are recorded separately; no test counts are added together as distinct rule states.",
+      "new_db2_configuration_regressions": 15
     },
     "independent_review": {
       "backend": {
@@ -168213,7 +168258,8 @@
           "path": ".implementation/tmp/setup-backend-independent-review/scoped-review.json",
           "sha256": "bd45edc2487d540544f1dd3a22c2f684c2b489a53c42448fed7933f492e8f342"
         },
-        "combined_reviewed_files": 53
+        "combined_reviewed_files": 53,
+        "snapshot_scope": "Historical preceding MCP/Zowe extension; changed current Db2 files require and received the current extension review."
       },
       "pre_extension_frontend": {
         "receipt": {
@@ -168266,7 +168312,7 @@
           "No MCP/mainframe/source-host call or private business/source export access.",
           "Parent owns the complete suite, named IDs, campaign and publication gates. Bounded finite checks do not prove every scenario."
         ],
-        "subsequent_backend_scope_note": "The 31 frontend source/build/static entries are unchanged. Coordinator.report serialization changed after this UI review; the independent native reporting follow-up binds that new backend blob. Its workstation API and setup methods are unchanged."
+        "snapshot_scope": "Historical preceding MCP/Zowe extension; changed current Db2 files require and received the current extension review."
       },
       "scope_limit": "Scoped review and finite verification do not certify absence of all defects, real enterprise host integration or Windows 11 desktop behavior.",
       "native_reporting_followup": {
@@ -168311,7 +168357,7 @@
           "workbench/reports.py": "9dd7e6ea3a986ca61c20b9965c51af7e2292d37142e8e9ad4d9ddc68290ca940",
           "workbench/runner.py": "1be26ec708ca03708b7f43d804183e2e64a72297ab869781b76df5a72f9e5f52"
         },
-        "scope_note": "Subsequent change touches only Coordinator.report serialization and its platform tests. Native CI confirmation is recorded separately.",
+        "scope_note": "Report serialization and safety hashes remain unchanged; current gateway review checks the adjacent Coordinator and connector routes. Native CI confirms the reporting correction separately.",
         "review_receipt": {
           "path": ".implementation/tmp/setup-backend-independent-review/native-report-path-review.json",
           "sha256": "621e548f408f8a1cca5ccedad06c787a046c59c571f7104f60b4a7b6ed4e97a2"
@@ -168321,74 +168367,348 @@
           "sha256": "1a215013a7ea1d35536914cda2be89f2eda0a4cf3d52409a03569e545dcd0199",
           "files": 53
         }
+      },
+      "native_node_fixture_followup": {
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-node-env-review.json",
+          "sha256": "920cf3b7078d08e5d0b86a5fd5a8988cae6a4f8899464b0af072341821087911"
+        },
+        "tests": {
+          "focused_receipt": {
+            "path": ".implementation/tmp/setup-backend-independent-review/native-node-env-final-focused.json",
+            "sha256": "2e69f9af1b5aab0e30ad63056ec22feebbe34e8899d3ca6f125e8a42613ded47"
+          },
+          "host": "Local macOS CPython 3.12 with actual local Node execution",
+          "private_contract_groups": 2,
+          "private_contract_receipt": {
+            "path": ".implementation/tmp/setup-backend-independent-review/native-node-env-contract.json",
+            "sha256": "6eb6b397a58e5fadd52aca9c54789dd8b3479f8f28c13988569d2192fdb48a09"
+          },
+          "skipped": 0,
+          "sources_stable_during_focused_run": true,
+          "tests_run": 94
+        },
+        "verdict": "SCOPED_FIXTURE_AND_ACTION_CORRECTION_PASS_NATIVE_CONFIRMATION_PENDING",
+        "source_manifest": {
+          "path": ".implementation/tmp/setup-backend-independent-review/native-node-env-source-manifest.json",
+          "sha256": "a97f983030c4646cb76aebe9d065cbc912a1f0203c10b895d4a07924e140b363"
+        },
+        "scope_note": "Exact argv/result oracle retained; test uses the actual production reader environment. Current gateway manifest binds the final workflow and native fixture files; native confirmation is recorded below."
+      },
+      "db2_gateway_backend": {
+        "status": "SCOPED_REVIEW_COMPLETE",
+        "verdict": "Accepted within the independent backend scope after one reproduced Important finding was corrected; no remaining actionable scoped findings.",
+        "scope": {
+          "adjacent_routes": [
+            "workbench/connectors.py",
+            "workbench/coordinator.py",
+            "workbench/setup.py",
+            "workbench/db2_discovery.py",
+            "tools/export_db2.py",
+            "tools/workbench_mcp.py"
+          ],
+          "current_gateway": [
+            "workbench/connection_setup.py",
+            "workbench/db2_setup.py",
+            "workbench/db2_env.py",
+            "tools/db2_mcp_server.py",
+            "tests/test_db2_connection_setup.py",
+            "tests/test_db2_setup_exports.py",
+            ".github/workflows/platform-smoke.yml"
+          ],
+          "excluded": [
+            "Frontend source/assets and independent UI acceptance",
+            "Author-owned full unit/named/campaign release runs",
+            "Native Windows 11 desktop/live Zowe/Db2 acceptance"
+          ],
+          "node_followup": [
+            "tests/test_native_cli.py",
+            ".github/workflows/platform-smoke.yml"
+          ]
+        },
+        "evidence_scope": "268 focused tests with zero skips plus 13 additional adversarial groups and exact DER red/green witnesses on source-matched current backend; finite scoped tests do not establish all scenarios or live connectivity.",
+        "tests": {
+          "adversarial": {
+            "all_passed": true,
+            "case_groups": 13,
+            "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-adversarial.json",
+            "sha256": "611fe20a3c61b3ec37edc4a73aee679e49ce55167531aee4ff9e1fbf16c5713d",
+            "witness_script": {
+              "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-probe.py",
+              "sha256": "c1f14d3ab1973d7d8c983864365ecfe01c3873f6dccd993fa453d3195bbfd7fc"
+            }
+          },
+          "der_lifecycle": {
+            "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-der-green.json",
+            "sha256": "31b4bd225a9fbdbe92473e0924e136d1f64a6a61a71ed9e6fdc03cf0aa8d679d"
+          },
+          "focused": {
+            "errors": 0,
+            "failures": 0,
+            "modules": {
+              "test_connection_setup": 29,
+              "test_connectors": 15,
+              "test_db2_connection_setup": 15,
+              "test_db2_env": 16,
+              "test_db2_fastmcp": 3,
+              "test_db2_search": 14,
+              "test_db2_setup_exports": 12,
+              "test_expanded_setup": 100,
+              "test_lineage_connectors": 12,
+              "test_native_cli": 12,
+              "test_setup": 3,
+              "test_setup_copilot": 4,
+              "test_setup_inline": 4,
+              "test_setup_state": 2,
+              "test_workstation_setup": 27
+            },
+            "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-focused.json",
+            "seconds": 8.267,
+            "sha256": "40f37444113c2dbac3fc0bf14d1d873370133505583b511063f267a7a58cba07",
+            "skips": 0,
+            "source_stable": true,
+            "tests_run": 268
+          },
+          "layout_before_after": "Actual workbench.layout on /Users/blitz/Desktop/PTS returned valid:true and no issues before and after this extension.",
+          "workflow": {
+            "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-workflow.json",
+            "sha256": "9713686f1a30da21c45243aa2cb40a78121acd3bcc4499cfa947217fe76986f9"
+          }
+        },
+        "finding_counts": {
+          "Critical": 0,
+          "Important_fixed": 1,
+          "Minor": 0,
+          "new_feature_tests_counted_as_bugs": 0,
+          "unresolved": 0
+        },
+        "findings": [
+          {
+            "before": "Save accepted DER via the shared cadata validator, but load_connection used the PEM-only cafile loader and rejected the same DER as a placeholder before server startup.",
+            "correction": "load_connection calls shared validate_certificate on bounded no-follow exact CA bytes, preserving the ODBC SSLServerCertificate path and certificate bytes. The legacy ODBC-escaping test now uses an actual public fictional PEM instead of mocking TLS acceptance of a placeholder.",
+            "id": "DB2-GATEWAY-DER-STARTUP",
+            "independent_green": {
+              "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-der-green.json",
+              "sha256": "31b4bd225a9fbdbe92473e0924e136d1f64a6a61a71ed9e6fdc03cf0aa8d679d"
+            },
+            "independent_red": {
+              "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-der-red.json",
+              "sha256": "764fcc07bb469cc79bb15f4f7046081456400937281fe6f1e545961d56fee552"
+            },
+            "location": "workbench/db2_setup.py:load_connection",
+            "primary_contract": {
+              "title": "IBM SSLServerCertificate CLI/ODBC configuration keyword",
+              "url": "https://www.ibm.com/docs/en/db2/11.5.x?topic=cck-sslservercertificate",
+              "verified": "Official IBM indexed primary text confirms single PEM/DER certificate support; bundle support depends on installed driver version. No actual ODBC connection was used."
+            },
+            "severity": "Important",
+            "status": "FIXED_VERIFIED",
+            "trigger": "An actual UI Save imports a valid DER CA, preserves its bytes and shows it prepared; existing interactive server startup loads that same file."
+          }
+        ],
+        "remaining_actionable_findings": [],
+        "file_count": 68,
+        "review_receipt": {
+          "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-review.json",
+          "sha256": "29628ffe27226860af69cb7db03d539212cb5a9cd53e3e7ecd1ba27a3e75f7a4"
+        },
+        "source_manifest": {
+          "path": ".implementation/tmp/setup-backend-independent-review/db2-gateway-source-manifest.json",
+          "sha256": "640b8470935bbcfd6e6685b71e74612f124410916181c473faa3899ec0130b76"
+        }
+      },
+      "db2_gateway_frontend": {
+        "status": "READY_NO_ACTIONABLE_FINDINGS",
+        "reviewer": "Independent Codex frontend reviewer",
+        "checks": {
+          "ui_tests": {
+            "tests": 103,
+            "passed": 103,
+            "failed": 0,
+            "skipped": 0,
+            "runner": "Exact source UI runner copied with only dependency/resolveDir/output path changes to confine writes."
+          },
+          "typecheck": "PASS",
+          "shipped_asset_matches": {
+            "files": 6,
+            "exact_matches": true,
+            "build": "bundle/minify/production define/write:false/legalComments:external"
+          },
+          "isolated_browser": {
+            "checks": 14,
+            "viewports": [
+              1280,
+              390,
+              320
+            ],
+            "actual_window_width_asserted": true,
+            "page_errors": 0,
+            "unexpected_routes": 0,
+            "coverage": [
+              "One form and Save; exact Db2 MCP vs Zowe CLI routing; no credential inputs.",
+              "Native keyboard typeahead selects gateway; Copilot is selected/locked for gateway; service identities remain required and unfilled.",
+              "Trimmed exact gateway identities and derived loopback endpoint; inactive off/existing fields all null.",
+              "Dirty port edits hide previous command/completion; corresponding command updates after Save.",
+              "Exact Windows command text/copy, success only after clipboard promise, unavailable clipboard full manual selection.",
+              "Failed GET503 recheck and successful retry retain gateway fields; invalid-CA Save error retains draft, corrected retry succeeds.",
+              "Legacy two-key choices omit db2 unchanged for models with/without selected existing URL.",
+              "Long config paths and commands fit measured viewport widths."
+            ]
+          },
+          "actual_coordinator_browser": {
+            "checks": 17,
+            "post_requests": 17,
+            "viewports": [
+              1280,
+              390,
+              320
+            ],
+            "actual_window_width_asserted": true,
+            "page_errors": 0,
+            "external_requests": 0,
+            "coverage": [
+              "Shipped App/assets and authenticated Coordinator API on dedicated8840.",
+              "Actual gateway config, SSL=true, registered driver identity, service port separate from MCP port, max/default row budget clamp.",
+              "Committed lost-response Save retried with identical bytes.",
+              "Missing CA remains explicit prerequisite with local intake eligible.",
+              "Invalid CA produces error, retains draft and prior config/MCP bytes; valid supplied CA copied exactly.",
+              "Approved Db2 MCP binding derives loopback endpoint with VS Code secure token input; retrieval-only bridge and Claude MCP0 retained.",
+              "Reload/recheck/resave at narrow widths; exact interactive startup command and denied-clipboard full selection.",
+              "Existing/off/gateway at all widths; inactive values null, off clears selected endpoint/binding, blank CA retains valid workspace certificate.",
+              "Workbench/MCP port collision refused with prior choices preserved and corrected retry accepted.",
+              "No whole-Setup-done or verified connectivity claim while native prerequisites remain."
+            ]
+          },
+          "visual_inspection": [
+            "live-gateway-320.png",
+            "gateway-saved-1280.png"
+          ],
+          "layout_before_after": "PASS",
+          "source_stability": {
+            "files": 41,
+            "start_matches_finish": true,
+            "all_author_manifest_entries_match": true,
+            "author_files": 31
+          }
+        },
+        "review_receipt": {
+          "path": ".implementation/tmp/db2-setup-frontend-independent-review/report.json",
+          "sha256": "68c131b44dd9b64411bc5c76b8da266e5191263f0e42ea0a481ef463d34dcd4d"
+        },
+        "file_manifest_count": 41,
+        "author_manifest_sha256": "df76a0ec6161d208a48893dcce4a3f2437a905776fa1270a1df8d0067a813564",
+        "receipt_hashes": {
+          "browser-review.json": "5c6fedad89a9a9e2cff40b8c363d544699d584f6c5f2335e3948405ba86c6efc",
+          "live-api-review.json": "0590b3e74fd386a1d943ccbbd9d3d4fbba68d0cb42cfa94e43491583884fc829",
+          "asset-review.json": "6229d39212a0aea34a347b93e2c8699414b777dda233649bf604c0f80945263c",
+          "ui-tests.log": "a53ec9d0e9b5226d52b3cabbeda00a1bf6b48a3a28eeb5082826b37df461c9bc",
+          "typecheck.log": "148913dfaa33bf22543cc86832cd770b44181a4f0d1f29d065f5003c9ca54b73",
+          "layout-final.json": "ef43b0bc6092267f1be737777a2a9b9e3c4d6f42a1b9727d8a85102c54bbb45c",
+          "review-start-hashes.json": "64709d631ba381ebf024c4caed45bbc6a05e7c55ccdd5c0c1edefb797f00a516",
+          "final-review-hashes.json": "e7b8298268a6a9483013529acf6074ce2284bb2ab163e25fe2fcccfd777a59ff",
+          "pre-review-hashes.json": "649615716b5f868e1fc617cef344f360b106cdb87f8a7ffe076623c1f7d25e55",
+          "browser-review.cjs": "33c0a16da9d1d6c450d9bb94f3a40ec65c9d9c44a4ddfceb824f2c95efe567da",
+          "live-api-review.cjs": "71f8663df7cf30feb5ff75a8fe1fc26cd0b58378b460708e64cea82cc850062f",
+          "asset-review.cjs": "5a2cdb456b4ac8b46c89c047007dc1ade5d1b0909ede7c0c2afa631c3653b2ca",
+          "test-ui-isolated.mjs": "85cf9646488dbf403c1454f2861d9b47174fe3f2219671c5a8f1496495765f1c",
+          "source-bundle.js": "27d1f518ad88cbeaba061b4ffbb796c7fa454cd02cfe1ca49fe6056c51272df0",
+          "harness-draft-copy-browser-review.json": "839b87390caf6a97d7bff308c9f92f8dff7ad1a833b8dd84bf821785c941033a",
+          "harness-draft-copy-browser-review.log": "d984ad3ff6730e7862bc239eab6eb8332578ffde431267dccc29726328c87ff5",
+          "gateway-saved-1280.png": "9cef06c1345f994b2eb530c997cb62746aa2bd3e5aa93b89696d8be632d7e518",
+          "gateway-saved-390.png": "cd11a193bad30d755ab89686e9ff12044792d87394eb5bbe899343f25461df84",
+          "gateway-saved-320.png": "bf91206bcbf8a9969dffe304bef5ae1482f67354f8f5d68cf0ed35b42221f939",
+          "live-gateway-1280.png": "624fea85ea346cfcf0e652b8a5bd4cde309e0bff93240788acc2c4653eecfd2a",
+          "live-gateway-390.png": "df7c9f29a162b2a7dafb2e8a786b61a1c86e7e2e2059020ed53805b275aca58b",
+          "live-gateway-320.png": "d536380066c1072f3786d220fbae00b22bbd614520abd33cb7c4f59f4d61ddc0"
+        },
+        "limitations": [
+          "Browser execution was Chrome154 headless on macOS, with measured1280/390/320 widths. Native Windows11/PowerShell, screen readers, browser zoom and native select popup acceptance were not executed.",
+          "Windows command strings were synthetic returned API fixtures. Actual gateway command reflects macOS. No returned command, gateway server, driver operation, credentials or host access was executed.",
+          "Actual pyodbc/IBM driver installation/registration, secure user/password/token entry, VS Code server trust/start and Db2 authenticated read access remain explicit unverified prerequisites.",
+          "No mainframe/MCP/source-host calls, private business exports, process starts or reviewer answers.",
+          "Full repository suite, named IDs, scenario campaign and publication gates belong to parent. Finite scoped checks do not prove every scenario."
+        ]
       }
     },
     "browser": {
       "author_actual_ui": {
+        "receipt": {
+          "path": ".implementation/tmp/db2-setup-ui-audit/browser-db2-setup-receipt.json",
+          "sha256": "d98f34569911e3974bc27d66ae2a7e5cfa9974d173de2d9f0c77d7801c94ee09"
+        },
+        "sha256": "d98f34569911e3974bc27d66ae2a7e5cfa9974d173de2d9f0c77d7801c94ee09",
         "host": "darwin",
         "browser": "154.0.8037.98",
-        "contexts": 6,
-        "viewports": [
+        "measured_viewports": [
           1280,
           390,
           320
         ],
+        "assertions": 78,
+        "failed": 0,
         "page_errors": [],
-        "receipt": {
-          "path": ".implementation/tmp/setup-ui-audit/browser-setup-receipt.json",
-          "sha256": "917f999609f1cd932e99d8ce5c0d0e3ad761f3cb5b79787ad1af0332efe056a1"
-        },
-        "exact_import_files": [
+        "request_origins": [
+          "http://127.0.0.1:8811",
+          "http://127.0.0.1:8812",
+          "http://127.0.0.1:8813"
+        ],
+        "viewport_proof": [
           {
-            "source": "supplied.zowe.json",
-            "destination": "zowe.config.json",
-            "bytes": 761,
-            "sha256": "6883827ee1ffd90a54cbdfd1d33e11903db7b7f03fbd000edb6f9a2baf821079",
-            "exact_bytes": true,
-            "contains_CRLF": true
+            "requested": 1280,
+            "actual_screenshot_width": 1280,
+            "height": 3223,
+            "harness_explicit_set_and_assert_window_innerWidth": true,
+            "screenshot": "gateway-prepared-1280.png",
+            "sha256": "5184d13feafbb1599e607ee10ed141fc7823a14f7b000e005df50fca7d6ecd83"
           },
           {
-            "source": "supplied.schema.json",
-            "destination": "zowe.schema.json",
-            "bytes": 270,
-            "sha256": "6c7228c47a61eb02dd6ae5bb3accaf8bc98d3bb097378ede53900bfecc35a617",
-            "exact_bytes": true,
-            "contains_CRLF": true
+            "requested": 390,
+            "actual_screenshot_width": 390,
+            "height": 4488,
+            "harness_explicit_set_and_assert_window_innerWidth": true,
+            "screenshot": "gateway-prepared-390.png",
+            "sha256": "0fbba01c2f6d714f4ff7e87bf24ba6408748c3bf9a04f2153898ab3b466400ab"
+          },
+          {
+            "requested": 320,
+            "actual_screenshot_width": 320,
+            "height": 5079,
+            "harness_explicit_set_and_assert_window_innerWidth": true,
+            "screenshot": "gateway-prepared-320.png",
+            "sha256": "29710f0e0135142752e854229301e1c904b151dbfdbd32c43f0d49807aa963c8"
           }
         ],
-        "scope": "Dedicated local Coordinator fixtures, actual shipped App/ASGI save path. No returned installation/authentication command or remote host executed.",
-        "executed_assertions": 84
+        "ca_exact_bytes": {
+          "bytes": 1159,
+          "sha256": "e992c5af1e4a3bad8bb3641cb10501723693dda56796913e0f6236bccd2dde23",
+          "source": "public tests/test_db2_env.py CERTIFICATE",
+          "destinations": [
+            "browser-1280-workspace/certificates/DB2-CA.cert",
+            "browser-390-workspace/certificates/DB2-CA.cert",
+            "browser-320-workspace/certificates/DB2-CA.cert"
+          ],
+          "exact_bytes": true
+        },
+        "initial_harness_error": "context.newPage viewport options were ignored; all original widths rendered1280. That run is marked invalid and preserved separately; corrected explicit setViewportSize/window.innerWidth assertions passed on fresh fixtures.",
+        "commands_executed": false,
+        "fixture_cleanup": "fixture-cleanup.json"
       },
-      "independent_setup": {
-        "status": "PASS",
-        "host": "macOS",
-        "browser": "Chrome 154",
-        "synthetic_checks": 17,
-        "actual_coordinator_checks": 21,
-        "actual_save_posts": 15,
-        "viewports": [
+      "independent_actual_and_isolated_browser": {
+        "actual_coordinator_checks": 17,
+        "isolated_checks": 14,
+        "measured_viewports": [
           1280,
           390,
           320
         ],
         "page_errors": 0,
         "external_requests": 0,
-        "source_stability": true,
-        "synthetic_receipt": {
-          "path": ".implementation/tmp/setup-frontend-independent-review/setup-browser-review.json",
-          "sha256": "6a87f0522114365dafd9776bff1b0c2eaa13e56d04aad867078de6d7be9b576e"
-        },
-        "actual_receipt": {
-          "path": ".implementation/tmp/setup-frontend-independent-review/setup-live-api-review.json",
-          "sha256": "0e3a585c4440956fce82581ebf66bb336390e7c7f5e0186c074ae1633f96383e"
-        },
-        "scope": "Independent shipped-asset browser checks plus isolated API fixtures; source hosts and returned commands were not executed."
+        "review_receipt": {
+          "path": ".implementation/tmp/db2-setup-frontend-independent-review/report.json",
+          "sha256": "68c131b44dd9b64411bc5c76b8da266e5191263f0e42ea0a481ef463d34dcd4d"
+        }
       },
-      "limits": [
-        "macOS Chrome only; no native Windows 11 desktop run",
-        "No complete screen-reader or native zoom acceptance",
-        "No real MCP activation or mainframe authentication"
-      ]
+      "scope_note": "Chrome 154 on macOS, shipped assets and real disposable Coordinator APIs. Native Windows 11 desktop, screen readers, zoom, registered IBM ODBC driver, credentials and live service access remain unverified."
     },
     "windows_and_linux": {
       "implemented": [
@@ -168400,18 +168720,36 @@
         "Self-contained online runtime and Windows checkout-newline normalization for implementation files only",
         "Direct standalone CLI imports and mixed-case copybook discovery",
         "Native Windows installation and secure-entry command quoting",
-        "Portable report artifact/hash keys for both final and interrupted report registration; original safe-path validation retained"
+        "Portable report artifact/hash keys for both final and interrupted report registration; original safe-path validation retained",
+        "Native Node fixture uses the production Windows runtime environment without weakening the argument/result oracle",
+        "Current GitHub Actions Node24 handlers on compatible hosted runners",
+        "Existing Db2 MCP interactive startup with platform-native command quoting and private terminal entry"
       ],
       "native_ci": {
-        "status": "AWAITING_CORRECTED_NATIVE_RUN",
+        "status": "AWAITING_INTEGRATED_NATIVE_RUN",
         "workflow": ".github/workflows/platform-smoke.yml",
         "matrix": [
           "windows-latest",
           "ubuntu-latest"
         ],
-        "prior_failed_valid_run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37626304190",
+        "expected_test_groups_per_os": 20,
+        "expected_tests_per_os": 309,
+        "prior_failed_valid_runs": [
+          {
+            "run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37626304190",
+            "commit": "43e8f05170f03f2c38ce9628ab84d0a4ad520299",
+            "linux_tests_passed": 291,
+            "windows": "Locked setup passed; runner checks reproduced inherited report-path serialization defect."
+          },
+          {
+            "run": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37627858197",
+            "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
+            "linux_tests_passed": 293,
+            "windows": "Locked setup, layout12, runner8 and Zowe14 passed. Native Node fixture lacked Windows runtime environment; one test error, not a production connector defect."
+          }
+        ],
         "earlier_zero_job_failure": "https://github.com/Snuthakki21/pts_modernization/actions/runs/37615005604",
-        "scope": "PowerShell dependency setup passed on Windows Server 2025 and the original Linux matrix passed; the report-path correction still needs native confirmation."
+        "scope": "Current source still requires its actual Windows Server/Linux matrix. Windows 11 desktop and live acceptance are distinct."
       },
       "windows_11_desktop_verified": false,
       "scope_note": "Windows CI uses a Windows Server runner, not a Windows 11 desktop. Organization-approved runtime, real VS Code extension policy and live service acceptance remain separate."
@@ -168424,7 +168762,8 @@
         "sha256": "4ad43c8d36e7f5f19f6806a27cf4f988c7d2baaf3873e43cf93a10738d8699d7"
       },
       "dependencies_added": 0,
-      "scope": "Published cross-platform digests and closure, not latest-version or vulnerability certification."
+      "scope": "Published cross-platform digests and closure, not latest-version or vulnerability certification.",
+      "optional_db2_driver_note": "No runtime dependency pins changed. Local Db2 gateway requires organization-approved pyodbc and an installed IBM ODBC driver; setup exposes missing prerequisites."
     },
     "preliminary_validation": {
       "pre_extension_accepted_suite": {
@@ -168441,7 +168780,14 @@
         "Pip-bootstrap probe expectations updated for the added ensurepip check"
       ],
       "note": "Initial source-changing or stale-harness attempts are not accepted release results and not inflated as production bug counts. Added configuration capability tests are not counted as pre-existing defects.",
-      "raw_logs": "Private .implementation/tmp/ only; immutable process/source evidence preserved."
+      "raw_logs": "Private .implementation/tmp/ only; immutable process/source evidence preserved.",
+      "superseded_native_node_run": {
+        "receipt": {
+          "path": ".implementation/tmp/setup-ui-audit/native-node-final-suite-receipt.json",
+          "sha256": "ad73db8ea7e13c4b2ff19d51757855812f3e8f279dbea6cfd75a1197cec75034"
+        },
+        "note": "1834 tests completed without failures/errors/skips, but the source changed when Db2 extension work began. Not accepted as final release evidence and not a production bug."
+      }
     },
     "operational_processes_converted": 0,
     "actual_development_provider_credits": "Unknown without attributed provider/account receipts",
@@ -168471,7 +168817,30 @@
       "python -m workbench.layout --workspace WORKSPACE",
       "python tools/check_handoff.py",
       "python tools/check_factory.py",
-      "git diff --check"
+      "git diff --check",
+      "Native GitHub Actions matrix on the exact published code commit; preserve prior failures and actual per-platform log hashes."
     ]
+  },
+  "previous_revision_2026_10_07_before_db2_gateway": {
+    "commit": "9bf97385fd3f625129af606ec0a5977776112a79",
+    "public_evidence_url": "https://github.com/Snuthakki21/pts_modernization/blob/9bf97385fd3f625129af606ec0a5977776112a79/docs/evidence.json",
+    "functional_source_fingerprint": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+    "full_suite": {
+      "tests": 1833,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "elapsed_seconds": 182.638,
+      "source_before": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_after": "b9790802d451721864f5760a2dfdc2f891882f094d5a000d7fc788185a1bbc3f",
+      "source_unchanged": true,
+      "passed": true,
+      "log_sha256": "74e65672dc91dd5b26f600dc53d7a6749d07867ecdf427f8bf91b5235d946579",
+      "receipt": {
+        "path": ".implementation/tmp/setup-ui-audit/native-reporting-suite-receipt.json",
+        "sha256": "3841c43c9cb4943c1c8c85b3caa706b0931c279c572c98f19d91bb695dc99a91"
+      }
+    },
+    "note": "Prior setup/reporting receipts remain historical evidence for their original source snapshots. Current Db2 gateway and Node fixture changes have fresh source-bound receipts below."
   }
 }

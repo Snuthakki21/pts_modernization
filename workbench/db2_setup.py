@@ -3,9 +3,8 @@ from .domain import path_is_link
 import argparse
 import json
 from pathlib import Path
-import ssl
 
-from .domain import ValidationError, atomic_json, decode, require, safe_path, write_new
+from .domain import ValidationError, atomic_bytes, decode, encode, require, safe_path
 from .layout import require_layout
 from .zowe_setup import _host
 
@@ -39,19 +38,20 @@ def _config(config):
     return config
 
 
-def initialize_db2(workspace,server_name=None,location=None,database=None,host=None,port=None,max_rows=None):
+def prepare_db2(workspace,server_name=None,location=None,database=None,host=None,port=None,max_rows=None,certificate_source=None,driver=None):
     workspace=Path(workspace).absolute();require_layout(workspace)
     path=safe_path(workspace,'.migration/db2-config.json')
     require(not path.exists() or path.is_file() and path.stat().st_size<=1024*1024,
             'Selected Db2 config must be a regular bounded JSON file')
-    config=decode(path.read_bytes(),1024*1024) if path.exists() else {}
+    from .db2_env import _read, MAX_CERT_BYTES, validate_certificate
+    config=decode(_read(path,1024*1024),1024*1024) if path.exists() else {}
     require(isinstance(config,dict) and set(config)<=CONFIG_KEYS,
             'Db2 configuration permits only the documented nonsecret connection fields')
     defaults={'server_name':None,'location':None,'database':None,'host':None,'port':None,'ssl':True,
               'certificate':CERTIFICATE,'driver':'IBM DB2 ODBC DRIVER','max_rows':500000,
               'default_row_budget':1000,'credential_environment':ENVIRONMENT.copy()}
     for key,value in defaults.items():config.setdefault(key,value)
-    for key,value in (('server_name',server_name),('location',location),('database',database)):
+    for key,value in (('server_name',server_name),('location',location),('database',database),('driver',driver)):
         if value is not None:config[key]=_text(value)
     if host is not None:config['host']=_host(host)
     if port is not None:config['port']=port
@@ -66,18 +66,38 @@ def initialize_db2(workspace,server_name=None,location=None,database=None,host=N
     certificate=safe_path(workspace,CERTIFICATE)
     require(not certificate.exists() or certificate.is_file() and certificate.stat().st_size<=1024*1024,
             'Certificate must be a regular bounded file')
-    if not certificate.exists():write_new(certificate,PLACEHOLDER)
-    atomic_json(path,config);require_layout(workspace)
+    prepared=[]
+    certificate_bytes=_read(certificate,MAX_CERT_BYTES) if certificate.exists() else PLACEHOLDER
+    if certificate_source is not None:
+        certificate_bytes=_read(Path(certificate_source),MAX_CERT_BYTES)
+        validate_certificate(certificate_bytes)
+    if not certificate.exists() or certificate_source is not None:prepared.append((certificate,certificate_bytes))
+    prepared.append((path,encode(config)))
     return {'status':'NEEDS_LOCAL_CONFIGURATION','config_file':str(path),'certificate':str(certificate),
-            'certificate_placeholder':certificate.read_bytes()==PLACEHOLDER,'ssl':True,'max_rows':config['max_rows'],
+            'certificate_placeholder':certificate_bytes==PLACEHOLDER,'ssl':True,'max_rows':config['max_rows'],
             'credentials':'UNVERIFIED','connectivity':'UNVERIFIED',
             'environment':{'WB_DB2_CONFIG':str(path),'user_variable':'WB_DB2_USER','password_variable':'WB_DB2_PASSWORD'},
             'guidance':'Fill actual nonsecret server/location/database/host/port locally. Replace DB2-CA.cert with '
                        'the approved CA certificate. Set credentials only in private local environment or the '
-                       'approved external driver. Start the typed read-only gateway separately; this template does not authenticate.'}
+                       'approved external driver. Start the typed read-only gateway separately; this template does not authenticate.'},prepared
+
+
+def initialize_db2(workspace,server_name=None,location=None,database=None,host=None,port=None,max_rows=None):
+    result,prepared=prepare_db2(workspace,server_name,location,database,host,port,max_rows)
+    for path,payload in prepared:atomic_bytes(path,payload)
+    require_layout(workspace)
+    return result
 
 
 def _odbc(value):return '{'+str(value).replace('}','}}')+'}'
+
+
+def connection_fields(config):
+    """Require usable nonsecret driver fields before requesting credentials."""
+    _config(config)
+    host=_host(config.get('host'));database=_text(config.get('database'));driver=_text(config.get('driver'))
+    port=config.get('port');require(type(port)is int and 1<=port<=65535,'Supply the actual Db2 port locally')
+    return host,database,driver,port
 
 
 def load_connection(config_file,env=None):
@@ -88,13 +108,13 @@ def load_connection(config_file,env=None):
     require(not path_is_link(path) and not any(path_is_link(parent) for parent in path.parents)
             and path.is_file() and path.stat().st_size<=1024*1024,'Select a regular bounded local Db2 config')
     config=_config(decode(path.read_bytes(),1024*1024))
-    host=_host(config.get('host'));database=_text(config.get('database'));driver=_text(config.get('driver'))
-    port=config.get('port');require(type(port)is int and 1<=port<=65535,'Supply the actual Db2 port locally')
+    host,database,driver,port=connection_fields(config)
     workspace=path.parent.parent if path.parent.name=='.migration' else path.parent
     certificate=safe_path(workspace,CERTIFICATE)
     require(certificate.is_file() and certificate.stat().st_size<=1024*1024,'Supply the approved bounded Db2 CA certificate')
-    try:ssl.create_default_context(cafile=str(certificate))
-    except (ssl.SSLError,OSError) as exc:raise ValidationError('Replace the certificate placeholder with the actual approved CA certificate') from exc
+    from .db2_env import _read, MAX_CERT_BYTES, validate_certificate
+    try:validate_certificate(_read(certificate,MAX_CERT_BYTES))
+    except ValidationError:raise ValidationError('Replace the certificate placeholder with the actual approved PEM or DER CA certificate') from None
     user=env.get('WB_DB2_USER');password=env.get('WB_DB2_PASSWORD')
     require(isinstance(user,str) and 0<len(user)<=2048 and isinstance(password,str) and 0<len(password)<=8192,
             'Supply Db2 credentials only through the private local credential environment')

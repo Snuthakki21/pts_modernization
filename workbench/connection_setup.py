@@ -17,6 +17,7 @@ from .zowe_setup import prepare_import, prepare_profile, project_schema_path
 
 MAX_CONFIG = 1024 * 1024
 CHOICE_KEYS = {'mode', 'host', 'port', 'config_file', 'schema_file'}
+DB2_KEYS = {'mode','host','port','database','location','driver','certificate_file','mcp_port','row_limit'}
 SERVER = 'workbench-retrieval'
 DB2_SERVER = 'workbench-db2'
 TOKEN_INPUT = 'workbenchDb2Token'
@@ -24,12 +25,14 @@ TOKEN_INPUT = 'workbenchDb2Token'
 
 def default_choices(settings):
     return {'copilot':False, 'zowe':{'mode':'existing' if settings.get('zowe_profile') else 'off',
-            'host':None, 'port':None, 'config_file':None, 'schema_file':None}}
+            'host':None, 'port':None, 'config_file':None, 'schema_file':None},
+            'db2':{'mode':'existing' if settings.get('db2_metadata_url') else 'off',
+                   **{key:None for key in DB2_KEYS-{'mode'}}}}
 
 
 def validate_choices(value):
-    require(isinstance(value,dict) and set(value)=={'copilot','zowe'} and type(value['copilot']) is bool,
-            'Supply only the nonsecret Copilot and Zowe setup choices')
+    require(isinstance(value,dict) and set(value) in ({'copilot','zowe'},{'copilot','zowe','db2'}) and type(value['copilot']) is bool,
+            'Supply only the nonsecret Copilot, Zowe and Db2 MCP setup choices')
     zowe=value['zowe']
     require(isinstance(zowe,dict) and set(zowe)==CHOICE_KEYS and zowe['mode'] in ('off','existing','create','import'),
             'Choose off, existing, create or import for Zowe configuration')
@@ -48,6 +51,23 @@ def validate_choices(value):
     else:
         require(all(zowe[k] is None for k in ('host','port','config_file','schema_file')),
                 'Inactive Zowe options must be empty')
+    if 'db2' in value:
+        db2=value['db2']
+        require(isinstance(db2,dict) and set(db2)==DB2_KEYS and db2['mode'] in ('off','existing','gateway'),
+                'Choose off, existing or gateway for the approved Db2 MCP server')
+        for key in ('host','database','location','driver','certificate_file'):
+            item=db2[key]
+            require(item is None or isinstance(item,str) and 0<len(item)<=2048 and item==item.strip()
+                    and not any(ord(c)<32 or ord(c)==127 for c in item),'Use bounded nonsecret Db2 setup values')
+        for key,upper in (('port',65535),('mcp_port',65535),('row_limit',500000)):
+            require(db2[key] is None or type(db2[key]) is int and 1<=db2[key]<=upper,'Invalid Db2 port or row budget')
+        if db2['mode']=='gateway':
+            from .zowe_setup import _host
+            _host(db2['host'])
+            require(all(db2[key] is not None for key in ('port','database','location','driver','mcp_port','row_limit')),
+                    'Supply the actual Db2 host, port, database, location, driver and local MCP limits')
+            require(value['copilot'],'Prepare the approved Copilot MCP binding for the Db2 gateway')
+        else:require(all(db2[key] is None for key in DB2_KEYS-{'mode'}),'Inactive Db2 gateway fields must be empty')
     return copy.deepcopy(value)
 
 
@@ -247,6 +267,35 @@ def _inspect_connections(root, settings, origin=None):
         cd="Set-Location -LiteralPath "+"'"+str(root).replace("'","''")+"'" if sys.platform=='win32' else 'cd '+shlex.quote(str(root))
         commands.append({'id':'zowe_secure','label':'Enter Zowe credentials securely','command':cd+'\n'+_command(argv),'required':True})
         need('zowe_credentials','Run the secure command in your local terminal. Authentication and read access remain unverified.')
+    db2=choices.get('db2',{'mode':'existing' if settings['db2_metadata_url'] else 'off'})
+    if db2['mode']=='gateway':
+        from .db2_setup import _config, CERTIFICATE
+        from .db2_env import validate_certificate
+        from importlib.util import find_spec
+        config_path=safe_path(root,'.migration/db2-config.json')
+        try:
+            raw=_read(config_path);require(raw is not None,'Db2 MCP configuration is missing')
+            config=_config(decode(raw,MAX_CONFIG))
+            require(all(config.get(key)==db2[key] for key in ('host','port','database','location','driver'))
+                    and config['max_rows']==db2['row_limit'],'Db2 MCP settings changed; reload and Save the selected configuration')
+            files.append({'kind':'db2_config','path':str(config_path),'status':'PREPARED'})
+        except ValidationError as failure:need('db2_config',str(failure))
+        certificate=safe_path(root,CERTIFICATE)
+        try:
+            validate_certificate(_read(certificate))
+            files.append({'kind':'db2_certificate','path':str(certificate),'status':'PREPARED'})
+        except ValidationError:need('db2_certificate','Select your approved PEM or DER Db2 CA certificate in this screen and Save again. A placeholder cannot authenticate.')
+        try:module_available=find_spec('pyodbc') is not None
+        except (ImportError,ValueError):module_available=False
+        checks.append({'id':'db2_driver','status':'MODULE_PRESENT' if module_available else 'NOT_FOUND',
+                       'message':'The Python ODBC module is present; the selected IBM driver is checked at local server startup.' if module_available else 'Install the organization-approved pyodbc package and IBM Db2 ODBC driver in this Python environment.'})
+        if not module_available:need('db2_driver','Install the organization-approved pyodbc package and IBM Db2 ODBC driver; then recheck setup.')
+        else:need('db2_driver','Start the local server command to validate the selected registered ODBC driver. No Db2 read has been performed.')
+        script=Path(__file__).parent.parent/'tools/db2_mcp_server.py'
+        argv=[str(Path(sys.executable).absolute()),str(script.absolute()),'--transport','http','--config',str(config_path),'--port',str(db2['mcp_port']),'--interactive']
+        cd="Set-Location -LiteralPath "+"'"+str(root).replace("'","''")+"'" if sys.platform=='win32' else 'cd '+shlex.quote(str(root))
+        commands.append({'id':'db2_start','label':'Start the approved read-only Db2 MCP server','command':cd+'\n'+_command(argv),'required':True})
+        need('db2_server','Run the displayed local Db2 MCP command. Enter credentials privately, then use the same approved token at the VS Code secure prompt. Keep the server terminal open.')
     if choices['copilot']:
         path=safe_path(root,'.vscode/mcp.json');raw=_read(path)
         actual={};input_values={}
@@ -266,7 +315,7 @@ def _inspect_connections(root, settings, origin=None):
         if not valid:need('copilot_config','Save setup to prepare the retrieval-only Copilot configuration.')
         need('copilot_activation','Open this workspace in VS Code. Review and start the approved servers in MCP: List Servers; keep the Workbench running.')
         if settings['db2_metadata_url']:need('db2_authentication','Enter the approved Db2 token at the VS Code secure prompt; server reachability is unverified.')
-    active=choices['copilot'] or choices['zowe']['mode']!='off'
+    active=choices['copilot'] or choices['zowe']['mode']!='off' or db2['mode']!='off'
     return {'choices':choices,'status':'ACTION_REQUIRED' if remaining else 'CONFIGURATION_READY' if active else 'NOT_CONFIGURED',
             'checks':checks,'commands':commands,'files':files,'remaining':remaining,
             'runtime':{'platform':'windows' if sys.platform=='win32' else 'linux' if sys.platform.startswith('linux') else 'macos', 'zowe_cli':cli},
@@ -290,6 +339,12 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
     choices=validate_choices(choices)
     require(isinstance(settings,dict),'Supply nonsecret workstation settings')
     if choices['zowe']['mode']=='off':settings={**settings,'zowe_profile':None,'zowe_zosmf_profile':None}
+    db2=choices.get('db2')
+    if db2 is not None:
+        if db2['mode']=='off':settings={**settings,'db2_metadata_url':None}
+        elif db2['mode']=='gateway':
+            require(db2['mcp_port']!=urlsplit(origin).port,'The Db2 MCP port must differ from the running Workbench port')
+            settings={**settings,'db2_metadata_url':'http://127.0.0.1:'+str(db2['mcp_port'])+'/mcp'}
     root=Path(root).absolute()
     state_path=safe_path(root,'.migration/connections.json')
     baseline={state_path:_read(state_path)}
@@ -297,6 +352,7 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
     selected=['.migration/workstation.json']
     if choices['copilot'] or managed:selected.append('.vscode/mcp.json')
     if mode!='off':selected.append('zowe.config.json')
+    if db2 is not None and db2['mode']=='gateway':selected.extend(['.migration/db2-config.json','certificates/DB2-CA.cert'])
     for relative in selected:
         path=safe_path(root,relative);baseline[path]=_read(path)
     if mode=='import':
@@ -310,6 +366,10 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
         original_config=baseline.get(config_source)
         schema_path=project_schema_path(root,decode(original_config,MAX_CONFIG) if original_config is not None else {})
         baseline[schema_path]=_read(schema_path)
+    if db2 is not None and db2['mode']=='gateway' and db2['certificate_file'] is not None:
+        from .setup import _local_path
+        db2['certificate_file']=_local_path(root,db2['certificate_file'],'certificate_file')
+        source=Path(db2['certificate_file']);baseline.setdefault(source,_read(source))
     view, settings_path, settings_doc=prepare_workstation(root,settings)
     settings=view['settings'];prepared=[]
     if mode!='off':
@@ -324,6 +384,13 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
         config_doc=decode(raw,MAX_CONFIG);schema_path=project_schema_path(root,config_doc)
         schema_raw=plans.get(schema_path) if schema_path in plans else _read(schema_path)
         _profile_checks(config_doc,settings,decode(schema_raw,MAX_CONFIG) if schema_raw is not None else None)
+    if db2 is not None:
+        if db2['mode']=='existing':require(settings['db2_metadata_url'],'Supply the approved existing Db2 MCP endpoint')
+        elif db2['mode']=='gateway':
+            from .db2_setup import prepare_db2
+            _,gateway_files=prepare_db2(root,location=db2['location'],database=db2['database'],host=db2['host'],port=db2['port'],
+                                        max_rows=db2['row_limit'],certificate_source=db2['certificate_file'],driver=db2['driver'])
+            prepared+=gateway_files
     mcp,managed=_copilot_plan(root,choices,settings,managed,origin);prepared+=mcp
     prepared += [(settings_path,encode(settings_doc)), (safe_path(root,'.migration/connections.json'),encode({'version':1,'choices':choices,'managed':managed}))]
     before={path:baseline[path] for path,_ in prepared};changed=[]

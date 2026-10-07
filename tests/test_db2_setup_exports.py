@@ -59,11 +59,12 @@ class Db2SetupExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             result=initialize_db2(directory,database='ACTUALDB',host='db2.example.invalid',port=50001)
             config=Path(result['config_file']);before=config.read_bytes()
-            with patch('workbench.db2_setup.ssl.create_default_context') as ssl_check:
-                connection=load_connection(config,{'WB_DB2_USER':'fictional','WB_DB2_PASSWORD':'secret;PWD=bad}'})
+            from test_db2_env import CERTIFICATE
+            Path(result['certificate']).write_text(CERTIFICATE,encoding='utf-8')
+            connection=load_connection(config,{'WB_DB2_USER':'fictional','WB_DB2_PASSWORD':'secret;PWD=bad}'})
             self.assertIn('SECURITY={SSL}',connection);self.assertIn('PWD={secret;PWD=bad}}}',connection)
             self.assertIn('SSLClientHostnameValidation={Basic}',connection)
-            self.assertEqual(config.read_bytes(),before);ssl_check.assert_called_once()
+            self.assertEqual(config.read_bytes(),before)
 
     def test_ssl_off_and_excessive_row_limit_are_refused(self):
         with tempfile.TemporaryDirectory() as directory:

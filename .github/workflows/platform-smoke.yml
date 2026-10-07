@@ -13,11 +13,11 @@ jobs:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.12'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: '22'
       - name: Install locked dependencies through Windows PowerShell setup
@@ -45,7 +45,7 @@ jobs:
           print(json.dumps({'platform': platform.platform(), 'architecture': platform.machine(),
                             'native_shell': 'Windows PowerShell' if os.name == 'nt' else 'bash',
                             'scope': 'offline native platform smoke; not Windows 11 desktop or live mainframe acceptance'}), flush=True)
-          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_launch.py'):
+          for pattern in ('test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_db2_connection_setup.py', 'test_launch.py'):
               subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=True)
           subprocess.run([str(python), '-m', 'workbench.layout', '--workspace', '.'], check=True)
           subprocess.run([str(python), 'tools/check_handoff.py'], check=True)

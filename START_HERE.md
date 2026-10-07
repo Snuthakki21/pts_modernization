@@ -36,12 +36,21 @@ The same screen prepares your approved retrieval connections:
 
 - **Copilot MCP:** select the retrieval bridge. Save writes the ignored
   `.vscode/mcp.json` with the current Python interpreter and running Workbench
-  address. Existing approved servers and inputs are preserved. An optional
-  approved Db2 MCP endpoint uses a secure VS Code token prompt.
+  address. Existing approved servers and inputs are preserved. Db2 access
+  always uses an approved MCP server with a secure VS Code token prompt.
 - **Zowe:** select existing project profiles, create profiles using the actual
   z/OSMF host/port and two aliases, or import your exact supplied config/schema
   paths. Import preserves file bytes. New profiles declare secure credentials
   and require HTTPS with certificate validation.
+- **Db2 MCP:** select an existing approved server address, or prepare the
+  supplied local server. Enter the actual Db2 host, service port, database, DDF
+  location, registered IBM ODBC driver name, approved CA file, local MCP port
+  and read limit. Save prepares ignored `.migration/db2-config.json`, the CA
+  certificate and the Copilot binding. The local MCP port is separate from the
+  mainframe Db2 service port. Missing certificates or drivers remain visible.
+
+Mainframe source and dataset metadata use **Zowe CLI**. Db2 catalogs and data use
+**MCP**. There is no alternate direct Db2 retrieval route in the Workbench.
 
 Click **Save setup** once to prepare the selected files and save intake defaults.
 The result shows the files, local CLI availability and any remaining client steps.
@@ -51,6 +60,14 @@ needs no Node installation. Enter credentials only at the displayed local
 `zowe config secure` command or VS Code's secure prompt. Open this workspace in
 VS Code and use **MCP: List Servers** to review/start the approved retrieval
 servers. Keep the Workbench running for its retrieval bridge.
+
+For the local Db2 server, copy its displayed command into your terminal. It
+checks the selected registered driver and certificate before prompting privately
+for credentials and the approved MCP token. Enter that same token at the VS Code
+secure prompt, and keep the server terminal open. The command runs the existing
+read-only FastMCP server; it does not execute a Db2 query during setup. Install the
+organization-approved IBM driver and `pyodbc` in the displayed Python environment
+if the local check reports them missing.
 
 Local intake can continue with **Add a process** when its settings pass.
 Connector actions remain visible until their native configuration/authentication
@@ -70,7 +87,7 @@ CLI alternatives remain `python tools/setup_zowe.py --workspace WORKSPACE
 Zowe installation follows its [official CLI guide](https://docs.zowe.org/stable/user-guide/cli-installcli/);
 VS Code activation follows its [MCP guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
 
-For Db2, keep **`tools/dq3g_mcp/.env`** (template:
+Existing Db2 installations can keep **`tools/dq3g_mcp/.env`** (template:
 [tools/dq3g_mcp/.env.example](tools/dq3g_mcp/.env.example)). The supplied connection
 settings remain local; `DB2_USERNAME` stays commented out. Set `DB2_USERNAME`
 and `DB2_PASSWORD` privately in the launch shell, or supply the password locally
@@ -81,9 +98,10 @@ accepted. Install the approved IBM Db2 ODBC driver and `pyodbc` locally.
 Start the Python FastMCP server with
 `python tools/db2_mcp_server.py --transport http` after setting a private
 `WB_DB2_MCP_TOKEN`. It listens only on `127.0.0.1:8766/mcp`.
-Set `WB_DB2_MCP_URL` and the same token for the workbench; the `db2` entry in
+Save the endpoint in Workspace setup and supply the same token privately when
+using Workbench connector commands; the `db2` entry in
 [examples/mcp.json](examples/mcp.json) connects Copilot to that same server.
-For a direct private subprocess client, use `--transport stdio` instead; run
+For an approved Copilot MCP subprocess configuration, use `--transport stdio`; run
 only one Db2 server for the workspace's search journal. The existing UI bridge
 continues to use the running Coordinator.
 

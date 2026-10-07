@@ -54,8 +54,9 @@ explicit source uploads override the saved folder.
 `GET /api/setup/workstation` returns settings plus `connection_setup`: selected
 choices, local CLI availability, prepared file paths, commands and remaining
 client actions. CSRF-protected `POST` accepts `settings` and optional
-`connections={copilot:boolean,zowe:{mode,host,port,config_file,schema_file}}`.
-Modes are `off`, `existing`, `create` and `import`. Inactive options are null;
+`connections={copilot:boolean,zowe:{mode,host,port,config_file,schema_file},db2?:{mode,host,port,database,location,driver,certificate_file,mcp_port,row_limit}}`.
+Legacy requests/stored choices without `db2` remain accepted. Zowe modes are
+`off`, `existing`, `create` and `import`. Inactive options are null;
 create requires actual host/port and existing settings' two profile aliases.
 Import accepts exact local supplied config/schema paths and preserves bytes;
 a different existing destination is refused. A declared local schema pointer
@@ -85,6 +86,39 @@ credential-input references are retained. The stdio retrieval server uses the
 current Python executable, repository server path, running loopback origin and
 `--role retrieval`; VS Code starts it without another dependency install.
 Db2 uses the approved endpoint and VS Code password input, never a saved token.
+
+Live mainframe source/dataset metadata access uses the typed read-only Zowe CLI;
+Db2 catalog/data retrieval uses negotiated MCP tools. Driver access is confined
+to the approved MCP server, not an alternate Workbench Db2 client. Copilot owns
+approved retrieval; Claude remains local with zero MCP servers.
+
+Db2 modes are `off`, `existing` and `gateway`. Off clears the selected endpoint;
+existing requires the approved HTTP(S) MCP endpoint and creates no driver config.
+Gateway requires actual host, Db2 service port, database, DDF location, registered
+ODBC driver, loopback MCP port and row limit (1..500000); an optional local CA
+file supplies exact validated PEM/DER bytes. Save derives
+`http://127.0.0.1:MCP_PORT/mcp`, requires Copilot preparation and refuses the
+Workbench's current port. The Db2 service port and MCP port are independent.
+The pure `db2_setup.prepare_db2` helper is shared with existing CLI setup.
+Config, CA and imported CA-source bytes join the same pre-planning baselines,
+concurrent-edit checks and ordinary failure rollback as Zowe/MCP preferences.
+No credentials are stored in these JSON settings. A missing CA produces an
+explicit prerequisite, never verified access; symlinks, junctions, invalid
+certificates and attached private keys are rejected.
+Certificate encoding support follows the [IBM CLI/ODBC keyword contract](https://www.ibm.com/docs/en/db2/11.5.x?topic=cck-sslservercertificate);
+certificate bundles require the installed driver's documented support.
+
+The returned local server command uses the existing `tools/db2_mcp_server.py`
+with `--transport http --config CONFIG --port MCP_PORT --interactive`. Interactive
+startup requires a real local terminal, validates nonsecret fields, CA bytes and
+registered driver before credentials, and restores temporary environment changes
+when it exits. Password/token prompts do not echo or enter the UI/ledger. The
+same FastMCP server retains typed SELECT-only tools, loopback binding, bearer
+authentication and host/origin protections. Its search journal uses the selected
+config's directory. No Db2 connection/query occurs during preparation or server
+startup. Canonical fixed `.env` and existing `WB_DB2_CONFIG` modes remain supported.
+Python-module presence is distinct from installed native-driver readiness; live
+TLS/auth/read access still needs an approved read through Copilot.
 Changed loopback ports or managed bindings require fresh Save.
 
 Zowe preparation reuses `zowe_setup.prepare_profile`/`prepare_import` and the

@@ -334,22 +334,79 @@ def create_server(search_root=None):
 
 def main():
     import argparse
+    import getpass
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--transport',choices=('stdio','http'),default='stdio')
+    parser.add_argument('--config',help='Exact nonsecret workspace Db2 configuration prepared by setup')
+    parser.add_argument('--port',type=int,help='Approved loopback MCP port')
+    parser.add_argument('--interactive',action='store_true',help='Enter credentials privately in this local terminal for HTTP startup')
     args=parser.parse_args()
-    server=create_server()
-    if args.transport=='stdio': server.run(transport='stdio',show_banner=False)
-    else:
-        from starlette.middleware import Middleware
-        token=os.environ.get('WB_DB2_MCP_TOKEN','')
-        require(token,'Set WB_DB2_MCP_TOKEN before launching HTTP')
-        port=int(os.environ.get('WB_DB2_MCP_PORT','8766')); require(1<=port<=65535,'Invalid loopback port')
-        server.run(transport='http',host='127.0.0.1',port=port,path='/mcp',show_banner=False,
-                   json_response=True,stateless_http=True,
-                   middleware=[Middleware(LocalSecurity,port=port,token=token)],
-                   host_origin_protection=True,
-                   allowed_hosts=[f'127.0.0.1:{port}',f'localhost:{port}',f'[::1]:{port}'],
-                   allowed_origins=[f'http://127.0.0.1:{port}',f'http://localhost:{port}',f'http://[::1]:{port}'])
+    require(not args.interactive or args.transport=='http' and args.config and sys.stdin.isatty(),
+            'Interactive Db2 startup requires HTTP, a selected local config and your local terminal')
+    require(args.port is None or 1<=args.port<=65535,'Invalid loopback MCP port')
+    changes={}
+    def local(name,value):
+        changes.setdefault(name,os.environ.get(name))
+        os.environ[name]=value
+    try:
+        search_root=None
+        if args.config:
+            from workbench.db2_env import _read
+            from workbench.db2_setup import _config, configured_max_rows, connection_fields
+            config_path=Path(args.config).absolute()
+            configured_max_rows(config_path)
+            config=_config(decode(_read(config_path,1024*1024),1024*1024))
+            local('WB_DB2_CONFIG',str(config_path))
+            search_root=config_path.parent/'db2-search'
+            if args.interactive:
+                connection_fields(config)
+                from workbench.db2_env import validate_certificate
+                from workbench.db2_setup import CERTIFICATE
+                workspace=config_path.parent.parent if config_path.parent.name=='.migration' else config_path.parent
+                from workbench.domain import safe_path
+                validate_certificate(_read(safe_path(workspace,CERTIFICATE),1024*1024))
+                try:
+                    import pyodbc
+                    drivers=pyodbc.drivers()
+                except Exception:
+                    raise ValidationError('Install the organization-approved pyodbc package and IBM Db2 ODBC driver before starting the MCP server') from None
+                require(isinstance(drivers,list) and any(isinstance(driver,str) and driver.casefold()==config['driver'].casefold() for driver in drivers),
+                        'The selected Db2 ODBC driver is not registered locally; install the approved driver or correct setup')
+                for name,prompt,secret in (('WB_DB2_USER','Read-only Db2 username: ',False),
+                                           ('WB_DB2_PASSWORD','Db2 password: ',True),
+                                           ('WB_DB2_MCP_TOKEN','Approved MCP token (also enter in VS Code): ',True)):
+                    if not os.environ.get(name):local(name,getpass.getpass(prompt) if secret else input(prompt))
+                # Validate local TLS and credential representation; never connect here.
+                from workbench.db2_setup import load_connection
+                load_connection(config_path,os.environ)
+        if args.port is not None:local('WB_DB2_MCP_PORT',str(args.port))
+        server=create_server(search_root=search_root)
+        if args.transport=='stdio':server.run(transport='stdio',show_banner=False)
+        else:
+            from starlette.middleware import Middleware
+            token=os.environ.get('WB_DB2_MCP_TOKEN','')
+            require(isinstance(token,str) and 0<len(token)<=8192 and all(33<=ord(char)<=126 for char in token),
+                    'Set a private printable WB_DB2_MCP_TOKEN before launching HTTP')
+            port_text=os.environ.get('WB_DB2_MCP_PORT','8766')
+            require(port_text.isdigit() and 1<=int(port_text)<=65535,'Invalid loopback MCP port')
+            port=int(port_text)
+            server.run(transport='http',host='127.0.0.1',port=port,path='/mcp',show_banner=False,
+                       json_response=True,stateless_http=True,
+                       middleware=[Middleware(LocalSecurity,port=port,token=token)],
+                       host_origin_protection=True,
+                       allowed_hosts=[f'127.0.0.1:{port}',f'localhost:{port}',f'[::1]:{port}'],
+                       allowed_origins=[f'http://127.0.0.1:{port}',f'http://localhost:{port}',f'http://[::1]:{port}'])
+    finally:
+        for name,previous in changes.items():
+            if previous is None:os.environ.pop(name,None)
+            else:os.environ[name]=previous
 
 
-if __name__=='__main__': main()
+if __name__=='__main__':
+    try:main()
+    except (EOFError,KeyboardInterrupt):
+        print('Db2 MCP startup cancelled.',file=sys.stderr)
+        raise SystemExit(130)
+    except (ValidationError,OSError,ImportError):
+        print('Db2 MCP startup blocked. Check the local setup, approved driver, certificate and private credentials.',file=sys.stderr)
+        raise SystemExit(2)
