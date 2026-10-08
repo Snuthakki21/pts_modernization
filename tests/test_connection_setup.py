@@ -282,3 +282,112 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
             config.write_bytes(json.dumps({'$schema':pointer,'profiles':{'factory_base':{'type':'base','properties':{'host':'zosmf.test','port':443}},'factory_zosmf':{'type':'zosmf'}}}).encode())
             status,_=await self.configure(choices)
             self.assertEqual(status,400);self.assertFalse((self.root/'zowe.config.json').exists())
+
+
+class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = ConnectionSetupTests.asyncSetUp
+    request = ConnectionSetupTests.request
+    choices = ConnectionSetupTests.choices
+    configure = ConnectionSetupTests.configure
+    async def test_transaction_markdown_uses_validated_choices_and_no_private_bindings(self):
+        from workbench.domain import sha
+        path = self.root / '.vscode/mcp.json';path.parent.mkdir()
+        path.write_bytes(b'{"servers":{"approved":{"type":"http","url":"https://approved.test/mcp","headers":{"X-Private":"PRIVATE_BINDING_SENTINEL"}}}}')
+        status, view = await self.configure()
+        self.assertEqual(status, 200)
+        instructions = view['instructions'];raw = Path(instructions['markdown_path']).read_bytes()
+        self.assertEqual(instructions['status'], 'READY')
+        self.assertEqual(instructions['sha256'], sha(raw))
+        snapshot = json.loads(instructions['text'].split('```json\n')[1].split('\n```')[0])
+        self.assertEqual(snapshot['settings'], view['settings'])
+        self.assertEqual(snapshot['connections'], view['connection_setup']['choices'])
+        self.assertNotIn('PRIVATE_BINDING_SENTINEL', instructions['text'])
+        self.assertNotIn('password', snapshot['connections'])
+
+    async def test_last_markdown_destination_failure_restores_all_existing_configuration(self):
+        from workbench.domain import atomic_bytes
+        await self.configure()
+        names = ['.migration/workstation.json', '.migration/workstation.md', '.migration/connections.json',
+                 'zowe.config.json', '.vscode/mcp.json']
+        before = {self.root / name: (self.root / name).read_bytes() for name in names}
+        md = self.root / '.migration/workstation.md'
+        def fail(path, raw):
+            if Path(path) == md:raise OSError('fictional final Markdown write failure')
+            atomic_bytes(path, raw)
+        choices = self.choices();choices['zowe']['host'] = 'changed.example.test'
+        with patch('workbench.connection_setup.atomic_bytes', side_effect=fail):
+            status, _ = await self.configure(choices)
+        self.assertEqual(status, 500)
+        self.assertEqual({p: p.read_bytes() for p in before}, before)
+
+    async def test_companion_concurrency_blocks_before_any_other_destination_is_written(self):
+        from workbench.connection_setup import _copilot_plan
+        await self.configure();md = self.root / '.migration/workstation.md'
+        before = {self.root / name: (self.root / name).read_bytes() for name in
+                  ['.migration/workstation.json', '.migration/connections.json', 'zowe.config.json', '.vscode/mcp.json']}
+        def concurrent(*args):
+            result = _copilot_plan(*args)
+            md.write_bytes(b'fictional concurrent companion edit')
+            return result
+        choices = self.choices();choices['zowe']['host'] = 'changed.example.test'
+        with patch('workbench.connection_setup._copilot_plan', side_effect=concurrent):
+            status, _ = await self.configure(choices)
+        self.assertEqual(status, 400)
+        self.assertEqual(md.read_bytes(), b'fictional concurrent companion edit')
+        self.assertEqual({p: p.read_bytes() for p in before}, before)
+
+    async def test_late_json_publication_change_is_preserved_and_configuration_save_fails(self):
+        from workbench.domain import atomic_bytes, encode
+        await self.configure()
+        path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+        observed = {}
+        def change(destination, raw):
+            atomic_bytes(destination, raw)
+            if Path(destination) == md:
+                current = json.loads(path.read_bytes());current['settings']['db2_metadata_url'] = 'https://fictional-external.test/mcp'
+                observed['raw'] = encode(current);path.write_bytes(observed['raw'])
+        choices = self.choices();choices['zowe']['host'] = 'fictional-requested.test'
+        with patch('workbench.connection_setup.atomic_bytes', side_effect=change):
+            status, _ = await self.configure(choices)
+        self.assertEqual(status, 400)
+        self.assertEqual(path.read_bytes(), observed['raw'])
+        _, actual = await self.request('/api/setup/workstation')
+        self.assertEqual(actual['instructions']['status'], 'NEEDS_SAVE')
+
+    async def test_late_valid_profile_or_approved_mcp_binding_edit_never_reports_ready(self):
+        from workbench.domain import atomic_bytes, encode
+        for index, relative in enumerate(('zowe.config.json', '.vscode/mcp.json', '.migration/connections.json')):
+            with self.subTest(relative=relative):
+                status, _ = await self.configure();self.assertEqual(status, 200)
+                path = self.root / relative;md = self.root / '.migration/workstation.md';observed = {}
+                def change(destination, raw):
+                    atomic_bytes(destination, raw)
+                    if Path(destination) == md:
+                        current = json.loads(path.read_bytes())
+                        if relative == 'zowe.config.json':current['profiles']['factory_base']['properties']['host'] = 'fictional-concurrent.test'
+                        elif relative == '.vscode/mcp.json':current['servers']['fictional-approved'] = {'type':'http','url':'https://fictional-approved.test/mcp'}
+                        else:current['choices']['copilot'] = False
+                        observed['raw'] = encode(current);path.write_bytes(observed['raw'])
+                choices = self.choices();choices['zowe']['host'] = 'fictional-requested-'+str(index)+'.test'
+                with patch('workbench.connection_setup.atomic_bytes', side_effect=change):
+                    status, _ = await self.configure(choices)
+                self.assertEqual(status, 400)
+                self.assertEqual(path.read_bytes(), observed['raw'])
+
+    async def test_late_readonly_import_source_change_is_preserved_and_blocks_ready(self):
+        from workbench.domain import atomic_bytes, encode
+        await self.configure()
+        source = self.export / 'fictional-selected-zowe.json'
+        source.write_bytes((self.root / 'zowe.config.json').read_bytes())
+        choices = self.choices('import');choices['zowe'].update(config_file=str(source),schema_file=None,host=None,port=None)
+        md = self.root / '.migration/workstation.md';observed = {}
+        def change(destination, raw):
+            atomic_bytes(destination, raw)
+            if Path(destination) == md:
+                current = json.loads(source.read_bytes());current['profiles']['factory_base']['properties']['host'] = 'fictional-concurrent-import.test'
+                observed['raw'] = encode(current);source.write_bytes(observed['raw'])
+        with patch('workbench.connection_setup.atomic_bytes', side_effect=change):
+            status, result = await self.configure(choices)
+        self.assertEqual(status, 400)
+        self.assertIn('raw', observed, result)
+        self.assertEqual(source.read_bytes(), observed['raw'])

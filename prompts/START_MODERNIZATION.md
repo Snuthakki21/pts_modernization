@@ -162,11 +162,20 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
    source-derived evidence boundary. Preserve the packet's Context, IDs,
    questions and fingerprint. Ask the human to complete that one workbook and
    provide the actual reviewer name. Then wait. Do not edit any answers yourself.
-4. The returned workbook goes in exactly:
+4. The actual returned workbook goes in exactly:
 
    ```text
    WORKSPACE/processes/PROCESS_ID/input/sme-return-inbox.xlsx
    ```
+
+   The same issued packet also has a self-contained HTML review. The SME opens
+   `sme-checklist.html` locally, explicitly answers/commentates, enters their name
+   and clicks Save return. Save downloads one answer-bearing HTML file; return that
+   file through the UI, or place it in exactly
+   `WORKSPACE/processes/PROCESS_ID/input/sme-return-inbox.html`. Use one inbox only;
+   two simultaneous formats are ambiguous. Import binds the original packet,
+   complete item IDs, source snapshot and actual reviewer, and consumes the same
+   single return quota. An agent must never fill this file either.
 
    Resume after the actual return with attribution:
 
@@ -191,7 +200,7 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
    use an atomic rename when possible.
 5. Import checks the frozen packet, hashes the return and consumes the one
    review quota atomically. The service preserves the accepted file as
-   `input/sme-return.xlsx`. An identical return with the same attribution is an
+   `input/sme-return.xlsx` or `input/sme-return.html`, matching its actual format. An identical return with the same attribution is an
    idempotent import; a different second return is refused. No/Not sure,
    missing answers or corrections remain unresolved. Do not create another
    SME round to turn blockers into success.

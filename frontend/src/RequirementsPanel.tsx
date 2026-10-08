@@ -28,7 +28,7 @@ export function RequirementChoices({items,excluded,editable,onChange,processId}:
  })}</tbody></table></div>;
 }
 
-export function RequirementsPanel({processId,status,token}:{processId:string;status:string;token:string}){
+export function RequirementsPanel({processId,status,token,onSaved}:{processId:string;status:string;token:string;onSaved?:()=>void}){
  const [model,setModel]=useState<any>(null),[excluded,setExcluded]=useState(new Set<string>()),[after,setAfter]=useState(0),[path,setPath]=useState(''),[search,setSearch]=useState(''),[error,setError]=useState(''),[feedback,setFeedback]=useState(''),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[reload,setReload]=useState(0),[conflict,setConflict]=useState(false),[loadError,setLoadError]=useState(''),[program,setProgram]=useState(''),[screen,setScreen]=useState(''),[kind,setKind]=useState('');
  const dirty=useRef(false),version=useRef<number|null>(null),catalogHash=useRef<string|null>(null),lock=useRef(false);
  useEffect(()=>{
@@ -59,7 +59,7 @@ export function RequirementsPanel({processId,status,token}:{processId:string;sta
   try{
    const response=await fetch(`/api/process/${encodeURIComponent(processId)}/requirements`,{method:'POST',headers:{'Content-Type':'application/json','X-Workbench-Token':token},body:JSON.stringify({catalog_hash:model.catalog_hash,revision:model.revision,excluded_ids:[...excluded].sort(),saved_by:'local UI operator'})});
    const data=await response.json();if(!response.ok)throw Error(data.error||'Could not save requirements');
-   dirty.current=false;version.current=data.requirements.revision;setModel({...model,revision:data.requirements.revision,markdown:data.requirements_artifact,editable:false});setFeedback('Requirements saved. Conversion will use this Markdown revision and continue automatically.');
+   dirty.current=false;version.current=data.requirements.revision;setModel({...model,revision:data.requirements.revision,markdown:data.requirements_artifact,editable:false});setFeedback('Requirements saved. Conversion will use this Markdown revision and continue automatically.');onSaved?.();
   }catch(e){setError(e instanceof Error?e.message:String(e));}finally{lock.current=false;setSaving(false);}
  }
  return <section className="panel requirements-panel">

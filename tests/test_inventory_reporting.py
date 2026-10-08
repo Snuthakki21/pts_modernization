@@ -170,7 +170,10 @@ class InventoryArtifactTests(unittest.TestCase):
         self.assertEqual(json.loads(model['metrics']['estate_inventory_json']),model['inventory'])
         expected=[[row['label'],str(row['baseline_count']),'Unknown' if row['process_observed_count'] is None else str(row['process_observed_count']),str(row['process_converted_count']),str(row['remaining_vs_baseline'])] for row in model['inventory']['rows']]
         deck=Presentation(self.c.artifact('process-a','reports/report-0001/management.pptx'))
-        table=next(shape.table for shape in deck.slides[0].shapes if shape.has_table)
+        inventory_slides=[slide for slide in deck.slides if any(shape.has_text_frame and shape.text.startswith('Estate inventory') for shape in slide.shapes)]
+        self.assertEqual(len(inventory_slides),1)
+        tables=[shape.table for shape in inventory_slides[0].shapes if shape.has_table]
+        self.assertEqual(len(tables),1);table=tables[0]
         self.assertEqual([[cell.text for cell in row.cells] for row in list(table.rows)[1:]],expected)
         book=load_workbook(self.c.artifact('process-a','reports/report-0001/metrics.xlsx'),data_only=True)
         try:

@@ -5,9 +5,11 @@ this receipt establishes observed catalog facts only, never SQL conversion or
 native database equivalence. Missing semantics remain explicit obligations.
 """
 from datetime import datetime
+import json
 import re
 
-from .domain import decode, require, sha
+from .domain import ValidationError, decode, require, sha
+from .limits import MAX_SOURCE_FILE_BYTES
 
 _FIELDS = {'schema_version', 'kind', 'schema', 'table', 'columns',
            'description_complete', 'ddl', 'constraints', 'indexes', 'triggers', 'provenance'}
@@ -17,20 +19,62 @@ _NAME = re.compile(r'[A-Z@$#][A-Z0-9@$#_]{0,127}')
 MAX_CATALOG_BYTES = 512 * 1024
 
 
+
+def _catalog_claim(kind):
+    # Corrupted spellings of the declared contract remain malformed claims.
+    return isinstance(kind, str) and kind.startswith('DB2_TABLE_DESCRIPTION')
+
+
+def _malformed_catalog_claim(text):
+    """Decode top-level field tokens solely to preserve malformed-claim rejection.
+
+    No invalid JSON value is returned as catalog evidence. Ordinary malformed
+    JSON remains unknown; an already readable typed declaration stays blocked.
+    """
+    decoder=json.JSONDecoder();position=len(text)-len(text.lstrip())+1
+    try:
+        while position<len(text):
+            while position<len(text) and text[position].isspace():position+=1
+            key,position=decoder.raw_decode(text,position)
+            if not isinstance(key,str):return False
+            while position<len(text) and text[position].isspace():position+=1
+            if position>=len(text) or text[position]!=':':return False
+            position+=1
+            while position<len(text) and text[position].isspace():position+=1
+            value,position=decoder.raw_decode(text,position)
+            if key=='kind' and _catalog_claim(value):return True
+            while position<len(text) and text[position].isspace():position+=1
+            if position>=len(text) or text[position]!=',':return False
+            position+=1
+    except (ValueError,RecursionError):
+        return False
+    return False
+
+
 def table_description(text, provenance=None):
     """Return a validated typed receipt, None for ordinary source, reject malformed receipts.
 
     Receipt provenance must match the surrounding accepted retrieval provenance
     when provided. The full source hash is retained; JSON is never executed.
     """
-    if not isinstance(text, str) or not text.lstrip().startswith('{'):
-        return None
-    # Only the explicit type claims this contract; arbitrary JSON stays unknown.
-    if 'DB2_TABLE_DESCRIPTION' not in text:
-        return None
+    if not isinstance(text, str):return None
+    # Only the recognition view omits one leading UTF-8 BOM. Decode and hash
+    # the original bytes, exactly as the accepted source receipt records them.
+    json_text=text[1:] if text.startswith('\ufeff') else text
+    if not json_text.lstrip().startswith('{'):return None
+    # Serialized escape spelling cannot decide identity. The ordinary source
+    # ceiling applies to recognition; only an explicit catalog uses its own bound.
     raw = text.encode('utf-8')
+    if len(raw)>MAX_SOURCE_FILE_BYTES:
+        if _malformed_catalog_claim(json_text[:MAX_SOURCE_FILE_BYTES]):
+            require(False,'Db2 catalog receipt exceeds 512 KiB')
+        return None
+    try:value=decode(raw,limit=MAX_SOURCE_FILE_BYTES)
+    except ValidationError:
+        if _malformed_catalog_claim(json_text):raise
+        return None
+    if not isinstance(value,dict) or not _catalog_claim(value.get('kind')):return None
     require(len(raw) <= MAX_CATALOG_BYTES, 'Db2 catalog receipt exceeds 512 KiB')
-    value = decode(raw, limit=MAX_CATALOG_BYTES)
     require(isinstance(value, dict) and set(value) == _FIELDS,
             'Db2 catalog receipt requires the exact typed table-description fields')
     require(type(value['schema_version']) is int and value['schema_version'] == 1

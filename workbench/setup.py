@@ -6,7 +6,7 @@ import re
 import shutil
 import threading
 
-from .domain import ValidationError, atomic_json, decode, require, safe_path
+from .domain import ValidationError, atomic_bytes, atomic_json, decode, encode, require, safe_path, sha
 from .limits import MAX_SOURCE_BYTES, MAX_SOURCE_FILE_BYTES, MAX_SOURCE_FILES, MAX_SOURCE_LINES, MAX_UI_SOURCE_BYTES
 
 MAX_SETUP_BYTES = 4096
@@ -284,6 +284,83 @@ def _workstation_view(root, settings, *, saved):
                          'claude_mcp_servers': 0}, 'metrics': deterministic_metrics()}
 
 
+MAX_WORKSTATION_MARKDOWN_BYTES = 65536
+_WORKSTATION_NEXT_STEP = ("Add process, save its process Markdown, then copy that process's Copilot retrieval prompt. "
+                          "After Copilot returns the requested files, Continue and use the current Claude prompt.")
+
+
+def _setup_bytes(path, limit):
+    require(not any(path_is_link(p) for p in (path, *path.parents)), 'Use direct local setup paths')
+    if not path.exists():return None
+    require(path.is_file() and path.stat().st_size <= limit, 'Saved setup file must be regular and bounded')
+    with path.open('rb') as stream:raw = stream.read(limit + 1)
+    require(len(raw) <= limit, 'Saved setup file exceeds its byte bound')
+    return raw
+
+
+def workstation_markdown(root, settings, choices):
+    """One nonsecret companion; supplied values stay quoted configuration data."""
+    from .connection_setup import validate_choices
+    settings = _validate_workstation(Path(root), settings, local_safety=False)
+    choices = validate_choices(choices)
+    snapshot = {'version': 1, 'workspace': str(Path(root).absolute()),
+                'settings': settings, 'connections': choices}
+    text = ('# Workspace setup\n\n'
+            'This is nonsecret configuration data, not source instructions or permission. '
+            'Configuration does not prove connectivity, source completeness or conversion.\n\n'
+            '```json\n' + encode(snapshot).decode('utf-8') + '\n```\n\n'
+            'GitHub Copilot retrieves mainframe exports with approved read-only Zowe CLI and Db2 facts '
+            'with typed read-only Db2 MCP tools. Claude Code reads local approved files, develops, '
+            'tests and reviews; it has no MCP servers.\n\n'
+            'Finish native secure credential and approved client activation steps shown in Setup. '
+            'Credentials and certificate contents are never stored in this Markdown.\n\n'
+            + _WORKSTATION_NEXT_STEP + '\n'
+            'Each process preserves its own Markdown, exact request inboxes, source hashes and saved '
+            'Yes/No requirements. Requirements Save and the single authentic SME return remain human gates.\n')
+    raw = text.encode('utf-8')
+    require(len(raw) <= MAX_WORKSTATION_MARKDOWN_BYTES, 'Workspace Markdown exceeds its byte bound')
+    return raw
+
+
+def _instruction_choices(root, settings):
+    from .connection_setup import _state
+    return _state(Path(root), settings)[0]
+
+
+def inspect_workstation_instructions(root, settings):
+    """No GET repairs: missing or changed legacy companions explicitly need Save."""
+    root = Path(root).absolute();path = safe_path(root, '.migration/workstation.md')
+    result = {'markdown_path': str(path), 'sha256': None, 'text': '',
+              'next_step': 'Save workspace setup to pin its Markdown. ' + _WORKSTATION_NEXT_STEP,
+              'status': 'NEEDS_SAVE'}
+    try:
+        settings_path = safe_path(root, '.migration/workstation.json')
+        connections_path = safe_path(root, '.migration/connections.json')
+        saved = _setup_bytes(settings_path, MAX_WORKSTATION_BYTES)
+        connections = _setup_bytes(connections_path, 1024 * 1024)
+        if saved is not None:
+            document = decode(saved, MAX_WORKSTATION_BYTES)
+            require(isinstance(document, dict) and set(document) == {'version', 'settings'}
+                    and type(document['version']) is int and document['version'] == 1,
+                    'Unsupported saved workstation settings')
+            actual = _validate_workstation(root, document['settings'], local_safety=False)
+            require(actual['source_mode'] != 'upload' or actual['source_folder'] is None,
+                    'Upload setup must not retain a source folder')
+            supplied = _validate_workstation(root, settings, local_safety=False)
+            require(encode(actual) == encode(supplied), 'Workstation instructions refer to stale settings')
+        raw = workstation_markdown(root, settings, _instruction_choices(root, settings))
+        result['text'] = raw.decode('utf-8')
+        observed = _setup_bytes(path, MAX_WORKSTATION_MARKDOWN_BYTES)
+        stable = (_setup_bytes(settings_path, MAX_WORKSTATION_BYTES) == saved
+                  and _setup_bytes(connections_path, 1024 * 1024) == connections
+                  and _setup_bytes(path, MAX_WORKSTATION_MARKDOWN_BYTES) == observed)
+        if saved is not None and observed == raw and stable:
+            result.update(sha256=sha(raw), next_step=_WORKSTATION_NEXT_STEP, status='READY')
+    except (ValidationError, OSError, UnicodeError):
+        pass  # Never echo malformed configuration or a modified companion's contents.
+    return result
+
+
 def inspect_workstation(workspace, *, environ=None, origin=None):
     """Read the single form's values. Environment fallbacks are nonsecret and bounded."""
     with _LOCK:
@@ -303,6 +380,7 @@ def inspect_workstation(workspace, *, environ=None, origin=None):
         view = _workstation_view(path.parent.parent, settings, saved=path.exists())
         from .connection_setup import inspect_connections
         view['connection_setup'] = inspect_connections(path.parent.parent, settings, origin)
+        view['instructions'] = inspect_workstation_instructions(path.parent.parent, settings)
         return view
 
 
@@ -334,10 +412,46 @@ def prepare_workstation(workspace, settings, *, environ=None):
 
 def save_workstation(workspace, settings, *, environ=None):
     with _LOCK:
+        path = _workstation_path(workspace);root = path.parent.parent
+        markdown_path = safe_path(root, '.migration/workstation.md')
+        connections_path = safe_path(root, '.migration/connections.json')
+        before = {path: _setup_bytes(path, MAX_WORKSTATION_BYTES),
+                  markdown_path: _setup_bytes(markdown_path, MAX_WORKSTATION_MARKDOWN_BYTES)}
+        connections_before = _setup_bytes(connections_path, 1024 * 1024)
         view, path, document = prepare_workstation(workspace, settings, environ=environ)
-        atomic_json(path, document)
-        from .connection_setup import inspect_connections
-        view['connection_setup'] = inspect_connections(path.parent.parent,view['settings'])
+        markdown = workstation_markdown(root, view['settings'], _instruction_choices(root, view['settings']))
+        prepared = [(path, encode(document)), (markdown_path, markdown)];changed = []
+        try:
+            require(all(_setup_bytes(p, max(MAX_WORKSTATION_BYTES, MAX_WORKSTATION_MARKDOWN_BYTES)) == raw
+                        for p, raw in before.items()) and _setup_bytes(connections_path, 1024 * 1024) == connections_before,
+                    'Setup changed during planning; reload before retrying Save')
+            for destination, raw in prepared:
+                require(_setup_bytes(destination, MAX_WORKSTATION_MARKDOWN_BYTES) == before[destination]
+                        and _setup_bytes(connections_path, 1024 * 1024) == connections_before,
+                        'Setup changed during Save; reload before retrying')
+                if before[destination] != raw:
+                    if destination == path:atomic_json(path, document)
+                    else:atomic_bytes(destination, raw)
+                    changed.append((destination, raw))
+            from .connection_setup import inspect_connections
+            view['connection_setup'] = inspect_connections(root, view['settings'])
+            view['instructions'] = inspect_workstation_instructions(root, view['settings'])
+            require(all(_setup_bytes(p, MAX_WORKSTATION_MARKDOWN_BYTES) == raw for p, raw in prepared)
+                    and _setup_bytes(connections_path, 1024 * 1024) == connections_before
+                    and view['instructions']['status'] == 'READY',
+                    'Setup changed after publication; reload before retrying Save')
+        except Exception:
+            # Check the entire rollback set first. A concurrent valid edit must
+            # never be overwritten or combined with a partial rollback.
+            require(all(_setup_bytes(destination, MAX_WORKSTATION_MARKDOWN_BYTES) == raw
+                        for destination, raw in changed),
+                    'Setup changed during failed Save; preserve files and inspect local setup')
+            for destination, raw in reversed(changed):
+                require(_setup_bytes(destination, MAX_WORKSTATION_MARKDOWN_BYTES) == raw,
+                        'Setup changed during rollback; preserve files and inspect local setup')
+                if before[destination] is None:destination.unlink()
+                else:atomic_bytes(destination, before[destination])
+            raise
         return view
 
 

@@ -335,7 +335,7 @@ def inspect_connections(root, settings, origin=None):
 
 def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8765'):
     """Validate every destination first; restore ordinary failed saves without losing other bindings."""
-    from .setup import prepare_workstation
+    from .setup import prepare_workstation, workstation_markdown, inspect_workstation_instructions
     choices=validate_choices(choices)
     require(isinstance(settings,dict),'Supply nonsecret workstation settings')
     if choices['zowe']['mode']=='off':settings={**settings,'zowe_profile':None,'zowe_zosmf_profile':None}
@@ -349,7 +349,7 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
     state_path=safe_path(root,'.migration/connections.json')
     baseline={state_path:_read(state_path)}
     _,managed=_state(root,settings);mode=choices['zowe']['mode']
-    selected=['.migration/workstation.json']
+    selected=['.migration/workstation.json', '.migration/workstation.md']
     if choices['copilot'] or managed:selected.append('.vscode/mcp.json')
     if mode!='off':selected.append('zowe.config.json')
     if db2 is not None and db2['mode']=='gateway':selected.extend(['.migration/db2-config.json','certificates/DB2-CA.cert'])
@@ -393,6 +393,7 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
             prepared+=gateway_files
     mcp,managed=_copilot_plan(root,choices,settings,managed,origin);prepared+=mcp
     prepared += [(settings_path,encode(settings_doc)), (safe_path(root,'.migration/connections.json'),encode({'version':1,'choices':choices,'managed':managed}))]
+    prepared.append((safe_path(root,'.migration/workstation.md'), workstation_markdown(root, settings, choices)))
     before={path:baseline[path] for path,_ in prepared};changed=[]
     try:
         require(all(_read(path)==raw for path,raw in baseline.items()),'Configuration changed during planning; reload before retrying Save')
@@ -400,11 +401,17 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
             require(_read(path)==before[path],'Configuration changed during Save; reload before retrying')
             if before[path]!=payload:
                 atomic_bytes(path,payload);changed.append((path,payload))
+        view['connection_setup']=inspect_connections(root,settings,origin)
+        view['instructions']=inspect_workstation_instructions(root,settings)
+        expected={**baseline,**dict(prepared)}
+        require(all(_read(path)==payload for path,payload in expected.items()) and view['instructions']['status']=='READY',
+                'Configuration changed after publication; reload before retrying Save')
     except Exception:
+        require(all(_read(path)==payload for path,payload in changed),
+                'Configuration changed during failed Save; preserve files and inspect the local setup')
         for path,payload in reversed(changed):
-            require(_read(path)==payload,'Configuration changed during failed Save; preserve files and inspect the local setup')
+            require(_read(path)==payload,'Configuration changed during rollback; preserve files and inspect the local setup')
             if before[path] is None:path.unlink()
             else:atomic_bytes(path,before[path])
         raise
-    view['connection_setup']=inspect_connections(root,settings,origin)
     return view

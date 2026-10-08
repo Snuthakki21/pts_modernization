@@ -44,6 +44,9 @@ class RunnerTests(unittest.TestCase):
     def test_start_is_idempotent_and_never_manufactures_answers(self):
         first = self.start(); second = self.start()
         self.assertEqual(first['status'], 'WAITING_SME')
+        self.assertIn('sme_html_return_inbox', first['message'])
+        self.assertIn('sme_return_inbox', first['message'])
+        self.assertEqual(first['sme_html_return_inbox'], str(self.root / 'processes/process-a/input/sme-return-inbox.html'))
         self.assertEqual(first['packet_hash'], second['packet_hash'])
         self.assertFalse(second['packet_imported'])
         self.assertFalse((self.root / 'processes/process-a/input/sme-return.xlsx').exists())

@@ -229,7 +229,7 @@ def _database_integrity(doc,root,base):
 
 def _review_integrity(doc,base):
     """Conversion credit requires the preserved human receipt, not cached answers."""
-    from .review import read_answers
+    from .review import read_return
     if not doc.get('packet_issued') and not doc.get('packet_imported') and not doc.get('answers'):return
     require(doc.get('packet_issued'),'SME answer evidence exists without the one issued packet')
     packet=None
@@ -245,9 +245,11 @@ def _review_integrity(doc,base):
     if not doc.get('packet_imported'):
         require(not doc.get('answers'),'Cached SME answers exist without the accepted human return')
         return
-    answers=doc.get('answers') or {};raw=_read(base/'input/sme-return.xlsx')
+    answers=doc.get('answers') or {}
+    relative='input/sme-return.html' if answers.get('return_format')=='html' else 'input/sme-return.xlsx'
+    raw=_read(base/relative)
     require(sha(raw)==answers.get('return_hash'),'Preserved SME return changed')
-    require(read_answers(raw,packet,answers.get('reviewer',''))==answers,'SME answers differ from the preserved human return')
+    require(read_return(raw,packet,answers.get('reviewer',''))==answers,'SME answers differ from the preserved human return')
 
 
 def build_coverage(doc, workspace_root, checkpoint=None):

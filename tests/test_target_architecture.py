@@ -15,6 +15,17 @@ class TargetArchitectureTests(unittest.TestCase):
                     'classifications':{'schema.sql':{'kind':kind,'confidence':'structural','conflicts':[],
                         'evidence':[{'line':1,'reason':'SQL statement'}, {'line':None,'reason':'Filename suffix hint'}]}}}}
 
+
+    def test_future_language_and_database_targets_share_gates_but_stay_unselectable(self):
+        view=backends.target_architecture(self.document())
+        future={'python-oracle','python-bigquery','java','dotnet'}
+        self.assertTrue(future <= {candidate['name'] for candidate in view['candidates']})
+        for name in future:
+            with self.assertRaises(ValidationError):backends.get_backend(name)
+            self.assertFalse(next(candidate for candidate in view['candidates'] if candidate['name']==name)['selectable'])
+        self.assertEqual(view['extension_contract']['implemented'],['python-sqlite'])
+        self.assertIn('warehouse',view['extension_contract']['bigquery_boundary'].lower())
+
     def test_missing_analysis_remains_provisional(self):
         view=backends.target_architecture({'id':'empty'})
         self.assertEqual(view['status'],'ASSESSMENT_INCOMPLETE')

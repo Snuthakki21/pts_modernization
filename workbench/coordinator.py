@@ -12,7 +12,7 @@ from .source import analyze_sources
 from .target import emit_jobs, check_generated
 from .backends import get_backend, adapter_fingerprint
 from .fixtures import plan_cases, verify_program
-from .review import export_packet, read_answers
+from .review import export_packet
 from .knowledge import update_knowledge
 from .layout import require_layout, output_path
 from .limits import (MAX_SOURCE_FILES, MAX_SOURCE_ENTRIES, MAX_SOURCE_FILE_BYTES,
@@ -87,7 +87,7 @@ class Coordinator:
 
     def process_root(self,pid):return safe_path(self.root,'processes/'+identity(pid))
 
-    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=_UNSET, process_notes=_UNSET, requirements_selection=False):
+    def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=_UNSET, process_notes=_UNSET, requirements_selection=False, *, _prepare=False):
         require_layout(self.root)
         from .setup import intake_defaults
         defaults=intake_defaults(self.root)
@@ -101,13 +101,14 @@ class Coordinator:
         if source_files is None:
             from .preflight import _read_sources
             source_files,_=_read_sources(self.root,source_folder)
-        require(isinstance(source_files,dict) and 0<len(source_files)<=MAX_SOURCE_FILES,f'Provide a source folder with 1 to {MAX_SOURCE_FILES:,} supported text files')
+        require(isinstance(source_files,dict) and (0 if _prepare else 1)<=len(source_files)<=MAX_SOURCE_FILES,f'Provide a source folder with 1 to {MAX_SOURCE_FILES:,} supported text files')
         require(all(isinstance(k,str) and isinstance(v,str) for k,v in source_files.items()),'Source filenames and contents must be text')
         require(all('\x00' not in value for value in source_files.values()),'Source contains NUL/binary content; provide readable source separately from data/load modules')
         require(sum(source_line_count(value) for value in source_files.values())<=MAX_SOURCE_LINES,f'Source export exceeds {MAX_SOURCE_LINES:,} physical lines')
         import os
         assistant_mode=assistant_mode or os.environ.get('WB_ASSISTANT_MODE','deterministic')
         local_files=assistant_mode=='claude_files'
+        require(not _prepare or local_files and requirements_selection,'Prepared retrieval intake requires the local Claude workflow and explicit requirements selection')
         agent_mode=assistant_mode in ('agent','claude_files')
         if agent_mode:assistant_mode='copilot_chat'
         require(assistant_mode in ('deterministic','disabled','copilot_chat','opt_in'),'Choose Copilot Chat, deterministic analysis, or the explicitly configured legacy provider')
@@ -137,8 +138,13 @@ class Coordinator:
                 base=self.process_root(doc['id']);write_new(base/'input'/'process-input.md',encoded_manifest)
                 hashes={}
                 for path,raw in encoded_sources.items():hashes[path]=write_new(output_path(self.root,doc['id'],'input/sources/'+path),raw)
-                doc['source_files']=hashes;doc['manifest_hash']=sha(encoded_manifest);doc['prompt']=prompt[:16000]
+                doc['source_files']=hashes
+                if _prepare:doc['intake_source_files']=dict(hashes)
+                doc['manifest_hash']=sha(encoded_manifest);doc['prompt']=prompt[:16000]
                 doc['requirements_selection']=requirements_selection
+                if _prepare:
+                    doc['guided_contract_version']=1;doc['guided_workspace']=str(self.root)
+                    doc['source_intake_pending']=True
                 doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=4 if agent_mode else 3
                 doc['agent_host']='external' if agent_mode else assistant_mode
                 doc['development_contract_version']=2 if local_files else 1
@@ -149,7 +155,7 @@ class Coordinator:
                 doc['process_context']=context_snapshot
                 write_new(base/'analysis'/'process-context.json',encode(context_snapshot))
                 self.register(doc,'analysis/process-context.json')
-                doc['source_origin']={'kind':'folder' if source_folder is not None else 'workspace_or_upload', 'location':str(Path(source_folder).absolute()) if source_folder is not None else None}
+                doc['source_origin']={'kind':'pending_retrieval' if _prepare and not source_files else 'folder' if source_folder is not None else 'workspace_or_upload', 'location':str(Path(source_folder).absolute()) if source_folder is not None else None}
                 write_new(base/'analysis'/'source-origin.json',encode(doc['source_origin']))
                 self.register(doc,'analysis/source-origin.json')
                 doc['logic_validation_min_records']=20
@@ -165,9 +171,50 @@ class Coordinator:
                 doc['mainframe_knowledge']=knowledge
                 write_new(base/'analysis'/'mainframe-knowledge.json',encode(knowledge))
                 self.register(doc,'analysis/mainframe-knowledge.json')
+                if _prepare:
+                    self.ledger.save(doc)
+                    from .guide import snapshot
+                    snapshot(self,doc)
                 return self.ledger.save(doc)
             except Exception:
                 doc['blockers']=[{'kind':'intake_storage','message':'Input storage failed; preserved available evidence.'}];self.ledger.save(doc,'FAILED');raise
+
+    def prepare_process(self,manifest_text,source_files=None,prompt='',source_folder=None,process_notes=None,demo=False):
+        """Prepare a manifest before source arrives; explicit demos retain portfolio exclusion."""
+        require(type(demo) is bool,'Fictional process intent must be a boolean')
+        if source_files is None and source_folder is None:source_files={}
+        manifest=parse_manifest(manifest_text)
+        with self.lock:
+            existing=next((p for p in self.ledger.list(True) if p['id']==manifest['id']),None)
+            if existing:
+                require(existing.get('guided_contract_version')==1,'Process already exists; select it or use a new process ID')
+                self.sources(existing)
+                if source_files is None:
+                    from .preflight import _read_sources
+                    source_files,_=_read_sources(self.root,source_folder)
+                require(isinstance(source_files,dict) and all(isinstance(k,str) and isinstance(v,str) for k,v in source_files.items()),'Prepared sources must be text files')
+                from .process_context import freeze_context
+                require(sha(manifest_text)==existing['manifest_hash'] and
+                        {path:sha(text) for path,text in source_files.items()}==existing.get('intake_source_files') and
+                        freeze_context(self.root,process_notes)==existing['process_context'] and prompt==existing['prompt'] and demo==existing['demo'],
+                        'Process input changed; select the existing process or use a new process ID')
+                return existing
+            return self.create(manifest_text,source_files,demo,prompt,'claude_files',source_folder,process_notes,True,_prepare=True)
+
+    def process_guide(self,pid):
+        from .guide import view
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            return view(self,doc)
+
+    def save_process_guide(self,pid):
+        from .guide import snapshot,view
+        with self.lock:
+            doc=self.ledger.get(pid);self.sources(doc)
+            require(pid not in self.active and doc['status'] not in ('ANALYZING','VERIFYING','REPORTING'),
+                    'Wait for the current stage before saving process instructions')
+            snapshot(self,doc);self.ledger.save(doc)
+            return view(self,doc)
 
     def start(self,pid):
         with self.lock:
@@ -295,8 +342,12 @@ class Coordinator:
             require(packet.get('packet_hash')==doc['packet_hash'] and sha(encode({k:v for k,v in packet.items() if k!='packet_hash'}))==doc['packet_hash'],'Frozen SME packet integrity failed')
             require(packet.get('process_id')==pid and packet.get('source_snapshot')==doc['analysis']['source_snapshot'],
                     'Frozen SME packet does not belong to this process and source snapshot')
-            answers=read_answers(data,packet,reviewer)
-            returned=self.process_root(pid)/'input'/'sme-return.xlsx'
+            from .review import read_return
+            answers=read_return(data,packet,reviewer)
+            extension='html' if answers.get('return_format')=='html' else 'xlsx'
+            other=self.process_root(pid)/'input'/('sme-return.xlsx' if extension=='html' else 'sme-return.html')
+            require(not other.exists(),'A different return format was already preserved; recover that exact receipt')
+            returned=self.process_root(pid)/'input'/('sme-return.'+extension)
             if returned.exists():require(returned.read_bytes()==data,'Recovery return differs from the preserved SME file')
             else:write_new(returned,data)
             self.ledger.consume_return(pid,answers)
@@ -354,9 +405,12 @@ class Coordinator:
         require(packet.get('packet_hash')==doc['packet_hash'] and sha(encode({k:v for k,v in packet.items() if k!='packet_hash'}))==doc['packet_hash'],'Frozen SME packet integrity failed')
         require(packet['source_snapshot']==doc['analysis']['source_snapshot'],'SME packet differs from the frozen source snapshot')
         if doc['packet_imported']:
-            answers=doc.get('answers') or {};raw=safe_path(self.process_root(doc['id']),'input/sme-return.xlsx').read_bytes()
+            answers=doc.get('answers') or {}
+            relative='input/sme-return.html' if answers.get('return_format')=='html' else 'input/sme-return.xlsx'
+            raw=safe_path(self.process_root(doc['id']),relative).read_bytes()
             require(sha(raw)==answers.get('return_hash'),'Preserved SME return changed')
-            require(read_answers(raw,packet,answers.get('reviewer',''))==answers,'SME answers differ from the preserved return')
+            from .review import read_return
+            require(read_return(raw,packet,answers.get('reviewer',''))==answers,'SME answers differ from the preserved return')
 
     def target_checkpoint(self,doc):
         self.checkpoint(doc,persist=False)
@@ -496,6 +550,9 @@ class Coordinator:
             doc.setdefault('stage_attempts',{})['QUEUED_ANALYSIS']=0
             result=self.ledger.save_event(doc,'QUEUED_ANALYSIS','requirements','Operator requirements saved as Markdown; selected scope queued for conversion',{'revision':selection['revision'],'excluded':len(selection['excluded_ids']),'artifact':relative})
             atomic_bytes(output_path(self.root,pid,DRAFT),raw)
+            if result.get('guided_contract_version') or result.get('guide_artifact'):
+                from .guide import snapshot
+                snapshot(self,result);result=self.ledger.save(result)
             return result
 
     def agent_task(self,pid):
@@ -560,6 +617,9 @@ class Coordinator:
                 unresolved[self._retrieval_need_key(need)]={'need':{k:v for k,v in need.items() if k!='need_id'},
                     'request_id':request['request_id'],'reason':'Awaiting requested local evidence'}
             self.ledger.save_event(doc,None,'retrieval','Copilot retrieval request prepared; Claude continues from local returned files',{'request_id':request['request_id']})
+            if doc.get('guided_contract_version') or doc.get('guide_artifact'):
+                from .guide import snapshot
+                snapshot(self,doc);self.ledger.save(doc)
             return self.local_agent_view(pid)
 
     def continue_retrieval(self, pid):
@@ -930,6 +990,15 @@ class Coordinator:
             with self.lock:
                 self.ledger.finish_timing(timing_id,time.monotonic()-timing_started,timing_outcome)
                 self.active.discard(pid)
+                if not self.closed and self.ledger is not None:
+                    current=self.ledger.get(pid)
+                    if current.get('guided_contract_version') or current.get('guide_artifact'):
+                        # Issue only the initial discovery request automatically;
+                        # NOT_FOUND and ambiguous returns require a new explicit request.
+                        if current['status']=='WAITING_DISCOVERY' and not current.get('retrieval_request'):
+                            self.request_retrieval(pid);current=self.ledger.get(pid)
+                        from .guide import snapshot
+                        snapshot(self,current);self.ledger.save(current)
                 if self.closed and (not self.worker or not self.worker.is_alive()):self._release()
         return self.ledger.get(pid) if self.ledger is not None else doc
 
@@ -960,6 +1029,7 @@ class Coordinator:
             self.ledger.event(pid,'lineage','Discovery is incomplete; no conversion or SME packet has started',{'gaps':len(doc['blockers'])})
             return
         if strict:doc['lineage_scope']=doc['lineage']['scope']['selected_files']
+        if doc.get('guided_contract_version'):doc['source_intake_pending']=False
         self.ledger.event(pid,'analysis','Extracting atomic source logic within the discovered job scope; unsupported semantics remain explicit adapter obligations')
         analysis=doc.get('analysis')
         if analysis is None:

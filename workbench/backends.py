@@ -1,6 +1,35 @@
 """Versioned target boundary; only implemented, verified backends are selectable."""
 from dataclasses import dataclass
+from typing import Protocol
+from copy import deepcopy
 from .domain import require
+
+
+class TargetBackend(Protocol):
+    """Language/database-independent boundary over the frozen source model.
+
+    A future implementation must pass generation, replay, type/error,
+    linked-state and adversarial gates before joining get_backend's allowlist.
+    Discovery, ledger, requirements and review do not depend on its language.
+    """
+    name: str
+    contract_version: int
+    def capabilities(self) -> dict: ...
+    def generate(self, program: dict) -> str: ...
+    def compare(self, program: dict, code: str, suite: dict, **options) -> dict: ...
+
+
+TARGET_EXTENSION_CONTRACT = {
+    'version': 1,
+    'implemented': ['python-sqlite'],
+    'future_candidates': ['python-oracle', 'python-bigquery', 'java', 'dotnet'],
+    'fixed_source_access': ['read_only_zowe_cli', 'approved_read_only_db2_mcp'],
+    'required': ['versioned source model and target artifacts', 'selected requirement mappings',
+                 'generation and actual execution comparisons', 'types, failures and transactional semantics',
+                 '20 distinct randomized valid logic states with linked witnesses',
+                 'independent adversarial review and immutable report gates'],
+    'bigquery_boundary': 'A warehouse target requires workload and transaction redesign qualification; it is not an automatic transactional Db2 replacement.',
+}
 
 
 @dataclass(frozen=True)
@@ -157,6 +186,7 @@ def target_architecture(doc):
         'active_backend': {'name': active_name, 'contract_version': active_version, 'implemented': implemented,
                            'scope': 'Bounded Python record adapter and SQLite comparison storage; no migrated application database is implied'},
         'production_ready': False,
+        'extension_contract': deepcopy(TARGET_EXTENSION_CONTRACT),
         'candidates': [
             {'name': 'python-sqlite', 'title': 'Python / SQLite', 'selectable': True,
              'implementation_status': 'BOUNDED_ADAPTER_IMPLEMENTED', 'native_db2_parity_verified': False,
@@ -166,6 +196,12 @@ def target_architecture(doc):
              'implementation_status': 'NOT_IMPLEMENTED', 'native_db2_parity_verified': False,
              'scope': 'Future database target candidate; no Oracle generation, execution or connection is implemented',
              'rationale': 'Consider only after source, transactional, workload and operational requirements justify it and the target adapter passes the same evidence gates.'},
+            *[{'name':name,'title':title,'selectable':False,'implementation_status':'NOT_IMPLEMENTED',
+               'native_db2_parity_verified':False,'scope':'Future target adapter candidate; no generation or execution implemented',
+               'rationale':rationale} for name,title,rationale in (
+                   ('python-bigquery','Python / BigQuery','Qualify warehouse workload, data types and transaction redesign; do not assume a transactional Db2 substitute.'),
+                   ('java','Java','Implement source-model generation and native target comparisons behind the same Coordinator gates.'),
+                   ('dotnet','.NET','Implement source-model generation and native target comparisons behind the same Coordinator gates.'))],
         ],
         'evidence': evidence[:50], 'evidence_count': len(evidence), 'evidence_complete': len(evidence) <= 50,
         'obligations': [{'id': identity, 'title': title, 'status': 'UNVERIFIED',

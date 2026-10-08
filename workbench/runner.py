@@ -16,6 +16,7 @@ from .executive import accepted_executive, PRIMARY_REPORT
 TERMINAL = frozenset({'COMPLETED', 'COMPLETED_WITH_BLOCKERS', 'CANCELLED'})
 STOPPED = frozenset({'PAUSED', 'FAILED', 'REPORTING_FAILED'})
 INBOX = 'input/sme-return-inbox.xlsx'
+HTML_INBOX = 'input/sme-return-inbox.html'
 
 
 def manifest_integrity(coordinator, doc, supplied=None):
@@ -61,15 +62,15 @@ def start_process(coordinator, manifest_path, assistant_mode=None, source_folder
 
 def import_return(coordinator, pid, path, reviewer):
     require(isinstance(reviewer, str) and 0 < len(reviewer.strip()) <= 160,
-            'Supply --reviewer with the person responsible for this returned workbook')
+            'Supply --reviewer with the person responsible for this returned review file')
     path = Path(path)
     require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'SME return must be a regular file with no symlink parents')
-    require(path.stat().st_size <= 8 * 1024 * 1024, 'SME workbook exceeds upload bound')
+    require(path.stat().st_size <= 8 * 1024 * 1024, 'SME review file exceeds upload bound')
     data = path.read_bytes(); doc = coordinator.ledger.get(pid)
     if doc['packet_imported']:
         require(sha(data) == (doc.get('answers') or {}).get('return_hash'),
-                'The one SME return is already consumed; this workbook differs from preserved evidence')
+                'The one SME return is already consumed; this review file differs from preserved evidence')
         require(reviewer.strip() == (doc.get('answers') or {}).get('reviewer'),
                 'Reviewer attribution differs from the consumed return')
         return doc
@@ -86,7 +87,9 @@ def wait_for_process(coordinator, pid, timeout=120, watch=False, reviewer=''):
         if doc['status'] in TERMINAL or doc['status'] in STOPPED: return doc, False
         if doc['status'] in ('WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT'):return doc,False
         if doc['status'] == 'WAITING_SME':
-            inbox = output_path(coordinator.root, pid, INBOX)
+            available=[output_path(coordinator.root,pid,name) for name in (INBOX,HTML_INBOX) if output_path(coordinator.root,pid,name).exists()]
+            require(len(available)<=1,'Both review return inboxes exist; keep only the actual chosen single return')
+            inbox=available[0] if available else output_path(coordinator.root,pid,INBOX)
             if inbox.exists():
                 # A single designated inbox is detected. Coordinator records return_hash and
                 # atomically consumes the quota; retries cannot create another SME round.
@@ -121,7 +124,7 @@ def bundle_process(coordinator, pid):
         coordinator.review_integrity(doc)
         names = sorted(set(['input/process-input.md'] +
                            ['input/sources/' + name for name in doc['source_files']] +
-                           (['input/sme-return.xlsx'] if doc['packet_imported'] else []) +
+                           ([('input/sme-return.html' if doc['answers'].get('return_format')=='html' else 'input/sme-return.xlsx')] if doc['packet_imported'] else []) +
                            [name for name in doc['artifacts'] if not name.endswith('.zip')]))
         entries = {}
         for name in names:
@@ -135,7 +138,7 @@ def bundle_process(coordinator, pid):
             require(sha(entries['input/sources/' + name]) == recorded,
                     'Bundle source bytes differ from their recorded snapshot: ' + name)
         if doc['packet_imported']:
-            require(sha(entries['input/sme-return.xlsx']) == doc['answers']['return_hash'],
+            require(sha(entries['input/sme-return.html' if doc['answers'].get('return_format')=='html' else 'input/sme-return.xlsx']) == doc['answers']['return_hash'],
                     'Bundle SME return bytes differ from the accepted return')
         for name, recorded in report_hashes.items():
             require(name in entries and sha(entries[name]) == recorded,
@@ -165,6 +168,7 @@ def summary(coordinator, doc, timed_out=False):
                    'packet': [str(root / name) for name in doc['artifacts'] if name.startswith('review/')],
                    'reports': [str(root / name) for name in doc['artifacts'] if name.startswith('reports/')],
                    'sme_return_inbox': str(root / INBOX),
+                   'sme_html_return_inbox': str(root / HTML_INBOX),
                    'continuation': shlex.join(['python', '-m', 'workbench.runner', 'resume', pid,
                                               '--workspace', str(coordinator.root), '--reviewer', 'ACTUAL REVIEWER'])})
     result['economics']=coordinator.economics(pid)
@@ -178,7 +182,7 @@ def summary(coordinator, doc, timed_out=False):
         from .factory import bounded_view
         result['factory']=bounded_view(doc)
     if doc['status'] == 'WAITING_SME':
-        result['message'] = 'Deliver the issued checklist for the one SME review. Preserve Context/questions. Place the actual returned workbook in sme_return_inbox and resume with reviewer attribution. Never generate SME answers.'
+        result['message'] = 'Deliver the issued checklist for the one SME review. Preserve Context/questions. Place the actual returned HTML in sme_html_return_inbox or workbook in sme_return_inbox, exactly one format, and resume with reviewer attribution. Never generate SME answers.'
     elif doc['status']=='WAITING_REQUIREMENTS':result['message']='Open the UI requirements breakdown, choose Yes/No and Save. The saved Markdown is the conversion input. Default Yes is scope, not SME approval.'
     elif doc['status']=='WAITING_DISCOVERY':result['message']='Read-only object discovery is incomplete. Inspect lineage gaps, supply original missing exports or local connector configuration, then resume. Conversion and the SME packet have not started.'
     elif doc['status']=='WAITING_COPILOT':result['message']='Claude Code reads local evidence and performs analysis, development, testing and review without MCP. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE. Copilot retrieves missing files only.'
@@ -203,7 +207,7 @@ def parser():
         else: c.add_argument('process_id')
         if name in ('run', 'start', 'resume', 'import', 'report'):
             c.add_argument('--timeout', type=float, default=120, help='Bounded worker/watch wait, at most 3600 seconds')
-            c.add_argument('--reviewer', default='', help='Actual person responsible for a returned SME workbook')
+            c.add_argument('--reviewer', default='', help='Actual person responsible for a returned SME review file')
             c.add_argument('--watch', action='store_true', help='Wait locally for the designated SME inbox until timeout')
         if name == 'import': c.add_argument('--file', required=True)
     c=commands.add_parser('measure')

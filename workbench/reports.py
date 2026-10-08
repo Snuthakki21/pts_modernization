@@ -39,6 +39,11 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
             verified+=sum(answers.get(rule['id'],{}).get('answer')=='Yes' and not answers.get(rule['id'],{}).get('correction') for rule in p['rules'])
     versions=doc.get('program_versions',{})
     target_loc=sum(sum(bool(x.strip()) and not x.lstrip().startswith('#') for x in ((ledger.root/'shared/target/python'/f'{v}.py').read_text(encoding='utf-8').splitlines() if (ledger.root/'shared/target/python'/f'{v}.py').is_file() else [])) for v in set(versions.values()))
+    import ast
+    target_statements=0
+    for version in set(versions.values()):
+        path=ledger.root/'shared/target/python'/f'{version}.py'
+        if path.is_file():target_statements+=sum(isinstance(node,ast.stmt) for node in ast.walk(ast.parse(path.read_bytes())))
     result={'process_id':doc['id'],'demo':doc['demo'],'report_final_status':final_status,
         'portfolio_completed_processes':projected['completed_processes'],
         'portfolio_basis':'Includes current report outcome upon atomic artifact acceptance; excludes demonstrations',
@@ -49,7 +54,8 @@ def metrics(ledger, doc, coverage=None, portfolio_model=None):
         'source_vsam_files':None,'inbound_interfaces':None,'outbound_interfaces':None,
         'target_python_programs':len(versions),'target_react_business_screens':0,'target_business_rest_apis':0,
         'source_code_loc':sum(x['loc']['code'] for x in assets),'source_physical_loc':sum(x['loc']['physical'] for x in assets),
-        'target_program_code_loc':target_loc,'rules_documented':len(a['rules']),'rules_verified':verified,
+        'target_program_code_loc':target_loc,'target_python_statement_count':target_statements,
+        'target_statement_basis':'Unique generated program versions; Python AST statements include validation and scaffolding, and are not equivalent to source rule count.','rules_documented':len(a['rules']),'rules_verified':verified,
         'known_rule_verification_percent':round(100*verified/len(a['rules']),2) if a['rules'] else None,
         'synthetic_cases':cases,'matching_cases':matches,'matching_cases_basis':'Matching cases credited only for intact, SME-confirmed whole-program evidence','unresolved_blockers':len(doc['blockers']),
         'unsupported_source_lines':sum(x['disposition']=='unsupported' for p in a['programs'].values() for x in p['coverage']),
@@ -235,10 +241,12 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
         for item in factory['transactions']:sheet.append([item['id'],item['program'],item['mapset'],item['map'],item['api'] or ', '.join(item.get('screen_apis',[])),item['state'],False])
     book.save(root/'metrics.xlsx');book.close()
     prs=Presentation();prs.slide_width=Inches(13.333);prs.slide_height=Inches(7.5)
+    from .deck import component_slide
+    component_slide(prs,doc['id'])
     def slide(title,rows,note,headers=None):
-        s=prs.slides.add_slide(prs.slide_layouts[6]);s.background.fill.solid();s.background.fill.fore_color.rgb=RGBColor(248,250,252)
+        s=prs.slides.add_slide(prs.slide_layouts[6]);s.background.fill.solid();s.background.fill.fore_color.rgb=RGBColor(255,255,255)
         box=s.shapes.add_textbox(Inches(.6),Inches(.35),Inches(12.1),Inches(.7))
-        p=box.text_frame.paragraphs[0];p.text=title;p.font.size=Pt(27);p.font.bold=True;p.font.color.rgb=RGBColor(15,35,60)
+        p=box.text_frame.paragraphs[0];p.text=title;p.font.size=Pt(27);p.font.bold=True;p.font.color.rgb=RGBColor(215,30,40)
         headers=headers or ['Measure','Evidence / value']
         table=s.shapes.add_table(len(rows)+1,len(headers),Inches(.65),Inches(1.4),Inches(12),Inches(min(4.5,(len(rows)+1)*.52))).table
         if len(headers)==2:table.columns[0].width=Inches(7.6);table.columns[1].width=Inches(4.4)
@@ -247,9 +255,9 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
             for column in list(table.columns)[1:]:column.width=Inches(7.8/(len(headers)-1))
         for i,row in enumerate([headers]+rows):
             for j,value in enumerate(row):
-                cell=table.cell(i,j);cell.text=str(value);cell.fill.solid();cell.fill.fore_color.rgb=RGBColor(15,35,60) if i==0 else RGBColor(255,255,255)
+                cell=table.cell(i,j);cell.text=str(value);cell.fill.solid();cell.fill.fore_color.rgb=RGBColor(215,30,40) if i==0 else RGBColor(255,255,255)
                 for par in cell.text_frame.paragraphs:
-                    par.font.size=Pt(16 if len(headers)==2 else 13);par.font.color.rgb=RGBColor(255,255,255) if i==0 else RGBColor(25,45,65)
+                    par.font.size=Pt(16 if len(headers)==2 else 13);par.font.color.rgb=RGBColor(255,255,255) if i==0 else RGBColor(59,51,49)
         b=s.shapes.add_textbox(Inches(.65),Inches(6.35),Inches(12),Inches(.8));b.text_frame.word_wrap=True
         b.text_frame.text=('Fictional test fixture. ' if doc.get('fixture_only') else '')+note
         for par in b.text_frame.paragraphs:par.font.size=Pt(13);par.font.color.rgb=RGBColor(70,85,105)
@@ -258,8 +266,15 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
     slide('Estate inventory · '+doc['id'],inventory_rows,
           f"User-reported, unverified: declared {inventory['declared_total']:,}; category sum {inventory['category_total']:,}; unreconciled {inventory['unreconciled_count']:,}. Delta = baseline minus cumulative verified local POC assets. CICS screens are separate from transactions; staging locations provide no conversion credit.",
           ['Category','Baseline','Process','Converted','Delta'])
-    slide('Before → after',[['BMS screens → React business screens',f"{m['source_bms_screens']} → 0"],['Local online API candidates (unverified native replacement)',m.get('target_online_api_candidates',0)],['All selected source code LOC → program Python LOC',f"{m['source_code_loc']} → {m['target_program_code_loc']}"],['CICS / VSAM / inbound / outbound counts','Unknown until evidenced'],['Target environment','Python / SQLite (non-production)']],'Workbench UI and its control endpoints are excluded from modernized business-screen/API counts. LOC is a size metric, not a parity metric.')
-    slide('Rule verification',[['Business rules: verified / total',str(m['business_rule_converted_verified'])+' / '+str(m['business_rule_total'])],['Technical logic: verified / total',str(m['technical_logic_converted_verified'])+' / '+str(m['technical_logic_total'])],['Unclassified spans (rule count unknown)',m['unclassified_total']],['Unsupported source lines',m['unsupported_source_lines']],['Observed mainframe parity','NOT established']],'The percentage covers extracted known rules only. Unknown/unsupported behavior remains a blocker; passing synthetic tests is not proof of full legacy parity.')
+    slide('Before → after',[
+        ['Frozen export files → generated Python program versions',f"{m['source_inventory_files']} → {m['target_python_programs']}"],
+        ['All selected source code LOC → program Python LOC',f"{m['source_code_loc']} → {m['target_program_code_loc']}"],
+        ['Generated Python statements (includes input validation)',m['target_python_statement_count']],
+        ['Applicable legacy logical units → verified mapped units',f"{m['source_applicable_semantic_units']} → {m['source_verified_semantic_units']}"],
+        ['BMS screen sources → local FastAPI layout candidates',f"{m['source_bms_screens']} → {m.get('target_screen_layout_candidates',0)}"],
+        ['Target environment','Python / SQLite (non-production)']],
+        'Different languages and generated validation have different LOC/statement conventions. These sizes do not measure parity. Native CICS and business SQL gaps stay visible.')
+    slide('Rule verification',[['Business rules: verified / total',str(m['business_rule_converted_verified'])+' / '+str(m['business_rule_total'])],['Technical logic: verified / total',str(m['technical_logic_converted_verified'])+' / '+str(m['technical_logic_total'])],['Known rules: original / selected No / verified',str(m['business_rule_total']+m['technical_logic_total'])+' / '+str(m['business_rule_excluded_by_requirements']+m['technical_logic_excluded_by_requirements'])+' / '+str(m['business_rule_converted_verified']+m['technical_logic_converted_verified'])],['Unclassified spans (rule count unknown)',m['unclassified_total']],['Unsupported source lines',m['unsupported_source_lines']],['Observed mainframe parity','NOT established']],'The percentage covers extracted known rules only. Unknown/unsupported behavior remains a blocker; passing synthetic tests is not proof of full legacy parity.')
     cs=coverage['summary']
     slide('Complete source accountability',[
         ['Frozen export files / physical lines',f"{cs['source_files']} / {cs['source_lines']}"],
@@ -271,7 +286,6 @@ def generate_reports(ledger,doc,root,checkpoint=None,coverage=None):
         'coverage.json/CSV/XLSX/HTML preserve every original file and line with target spans, versions, tests and reasons. Line, semantic-unit and extracted-rule percentages use separate denominators.')
     pf=model['portfolio']
     slide('Portfolio progress',[['Production processes',pf['processes']],['Unique selected program versions',pf['unique_program_versions']],['Program memberships across processes',pf['program_memberships']],['Unique selected copybook versions',pf['unique_copybook_versions']],['Completed without blockers',pf['completed_processes']]],'Selected scope excludes unrelated exports; metrics.json lists discovered versions separately. Current completion is counted upon atomic report acceptance. Demonstrations are excluded; memberships preserve reuse.')
-    slide('Evidence and decisions',[['Source snapshot',(doc.get('analysis') or {}).get('source_snapshot','Unavailable')[:20]],['SME review','One packet / one return per process'],['Expected vs actual','Frozen source IR vs executed Python'],['Open decisions',m['unresolved_blockers']],['Completion','WITH BLOCKERS' if m['report_final_status']=='COMPLETED_WITH_BLOCKERS' else 'Supported POC boundary verified']],'See metrics.json, source-analysis.json and each synthetic run for complete hashes, source spans, cases, actual results, differences and unresolved answers.')
     prs.save(root/'management.pptx')
     inspected=Presentation(root/'management.pptx');require(len(inspected.slides)==6,'Deck incomplete')
     for s in inspected.slides:

@@ -302,8 +302,9 @@ class Review500CoordinatorTests(CoordinatorFixture):
         packet['packet_hash'] = sha(encode({k: v for k, v in packet.items() if k != 'packet_hash'})); packet_path.write_bytes(encode(packet))
         doc = self.c.ledger.get('process-a'); doc['artifact_hashes']['review/packet.json'] = sha(packet_path.read_bytes()); self.c.ledger.save(doc)
         self.c.ledger.db.execute('UPDATE processes SET packet_hash=? WHERE id=?', (packet['packet_hash'], 'process-a')); self.c.ledger.db.commit()
-        with patch('workbench.coordinator.read_answers', return_value={'packet_hash': packet['packet_hash'], 'source_snapshot': doc['analysis']['source_snapshot'], 'reviewer': FICTIONAL_REVIEWER, 'return_hash': sha(b'fictional'), 'items': {}}):
-            with self.assertRaises(ValidationError): self.c.import_answers('process-a', b'fictional', FICTIONAL_REVIEWER)
+        with patch('workbench.review.read_return', return_value={'packet_hash': packet['packet_hash'], 'source_snapshot': doc['analysis']['source_snapshot'], 'reviewer': FICTIONAL_REVIEWER, 'return_hash': sha(b'fictional'), 'items': {}}) as parser:
+            with self.assertRaisesRegex(ValidationError,'does not belong'): self.c.import_answers('process-a', b'fictional', FICTIONAL_REVIEWER)
+            parser.assert_not_called()
         self.assertFalse(self.c.ledger.get('process-a')['packet_imported'])
 
     def test_r295_pause_checkpoint_keeps_durable_pause(self):

@@ -283,3 +283,154 @@ class RetrievalTests(unittest.TestCase):
         (self.inbox / 'response.json').write_text('{"request_id":"a","request_id":"b","items":[]}')
         with self.assertRaises(ValidationError):
             inspect_response(self.root, self.request)
+
+
+class GuidedRetrievalTests(unittest.TestCase):
+    """Fictional prepared processes pull evidence without inventing first exports."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        self.doc = {'id': 'GUIDED', 'source_files': {}, 'copilot_iteration': 0,
+                    'guided_contract_version': 1, 'guided_workspace': str(self.root)}
+
+    def request(self, needs=None, **changes):
+        return build_request({**self.doc, **changes}, needs or [
+            {'kind': 'job', 'name': 'IMATCH', 'reason': 'Explicit fictional operator start job'}])
+
+    def returned(self, request, text, provenance, path='IMATCH.jcl'):
+        write_request(self.root, request)
+        inbox = self.root / request['return_folder']
+        source = inbox / 'files' / path
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_bytes(text.encode('utf-8'))
+        (inbox / 'response.json').write_bytes(encode({'request_id': request['request_id'], 'items': [
+            {'need_id': request['needs'][0]['need_id'], 'status': 'FOUND', 'path': path,
+             'sha256': sha(source.read_bytes()), 'provenance': provenance}]}))
+
+    @staticmethod
+    def zowe(tool='zowe files view ds'):
+        return {'origin': 'zowe_cli', 'tool': tool, 'locator': 'APP.JCL(IMATCH)',
+                'retrieved_at': '2026-10-07T12:00:00Z', 'environment': 'Fictional non-production'}
+
+    def test_zero_source_batch_roots_get_exact_hash_bound_workspace_and_typed_transports(self):
+        request = self.request()
+        self.assertEqual(request['schema_version'], 2)
+        self.assertEqual(request['source_generation'], sha(encode({})))
+        self.assertEqual(request['workspace'], str(self.root))
+        self.assertIn(encode({'workspace': str(self.root), 'return_inbox': str(self.root / request['return_folder'])}).decode(), request['copilot_prompt'])
+        self.assertNotIn('WORKSPACE/', request['copilot_prompt'])
+        self.assertIn('Mandatory transport boundary: use approved Zowe CLI', request['copilot_prompt'])
+        self.assertIn('typed read-only Db2 MCP', request['copilot_prompt'])
+        self.assertIn('Claude Code has no MCP access', request['copilot_prompt'])
+        self.assertIn('"origin":"zowe_cli","tool":"zowe files view ds"', request['copilot_prompt'])
+        self.assertIn('Db2 receipts instead require origin=configured_mcp', request['copilot_prompt'])
+        validate_binding(request, self.doc)
+        write_request(self.root, request)
+        self.assertEqual(inspect_response(self.root, request)['status'], 'WAITING_FOR_RESPONSE')
+        self.assertEqual(self.doc['source_files'], {})
+
+    def test_workspace_cross_process_and_tamper_cannot_be_published_or_consumed(self):
+        request = self.request()
+        other = self.root / 'other workspace'
+        other.mkdir()
+        with self.assertRaisesRegex(ValidationError, 'workspace'):
+            write_request(other, request)
+        with self.assertRaisesRegex(ValidationError, 'workspace'):
+            inspect_response(other, request)
+        self.assertFalse((other / 'processes').exists())
+        changed = self.request(guided_workspace=str(other))
+        self.assertNotEqual(request['request_id'], changed['request_id'])
+        with self.assertRaisesRegex(ValidationError, 'workspace'):
+            validate_binding(changed, self.doc)
+        with self.assertRaises(ValidationError):
+            validate_binding({**request, 'workspace': str(other)}, self.doc)
+        with self.assertRaisesRegex(ValidationError, 'workspace'):
+            validate_binding(request, {k: v for k, v in self.doc.items() if k != 'guided_contract_version'})
+        self.assertEqual(self.doc['source_files'], {})
+
+    def test_windows_paths_are_quoted_exact_data_without_shell_or_generic_placeholders(self):
+        workspace = r'C:\Fictional Modernization\approved export'
+        request = self.request(guided_workspace=workspace)
+        from pathlib import PureWindowsPath
+        exact = str(PureWindowsPath(workspace) / request['return_folder'])
+        self.assertIn(encode({'workspace': workspace, 'return_inbox': exact}).decode(), request['copilot_prompt'])
+        self.assertNotIn('WORKSPACE/', request['copilot_prompt'])
+        validate_binding(request, {**self.doc, 'guided_workspace': workspace})
+
+    def test_unsupported_guided_marker_or_relative_workspace_fails_closed(self):
+        for marker in (True, 2, '1', None):
+            with self.subTest(marker=marker), self.assertRaises(ValidationError):
+                self.request(guided_contract_version=marker)
+        for workspace in (None, '', 'relative/export', 'C:relative', '  /local/export', '/local/export\n'):
+            with self.subTest(workspace=workspace), self.assertRaises(ValidationError):
+                self.request(guided_workspace=workspace)
+
+    def test_twenty_runtime_randomized_source_states_preserve_exact_lf_and_crlf_bytes(self):
+        seed = secrets.randbits(63)
+        rng = random.Random(seed)
+        seen = set()
+        for index in range(20):
+            name = f'I{index:02}{rng.randrange(100000):05}'
+            ending = '\r\n' if index % 2 else '\n'
+            text = ending.join([f'//{name} JOB', f'//S EXEC PGM=P{index:02}', ''])
+            # This is retrieval validation, not mainframe execution or parity.
+            request = self.request([{'kind': 'job', 'name': name, 'reason': 'Fictional known start job'}])
+            provenance = {**self.zowe('zowe.cmd zos-files download data-set'), 'locator': 'APP.JCL(' + name + ')'}
+            self.returned(request, text, provenance, name + '.jcl')
+            actual = inspect_response(self.root, request)
+            self.assertTrue(actual['complete'])
+            self.assertEqual(actual['entries'][0]['text'], text)
+            self.assertEqual(actual['entries'][0]['source_hash'], sha(text.encode('utf-8')))
+            self.assertEqual(actual, inspect_response(self.root, request))
+            seen.add(actual['entries'][0]['source_hash'])
+        self.assertEqual(len(seen), 20)
+        self.assertEqual(self.doc['source_files'], {})
+
+    def test_guided_source_rejects_wrong_or_executable_transport_without_affecting_legacy(self):
+        request = self.request()
+        text = '//IMATCH JOB\n//S EXEC PGM=PMATCH\n'
+        invalid = [self.zowe(tool) for tool in (
+            'approved_read_member', 'zowe files upload ds', 'zowe jobs submit ds',
+            'zowe files view ds APP.JCL(IMATCH); zowe files upload ds',
+            'zowe files view ds $(command)', 'zowe files view ds APP.JCL(IMATCH) > output')]
+        invalid.extend([{**self.zowe(), 'origin': origin} for origin in ('configured_mcp', 'manual_export')])
+        for provenance in invalid:
+            with self.subTest(provenance=provenance):
+                self.returned(request, text, provenance)
+                with self.assertRaisesRegex(ValidationError, 'Zowe CLI'):
+                    inspect_response(self.root, request)
+        # Prior CICS schema-2 transport remains byte-compatible and separately governed.
+        legacy = build_request({'id': 'HISTORICAL', 'source_files': {}, 'cics_contract_version': 1}, request['needs'] and [
+            {k: v for k, v in request['needs'][0].items() if k != 'need_id'}])
+        self.returned(legacy, text, {**self.zowe(), 'origin': 'configured_mcp', 'tool': 'approved_read_member'})
+        self.assertTrue(inspect_response(self.root, legacy)['complete'])
+
+    def test_guided_db2_ddl_requires_typed_mcp_and_preserves_windows_bytes(self):
+        request = self.request([{'kind': 'db2_table', 'name': 'APP.CUSTOMER', 'reason': 'Fictional referenced table'}])
+        text = 'CREATE TABLE APP.CUSTOMER (\r\n ID CHAR(9) NOT NULL\r\n);\r\n'
+        for provenance in (self.zowe(), {**self.zowe(), 'origin': 'configured_mcp', 'tool': 'execute_sql'}):
+            with self.subTest(provenance=provenance):
+                self.returned(request, text, provenance, 'CUSTOMER.sql')
+                with self.assertRaisesRegex(ValidationError, 'Db2 MCP'):
+                    inspect_response(self.root, request)
+        provenance = {'origin': 'configured_mcp', 'tool': 'db2_describe_table', 'locator': 'APP.CUSTOMER',
+                      'retrieved_at': '2026-10-07T12:00:00Z'}
+        self.returned(request, text, provenance, 'CUSTOMER.sql')
+        actual = inspect_response(self.root, request)
+        self.assertEqual(actual['entries'][0]['text'], text)
+        self.assertEqual(actual['entries'][0]['source_hash'], sha(text.encode('utf-8')))
+
+    def test_frozen_historical_schema_one_and_two_packet_bytes_do_not_change(self):
+        doc = {'id': 'LEGACY', 'source_files': {'jobs/PAY.jcl': sha('original')},
+               'copilot_iteration': 2, 'lineage_artifact': 'analysis/lineage-a.json',
+               'artifact_hashes': {'analysis/lineage-a.json': sha('lineage')}}
+        needs = [{'kind': 'copybook', 'name': 'EMPLOYEE', 'reason': 'Referenced copybook absent'}]
+        # Digests recorded from the pre-change implementation, not the new renderer.
+        for marker, digest in ((None, '6de835a92440245100d4ca0a1b8659a2528470977eb484859a6419b2785979ef'),
+                               (1, 'e05f83629bb01d23c8f52fc8f07af918c3ea118dadb11728d9a7b645d832fd93')):
+            current = {**doc, **({'cics_contract_version': marker} if marker else {})}
+            request = build_request(current, needs)
+            self.assertNotIn('workspace', request)
+            self.assertEqual(sha(encode(request)), digest)
+            validate_binding(request, current)

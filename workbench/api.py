@@ -143,6 +143,7 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return {'snapshot':load_knowledge(c.root),'application_template_path':str(package/'examples/application-knowledge.json'),
                 'application_path':str(c.root/'knowledge/application-knowledge.json'),'reference_path':str(package/'knowledge/README.md')}
     @app.post('/api/intake')
+    @app.post('/api/intake/prepare')
     async def intake(request:Request):
         b=await body(request)
         if b.get('xlsx'):
@@ -164,7 +165,54 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         defaults=intake_defaults(c.root)
         source_folder=b.get('source_folder',defaults['source_folder']) if sources is None else b.get('source_folder')
         process_notes=b.get('process_notes',defaults['process_notes'])
+        if request.url.path=='/api/intake/prepare':
+            require(b.get('assistant_mode','claude_files')=='claude_files','Prepared intake uses the local Claude workflow')
+            return await asyncio.to_thread(c.prepare_process,b['manifest'],sources,b.get('prompt',''),source_folder,process_notes,b.get('demo',False))
         return await asyncio.to_thread(c.create,b['manifest'],sources,False,b.get('prompt',''),b.get('assistant_mode','claude_files'),source_folder,process_notes,True)
+
+    @app.get('/api/process/{pid}/guide')
+    async def process_guide(pid:str):
+        return await asyncio.to_thread(c.process_guide,pid)
+
+    @app.post('/api/process/{pid}/guide/save')
+    async def save_process_guide(pid:str,request:Request):
+        require(await body(request,4096)=={},'Save current process instructions with an empty object')
+        return await asyncio.to_thread(c.save_process_guide,pid)
+
+    @app.get('/api/process/{pid}/database')
+    async def database(pid:str):
+        from .database_workflow import database_view
+        return await asyncio.to_thread(database_view,c,pid)
+
+    @app.post('/api/process/{pid}/database/prepare')
+    async def prepare_database(pid:str,request:Request):
+        from .database_workflow import prepare_database
+        return await asyncio.to_thread(prepare_database,c,pid,await body(request,4096))
+
+    @app.get('/api/process/{pid}/database/{ident}/rows')
+    async def database_rows(pid:str,ident:str,request:Request,table:str,after:int=0,limit:int=100):
+        from .database_workflow import database_rows
+        allowed={'table','after','limit'}
+        require(set(request.query_params)<=allowed and all(len(request.query_params.getlist(k))==1 for k in request.query_params),'Unknown or repeated database filter')
+        return await asyncio.to_thread(database_rows,c,pid,ident,table,after,limit)
+
+    @app.post('/api/process/{pid}/database/{ident}/query')
+    async def database_query(pid:str,ident:str,request:Request):
+        from .database_workflow import database_rows
+        from .database import decode_filters
+        b=await body(request,8192)
+        require(set(b)<={'table','after','limit','filters'} and 'table' in b,'Supply table, cursor, limit and typed equality filters only')
+        return await asyncio.to_thread(database_rows,c,pid,ident,b['table'],b.get('after',0),b.get('limit',100),decode_filters(b.get('filters',{})))
+
+    @app.post('/api/process/{pid}/database/snapshot')
+    async def database_snapshot(pid:str,request:Request):
+        from .database_workflow import database_snapshot
+        return await asyncio.to_thread(database_snapshot,c,pid,await body(request,32768))
+
+    @app.post('/api/process/{pid}/database/compare')
+    async def database_compare(pid:str,request:Request):
+        from .database_workflow import database_comparison
+        return await asyncio.to_thread(database_comparison,c,pid,await body(request,32768))
 
     @app.get('/api/process/{pid}/requirements/source')
     async def requirements_source(pid:str,path:str):
@@ -295,9 +343,10 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         if action in ('pause','resume','cancel'):return c.control(pid,action)
         require(action=='answers','Unknown action')
         b=await body(request)
-        require(isinstance(b.get('xlsx'),str),'Supply the returned checklist as base64 text')
-        try:data=base64.b64decode(b['xlsx'],validate=True)
-        except (ValueError,KeyError) as exc:raise ValidationError('Supply the returned checklist workbook') from exc
+        field='html' if 'html' in b else 'xlsx'
+        require(not ('html' in b and 'xlsx' in b) and isinstance(b.get(field),str),'Supply the returned checklist as base64 text in exactly one xlsx or html field')
+        try:data=base64.b64decode(b[field],validate=True)
+        except (ValueError,KeyError) as exc:raise ValidationError('Supply the actual returned checklist file') from exc
         return c.import_answers(pid,data,b.get('reviewer',''))
     @app.get('/api/process/{pid}/events')
     async def events(pid:str):return c.ledger.events(pid)

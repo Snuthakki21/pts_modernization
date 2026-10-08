@@ -50,7 +50,7 @@ def freeze_process_gates(doc, coverage):
         facts=_sme_facts(doc,rid);facts['credit_scope']='recorded_process_or_job_obligation'
         gates.append({'id':'PROCESS_'+sha(encode(blocker))[:24], 'scope':'process','kind':'sme_unresolved','program':None,'source_rule_id':rid,
                       'reason':blocker['message'], 'resolution':SME_RESOLUTION, 'facts':facts,
-                      'evidence':['review/packet.json','input/sme-return.xlsx']})
+                      'evidence':['review/packet.json',('input/sme-return.html' if (doc.get('answers') or {}).get('return_format')=='html' else 'input/sme-return.xlsx')]})
     return gates
 
 
@@ -122,7 +122,7 @@ def freeze_program_gates(doc, programs):
                   SME_RESOLUTION if sme else 'Resolve this recorded obligation using its source and receipt evidence, then refresh analysis and pass the Coordinator verification gates.',
                   scope='rule' if rid else 'program', rule=rid,
                   facts=_sme_facts(doc,rid) if sme else {k:v for k,v in blocker.items() if k not in ('kind','message','program','rule_id')},
-                  refs=['review/packet.json','input/sme-return.xlsx'] if sme else ['analysis/source-analysis.json'])
+                  refs=['review/packet.json',('input/sme-return.html' if (doc.get('answers') or {}).get('return_format')=='html' else 'input/sme-return.xlsx')] if sme else ['analysis/source-analysis.json'])
         rows.append({'key':program_key(entry), 'program':name, 'issues':issues})
     return rows
 

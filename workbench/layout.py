@@ -34,7 +34,7 @@ def output_path(root, process_id, relative):
     require(len(parts) >= 2 and parts[0] in PROCESS_DIRS,
             'Process outputs belong in input, analysis, review, synthetic, target, reports or tests')
     if parts[0] == 'input':
-        require(parts[1] in {'process-input.md', 'sources', 'sme-return.xlsx', 'sme-return-inbox.xlsx'},
+        require(parts[1] in {'process-input.md', 'sources', 'sme-return.xlsx', 'sme-return-inbox.xlsx', 'sme-return.html', 'sme-return-inbox.html'},
                 'Input contains only the frozen manifest/sources and the designated SME return files')
         require(parts[1] == 'sources' and len(parts) >= 3 or len(parts) == 2 and parts[1] != 'sources',
                 'Source exports belong under input/sources')
@@ -42,7 +42,7 @@ def output_path(root, process_id, relative):
         require(parts[0] in {'target', 'tests'} or parts[:2] == ('input', 'sources'),
                 'Executable target/database output belongs under target or tests')
     if path.suffix.lower() == '.md':
-        require(relative == 'input/process-input.md' or relative=='analysis/requirements.md' or len(parts)==3 and parts[:2]==('analysis','requirements') and re.fullmatch(r'[0-9a-f]{64}\.md',parts[2]) or parts[0] == 'input' and len(parts) >= 3 and parts[1] == 'sources',
+        require(relative == 'input/process-input.md' or relative in ('analysis/requirements.md','analysis/process-guide.md') or len(parts)==3 and parts[0]=='analysis' and parts[1] in ('requirements','process-guide') and re.fullmatch(r'[0-9a-f]{64}\.md',parts[2]) or parts[0] == 'input' and len(parts) >= 3 and parts[1] == 'sources',
                 'Use structured analysis and coverage files; do not create Markdown per rule')
     return path
 

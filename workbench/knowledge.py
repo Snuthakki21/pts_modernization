@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 from .domain import sha, encode, decode, atomic_json, require, safe_path
 from .ledger import now
-from .review import read_answers
+from .review import read_return
 
 
 def update_knowledge(ledger, process):
@@ -28,9 +28,10 @@ def update_knowledge(ledger, process):
                 packet.get('packet_hash')==persisted['packet_hash'] and packet.get('process_id')==process['id'] and
                 packet.get('source_snapshot')==process['analysis']['source_snapshot'],
                 'Knowledge packet provenance differs from the frozen process')
-        raw=safe_path(root,'input/sme-return.xlsx').read_bytes()
+        relative='input/sme-return.html' if process['answers'].get('return_format')=='html' else 'input/sme-return.xlsx'
+        raw=safe_path(root,relative).read_bytes()
         require(sha(raw)==process['answers'].get('return_hash'),'Preserved SME return changed')
-        require(read_answers(raw,packet,process['answers'].get('reviewer',''))==process['answers'],
+        require(read_return(raw,packet,process['answers'].get('reviewer',''))==process['answers'],
                 'Knowledge answers differ from the preserved human return')
         analysis_raw=safe_path(root,'analysis/source-analysis.json').read_bytes()
         require(sha(analysis_raw)==persisted.get('artifact_hashes',{}).get('analysis/source-analysis.json') and

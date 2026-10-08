@@ -331,8 +331,16 @@ class Review500ReportingTests(unittest.TestCase):
     def test_r440_management_deck_has_six_editable_bounded_slides(self):
         prs = Presentation(self.base / 'reports/report-0001/management.pptx')
         self.assertEqual(len(prs.slides), 6)
-        for slide in prs.slides:
-            self.assertEqual(sum(s.has_table for s in slide.shapes), 1)
+        from pptx.enum.shapes import MSO_SHAPE_TYPE
+        diagram=prs.slides[0]
+        self.assertEqual(sum(s.has_table for s in diagram.shapes),0)
+        self.assertEqual(sum(s.shape_type==MSO_SHAPE_TYPE.AUTO_SHAPE for s in diagram.shapes),6)
+        self.assertEqual(sum(s.shape_type==MSO_SHAPE_TYPE.LINE for s in diagram.shapes),5)
+        diagram_text='\n'.join(s.text for s in diagram.shapes if s.has_text_frame)
+        for label in ('Mainframe + Db2','Copilot retrieves','Process folder','Claude develops','Coordinator verifies','Target + report'):
+            self.assertIn(label,diagram_text)
+        for index,slide in enumerate(prs.slides):
+            self.assertEqual(sum(s.has_table for s in slide.shapes),0 if index==0 else 1)
             self.assertTrue(all(s.left >= 0 and s.top >= 0 and s.left + s.width <= prs.slide_width and s.top + s.height <= prs.slide_height for s in slide.shapes))
 
     def test_r441_management_deck_does_not_render_none_percent(self):

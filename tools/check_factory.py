@@ -35,7 +35,7 @@ def check(root):
         app=create_app(temp)
         try:
             paths={route.path for route in app.routes}
-            for route in ('/api/process/{pid}/retrieval','/api/process/{pid}/local-agent','/api/process/{pid}/local-agent/{action}'):
+            for route in ('/api/intake/prepare', '/api/process/{pid}/guide', '/api/process/{pid}/guide/save', '/api/process/{pid}/database', '/api/process/{pid}/database/prepare', '/api/process/{pid}/database/{ident}/query', '/api/process/{pid}/retrieval','/api/process/{pid}/local-agent','/api/process/{pid}/local-agent/{action}'):
                 if route not in paths:issues.append('Local-file handoff HTTP surface absent: '+route)
             if '/api/process/{pid}/factory' not in {route.path for route in app.routes}:issues.append('HTTP factory surface absent')
         finally:app.state.coordinator.close()

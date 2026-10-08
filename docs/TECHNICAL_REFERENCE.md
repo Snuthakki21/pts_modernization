@@ -362,9 +362,11 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 | `process-input.md`, `intake-template.xlsx` | Optional root intake inputs. `--manifest` may explicitly select a Markdown manifest elsewhere. |
 | `processes/PROCESS_ID/input/process-input.md` | Immutable manifest snapshot; supplied and snapshot bytes must match the ledger's creation-time manifest SHA-256. |
 | `processes/PROCESS_ID/input/sources/` | Immutable source snapshot with recorded file hashes. Preserve original relative names. |
-| `processes/PROCESS_ID/input/sme-return-inbox.xlsx` | The single designated automatic return inbox. Requires explicit actual `--reviewer` attribution. |
-| `processes/PROCESS_ID/input/sme-return.xlsx` | Service-preserved accepted return. Never place a workbook here manually. |
+| `processes/PROCESS_ID/input/sme-return-inbox.html` or `sme-return-inbox.xlsx` | Place exactly one chosen return format in the designated automatic inbox. Requires explicit actual `--reviewer` attribution; both inboxes present is rejected. |
+| `processes/PROCESS_ID/input/sme-return.html` or `sme-return.xlsx` | Service-preserved accepted return in its original format. Never place a return here manually. |
 | `processes/PROCESS_ID/analysis/` | Structured analysis and source accounting, including reasons for unknown/unsupported/omitted lines. |
+| `processes/PROCESS_ID/analysis/process-guide.md` | Mutable convenience copy of the current guided instructions; never substitutes for immutable task/requirements evidence. |
+| `processes/PROCESS_ID/analysis/process-guide/SHA256.md` | One immutable process guide per distinct checkpoint or explicit Save, never per rule. |
 | `processes/PROCESS_ID/analysis/requirements.md` | Mutable UI convenience copy of the latest saved process scope; never used in place of pinned evidence. |
 | `processes/PROCESS_ID/analysis/requirements/SHA256.md` | Immutable canonical Markdown conversion input, parsed and hash-pinned by Save. One document per scope revision, never per rule. |
 | `processes/PROCESS_ID/analysis/mainframe-knowledge.json` | Immutable standard/application knowledge snapshot used for that process; validated against its creation-time hash. |
@@ -456,7 +458,7 @@ research remain in Git history at published commit
 
 ## Interface and accessibility contract
 
-One primary next action; a five-stage progress guide; one workstation settings form;
+One primary next action; an eight-step Coordinator-backed progress guide; one workstation settings form;
 plain-language statuses; evidence behind disclosure controls; one executive
 report link. Workbench actions are not fabricated modernization progress.
 Use semantic controls, persistent labels, keyboard focus, status/alert regions,
@@ -977,7 +979,10 @@ Launch a reviewed candidate with the repository's locked Python environment and
 `python application.py` (or the supplied launcher). Keep the token in the launch
 environment. Mutable runtime state defaults outside the immutable package under
 `~/.pts-online-state/CONTRACT_HASH`; `ONLINE_STATE` can select an operator-owned
-local directory. `ONLINE_PORT` can choose another local port. Do not edit issued
+local directory. `ONLINE_PORT` can choose another local port; choose a free port
+separate from Workbench and the Db2 MCP listener. When the Db2 gateway uses 8766,
+8767 is an example candidate port if free. The operator guide gives native
+PowerShell and POSIX launch syntax. Do not edit issued
 packages or run this service inside the workbench's control API.
 
 Consistency checks run at factory stage boundaries; violations record named
@@ -1147,3 +1152,87 @@ conflicting/overlapping billing is withheld. No token-to-credit conversion or li
 GitHub billing connection is inferred. Optional budgets remain available in
 collapsed detail. Process polling keeps requirements/rule detail bounded; full
 selection, source and evidence load on demand.
+
+
+## Guided preparation, handoffs and database observations
+
+Explicit fictional intent uses the existing ledger `demo` flag, is pinned in the guide and must match on Prepare retry. Walkthroughs are excluded from production inventory and pilot forecasts; names never infer this flag.
+
+`POST /api/intake/prepare` explicitly creates a new `guided_contract_version=1`
+local-file process before exports exist. It freezes the actual canonical manifest,
+context, knowledge and original source membership, with `source_intake_pending=true`
+until compatible static closure and outstanding receipt identities are resolved.
+Empty input never creates a placeholder program, starts conversion or issues SME
+questions. Legacy `/api/intake` retains its one-or-more source requirement. Same
+manifest/initial source/context/prompt retries reuse the existing prepared process;
+changed input needs a new stable ID. The existing Start/advance/Continue lifecycle,
+ledger and single writer own all transitions.
+
+`GET /api/process/ID/guide` is read-only. It presents eight steps and the actual
+next action, source closure, pinned requirements and registered outputs. Explicit
+`POST /guide/save {}` freezes a canonical process instruction Markdown and updates
+its convenience copy. Stable guided checkpoints pin the new guide automatically.
+A stale or modified pinned guide cannot supply a current copyable prompt. Setup
+Save also writes the one ignored `.migration/workstation.md` with validated
+nonsecret configuration. A missing/stale companion needs Save; GET never repairs
+it or echoes altered content. A process freezes the setup context it consumes as
+structured `analysis/workstation-SHA256.json`; later global edits cannot rewrite it.
+
+Guided schema-2 retrieval adds a hash-bound absolute workspace and exact inbox.
+Found mainframe source requires read-only Zowe CLI command provenance; typed Db2
+catalogs/DDL and record exports require approved Db2 MCP provenance. Strict guided
+version 1 recognizes typed catalogs for batch and online processes; CICS action
+and resource gates still require CICS version 1. JSON kind/key escapes and a
+single leading UTF-8 byte-order mark do not change typed receipt identity; the
+original export bytes/hash remain immutable. Record snapshots require an explicit
+guided row request even when their JSON spelling differs. Catalog recognition supplies static table facts,
+not verified SQL, keys, constraints or native database equivalence. No Claude
+MCP, driver, HTTP proxy or second writer is introduced. Historic request bytes and
+replay contracts remain unchanged. Copilot only retrieves. The current Claude
+prompt references actual process, context, source, task, requirements and guide
+paths/hashes and instructs local analysis, implementation, randomized tests,
+adversarial review, adapter refresh and fresh analysis return. No code plan clears
+a gap. Requirements Save and authentic review remain separate human gates.
+
+The Database view uses only registered, hash-checked process SQLite artifacts.
+Schema candidates retain source lines and specific unsupported features. Explicit
+pre-SME schema preparation requires saved Yes scope, complete closure and accepted
+Db2 MCP catalog/DDL provenance. Any No touching a schema source blocks its build;
+manual self-claimed provenance is insufficient. The local schema-only database is
+separate from immutable verification `target.sqlite` and does not run native
+business SQL. Only validated emitted DDL and parameterized inserts execute locally.
+Tables and paged records are read-only; arbitrary SQL, WAL sidecars, unknown tables,
+coerced filters and unsafe paths are refused. Integer display strings preserve
+large exact values; decimal storage preserves fixed scale without claiming arithmetic.
+
+Record comparison uses immutable before/after exports with exact keys, input/run,
+environment, scope, completeness and consistency facts. It distinguishes insert,
+update, delete, unchanged, initial-state and final-state differences. Equal five-row
+run deltas cannot hide twenty source-only historical rows or prove whole-table
+parity. The approved Db2 row tool uses uncommitted read; absent a qualified consistent
+observation, equality/native parity is withheld. No agent executes mainframe jobs.
+Unsupported controllers, business SQL and types remain named obligations.
+
+The management deck remains six editable slides. Its first slide relates source,
+Copilot, frozen process evidence, Claude, Coordinator verification and target/report
+components; legacy/target size and known original/selected-No/verified rule counts
+use the same report model. Python AST statement counts include generated validation
+and scaffolding and are not equivalent to COBOL rule counts. Old dates are context,
+not deletion authority. Future Python/Oracle, Python/BigQuery, Java and .NET adapters
+must implement `TargetBackend` generation/comparison and pass the same source,
+selected-scope, actual execution, linked-state, adversarial and report gates before
+joining the executable allowlist. BigQuery requires workload/transaction redesign
+qualification, not automatic transactional Db2 substitution.
+
+The single issued SME packet also exports a self-contained local HTML review.
+Explicit Yes/No/Not sure answers, bounded commentary and the actual reviewer are
+saved by downloading one answer-bearing HTML file; browser files cannot silently
+overwrite the original. No network, extensions, Python or MCP are required for the
+SME. The operator imports exactly one base64 `html` or `xlsx` return with reviewer
+attribution. The parser never executes returned HTML; it validates the canonical
+shell, original immutable packet/hash, process/source, complete unique IDs and
+explicit answer values. HTML consumes the same ledger quota and preserves exact
+raw bytes as `input/sme-return.html`; XLSX retains its historical receipt contract.
+Runner watch accepts either designated `input/sme-return-inbox.html` or `.xlsx` and
+refuses simultaneous files. Coverage, integrity, reports and bundles revalidate the
+accepted format. Modified, unanswered or mismatched returns cannot create approval.

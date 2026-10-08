@@ -371,3 +371,212 @@ class WorkstationApiTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class WorkstationMarkdownTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = WorkstationApiTests.asyncSetUp
+    request = WorkstationApiTests.request
+    save = WorkstationApiTests.save
+    """One private nonsecret Markdown companion follows the actual Save transaction."""
+    async def test_saved_markdown_matches_nonsecret_settings_and_inspection_bytes(self):
+        from workbench.domain import sha
+        notes = self.export.parent / 'fictional-process-notes.md'
+        notes.write_bytes(b'# Fictional notes\nPRIVATE_CONTEXT_SENTINEL\n')
+        status, view = await self.save({'source_mode': 'upload', 'process_notes': str(notes)})
+        self.assertEqual(status, 200)
+        instructions = view['instructions'];path = Path(instructions['markdown_path'])
+        self.assertEqual(path, self.root / '.migration/workstation.md')
+        self.assertEqual(instructions['status'], 'READY')
+        self.assertEqual(path.read_bytes(), instructions['text'].encode('utf-8'))
+        self.assertEqual(sha(path.read_bytes()), instructions['sha256'])
+        self.assertNotIn(b'\r\n', path.read_bytes())
+        self.assertNotIn('PRIVATE_CONTEXT_SENTINEL', instructions['text'])
+        snapshot = json.loads(instructions['text'].split('```json\n')[1].split('\n```')[0])
+        self.assertEqual(snapshot['settings'], view['settings'])
+        self.assertEqual(snapshot['connections'], view['connection_setup']['choices'])
+        self.assertIn('Add process', instructions['next_step'])
+        self.assertIn('Copilot retrieval prompt', instructions['next_step'])
+        self.assertNotIn('copilot_prompt', instructions)
+        self.assertFalse(view['readiness']['connectivity_verified'])
+        _, inspected = await self.request('/api/setup/workstation')
+        self.assertEqual(inspected['instructions'], instructions)
+
+    async def test_missing_or_changed_companion_needs_save_without_get_repair(self):
+        await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.md';path.unlink()
+        _, view = await self.request('/api/setup/workstation')
+        self.assertTrue(view['saved'])
+        self.assertEqual(view['instructions']['status'], 'NEEDS_SAVE')
+        self.assertIsNone(view['instructions']['sha256'])
+        self.assertFalse(path.exists())
+        path.write_bytes(b'PRIVATE_CHANGED_SENTINEL')
+        _, view = await self.request('/api/setup/workstation')
+        self.assertEqual(view['instructions']['status'], 'NEEDS_SAVE')
+        self.assertNotIn('PRIVATE_CHANGED_SENTINEL', json.dumps(view))
+        self.assertEqual(path.read_bytes(), b'PRIVATE_CHANGED_SENTINEL')
+        status, repaired = await self.save({'source_mode': 'upload'})
+        self.assertEqual(status, 200)
+        self.assertEqual(repaired['instructions']['status'], 'READY')
+        self.assertEqual(path.read_bytes(), repaired['instructions']['text'].encode('utf-8'))
+
+    async def test_markdown_write_failure_rolls_back_settings_and_keeps_original_companion(self):
+        from workbench.domain import atomic_bytes
+        await self.save({'source_mode': 'folder', 'source_folder': str(self.export)})
+        settings_path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+        before = {p: p.read_bytes() for p in (settings_path, md)}
+        def fail(path, raw):
+            if Path(path) == md:raise OSError('fictional Markdown disk failure')
+            atomic_bytes(path, raw)
+        with patch('workbench.setup.atomic_bytes', side_effect=fail):
+            status, _ = await self.save({'source_mode': 'upload'})
+        self.assertEqual(status, 500)
+        self.assertEqual({p: p.read_bytes() for p in before}, before)
+        _, view = await self.request('/api/setup/workstation')
+        self.assertEqual(view['instructions']['status'], 'READY')
+
+    async def test_first_markdown_write_failure_leaves_no_partially_saved_settings(self):
+        with patch('workbench.setup.atomic_bytes', side_effect=OSError('fictional Markdown disk failure')):
+            status, _ = await self.save({'source_mode': 'upload'})
+        self.assertEqual(status, 500)
+        self.assertFalse((self.root / '.migration/workstation.json').exists())
+        self.assertFalse((self.root / '.migration/workstation.md').exists())
+
+    async def test_concurrent_markdown_edit_is_preserved_and_blocks_configuration_save(self):
+        from workbench.setup import prepare_workstation
+        await self.save({'source_mode': 'folder', 'source_folder': str(self.export)})
+        settings_path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+        settings_before = settings_path.read_bytes()
+        def concurrent(*args, **kwargs):
+            result = prepare_workstation(*args, **kwargs)
+            md.write_bytes(b'fictional concurrent operator edit')
+            return result
+        with patch('workbench.setup.prepare_workstation', side_effect=concurrent):
+            status, _ = await self.save({'source_mode': 'upload'})
+        self.assertEqual(status, 400)
+        self.assertEqual(md.read_bytes(), b'fictional concurrent operator edit')
+        self.assertEqual(settings_path.read_bytes(), settings_before)
+
+    async def test_twenty_randomized_nonsecret_saved_states_are_byte_bound_and_replay(self):
+        import random,secrets
+        from workbench.domain import sha
+        rng = random.Random(secrets.randbits(63));hashes = set()
+        for index in range(20):
+            alias = f'fictional_{index}_{rng.randrange(1000000)}'
+            status, view = await self.save({'source_mode': 'upload', 'zowe_profile': alias, 'zowe_zosmf_profile': alias + '_zosmf'})
+            self.assertEqual(status, 200)
+            instructions = view['instructions'];raw = Path(instructions['markdown_path']).read_bytes()
+            self.assertEqual(instructions['status'], 'READY')
+            self.assertEqual(instructions['sha256'], sha(raw))
+            snapshot = json.loads(instructions['text'].split('```json\n')[1].split('\n```')[0])
+            self.assertEqual(snapshot['settings']['zowe_profile'], alias)
+            self.assertEqual(snapshot['connections'], view['connection_setup']['choices'])
+            _, again = await self.request('/api/setup/workstation')
+            self.assertEqual(again['instructions'], instructions)
+            hashes.add(sha(raw))
+        self.assertEqual(len(hashes), 20)
+
+    async def test_instruction_readiness_binds_actual_settings_not_stale_caller(self):
+        from workbench.domain import encode
+        from workbench.setup import inspect_workstation_instructions
+        _, saved = await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.json'
+        changed = json.loads(path.read_bytes());changed['settings']['zowe_profile'] = 'fictional_external_base'
+        changed['settings']['zowe_zosmf_profile'] = 'fictional_external_service'
+        raw = encode(changed);path.write_bytes(raw)
+        actual = inspect_workstation_instructions(self.root, saved['settings'])
+        self.assertEqual(actual['status'], 'NEEDS_SAVE')
+        self.assertIsNone(actual['sha256'])
+        self.assertEqual(path.read_bytes(), raw)
+
+    async def test_json_change_during_instruction_inspection_never_reports_ready(self):
+        from workbench.domain import encode
+        from workbench.setup import _instruction_choices, inspect_workstation_instructions
+        _, saved = await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.json'
+        changed = json.loads(path.read_bytes());changed['settings']['db2_metadata_url'] = 'https://fictional-external.test/mcp'
+        raw = encode(changed)
+        def change(*args):
+            result = _instruction_choices(*args);path.write_bytes(raw);return result
+        with patch('workbench.setup._instruction_choices', side_effect=change):
+            actual = inspect_workstation_instructions(self.root, saved['settings'])
+        self.assertEqual(actual['status'], 'NEEDS_SAVE')
+        self.assertEqual(path.read_bytes(), raw)
+
+    async def test_late_json_publication_change_is_preserved_and_save_fails(self):
+        from workbench.domain import atomic_bytes, encode
+        await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+        observed = {}
+        def change(destination, raw):
+            atomic_bytes(destination, raw)
+            if Path(destination) == md:
+                current = json.loads(path.read_bytes());current['settings']['zowe_profile'] = 'fictional_external_base'
+                observed['raw'] = encode(current);path.write_bytes(observed['raw'])
+        with patch('workbench.setup.atomic_bytes', side_effect=change):
+            status, _ = await self.save({'zowe_profile': 'fictional_requested_base', 'zowe_zosmf_profile': 'fictional_service'})
+        self.assertEqual(status, 400)
+        self.assertEqual(path.read_bytes(), observed['raw'])
+        _, actual = await self.request('/api/setup/workstation')
+        self.assertEqual(actual['instructions']['status'], 'NEEDS_SAVE')
+
+    async def test_late_complete_valid_json_and_markdown_edits_are_both_preserved(self):
+        from workbench.domain import atomic_bytes, encode
+        from workbench.setup import _instruction_choices, workstation_markdown
+        await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+        observed = {}
+        def change(destination, raw):
+            atomic_bytes(destination, raw)
+            if Path(destination) == md:
+                current = json.loads(path.read_bytes());current['settings']['zowe_profile'] = 'fictional_external_base'
+                observed['json'] = encode(current)
+                observed['md'] = workstation_markdown(self.root, current['settings'], _instruction_choices(self.root, current['settings']))
+                path.write_bytes(observed['json']);md.write_bytes(observed['md'])
+        with patch('workbench.setup.atomic_bytes', side_effect=change):
+            status, _ = await self.save({'zowe_profile': 'fictional_requested_base', 'zowe_zosmf_profile': 'fictional_service'})
+        self.assertEqual(status, 400)
+        self.assertEqual(path.read_bytes(), observed['json'])
+        self.assertEqual(md.read_bytes(), observed['md'])
+        _, actual = await self.request('/api/setup/workstation')
+        self.assertEqual(actual['instructions']['status'], 'READY')
+        self.assertEqual(actual['settings']['zowe_profile'], 'fictional_external_base')
+
+    async def test_final_view_inspection_change_is_preserved_and_not_ready(self):
+        from workbench.domain import encode
+        from workbench.connection_setup import inspect_connections
+        await self.save({'source_mode': 'upload'})
+        path = self.root / '.migration/workstation.json';observed = {}
+        def change(root, settings, *args):
+            result = inspect_connections(root, settings, *args)
+            if settings['zowe_profile'] == 'fictional_requested_base':
+                current = json.loads(path.read_bytes());current['settings']['db2_metadata_url'] = 'https://fictional-late-inspection.test/mcp'
+                observed['raw'] = encode(current);path.write_bytes(observed['raw'])
+            return result
+        with patch('workbench.connection_setup.inspect_connections', side_effect=change):
+            status, _ = await self.save({'zowe_profile': 'fictional_requested_base', 'zowe_zosmf_profile': 'fictional_service'})
+        self.assertEqual(status, 400)
+        self.assertEqual(path.read_bytes(), observed['raw'])
+
+    async def test_twenty_randomized_late_valid_settings_changes_never_false_ready(self):
+        import random,secrets
+        from workbench.domain import atomic_bytes, encode
+        rng = random.Random(secrets.randbits(63));states = set()
+        for index in range(20):
+            status, _ = await self.save({'source_mode':'upload','zowe_profile':None,'zowe_zosmf_profile':None})
+            self.assertEqual(status, 200)
+            path = self.root / '.migration/workstation.json';md = self.root / '.migration/workstation.md'
+            alias = f'fictional_external_{index}_{rng.randrange(1000000)}';observed = {}
+            def change(destination, raw):
+                atomic_bytes(destination, raw)
+                if Path(destination) == md:
+                    current = json.loads(path.read_bytes());current['settings']['zowe_profile'] = alias
+                    observed['raw'] = encode(current);path.write_bytes(observed['raw'])
+            with patch('workbench.setup.atomic_bytes', side_effect=change):
+                status, _ = await self.save({'zowe_profile':'fictional_requested','zowe_zosmf_profile':'fictional_service'})
+            self.assertEqual(status, 400)
+            self.assertEqual(path.read_bytes(), observed['raw'])
+            _, actual = await self.request('/api/setup/workstation')
+            self.assertEqual(actual['instructions']['status'], 'NEEDS_SAVE')
+            self.assertEqual(actual['settings']['zowe_profile'], alias)
+            states.add(alias)
+        self.assertEqual(len(states), 20)

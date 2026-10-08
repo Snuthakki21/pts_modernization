@@ -309,8 +309,11 @@ def analyze_sources(files, manifest):
         findings=utility_findings(manifest,manifest['mainframe_knowledge'],files)
     cics_version=manifest.get('cics_contract_version')
     require(cics_version is None or type(cics_version) is int and cics_version==1, 'Unsupported frozen CICS screen contract')
+    guided_version=manifest.get('guided_contract_version')
+    require(guided_version is None or type(guided_version) is int and guided_version==1,'Unsupported frozen guided intake contract')
+    catalog_v1=cics_version==1 or guided_version==1
     catalog_evidence={}
-    if cics_version==1:
+    if catalog_v1:
         from .db2_catalog import table_description
         for path,text in files.items():
             descriptor=table_description(text)
@@ -442,6 +445,7 @@ def analyze_sources(files, manifest):
         for asset in result['assets']:
             if asset['kind']=='bms_map':
                 asset['screens']=[screen['map'] for screen in result['cics']['screens'] if screen['source_path']==asset['path']]
+    if catalog_v1:
         result['db2_catalog_evidence']=[{'source_path':path,**descriptor} for path,descriptor in sorted(catalog_evidence.items())]
     if manifest.get('requirements'):
         from .requirements import project

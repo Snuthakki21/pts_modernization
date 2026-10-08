@@ -1,7 +1,7 @@
 import {useEffect,useRef} from 'react';
 
 /** One request at a time, no background-tab traffic, and no stale response writes. */
-export function usePolling<T>(url:string|null,onData:(value:T)=>void,onError:(error:Error)=>void,interval=4000){
+export function usePolling<T>(url:string|null,onData:(value:T)=>void,onError:(error:Error)=>void,interval=4000,revision:string|number=0){
  const callbacks=useRef({onData,onError});callbacks.current={onData,onError};
  useEffect(()=>{
   if(!url)return;
@@ -16,5 +16,5 @@ export function usePolling<T>(url:string|null,onData:(value:T)=>void,onError:(er
   function visibility(){if(timer)clearTimeout(timer);if(document.hidden)controller?.abort();else void poll();}
   document.addEventListener('visibilitychange',visibility);void poll();
   return()=>{stopped=true;if(timer)clearTimeout(timer);controller?.abort();document.removeEventListener('visibilitychange',visibility);};
- },[url,interval]);
+ },[url,interval,revision]);
 }

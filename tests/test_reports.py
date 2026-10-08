@@ -33,6 +33,19 @@ class ReportTests(unittest.TestCase):
         self.assertIn('Applicable source lines', text)
         self.assertEqual(len(self.c.ledger.history('process-a')),1)
 
+
+    def test_management_deck_has_one_component_diagram_and_truthful_size_conventions(self):
+        self.create();self.c.start('process-a');self.c.advance('process-a')
+        self.c.import_answers('process-a',self.answer(),'Fictional reviewer');self.c.advance('process-a');self.c.advance('process-a')
+        deck=Presentation(self.c.artifact('process-a','reports/report-0001/management.pptx'))
+        first='\n'.join(shape.text for shape in deck.slides[0].shapes if shape.has_text_frame)
+        for text in ('Zowe CLI','Approved Db2 MCP','Frozen source','Claude develops','Coordinator verifies'):
+            self.assertIn(text,first)
+        m=metrics(self.c.ledger,self.c.ledger.get('process-a'))
+        self.assertGreater(m['target_python_statement_count'],0)
+        self.assertIn('not equivalent',m['target_statement_basis'])
+        self.assertFalse(m['observed_mainframe_parity'])
+
     def test_first_real_report_includes_its_accepted_completion_consistently(self):
         import json
         from unittest.mock import patch

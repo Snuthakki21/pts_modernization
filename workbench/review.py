@@ -1,6 +1,7 @@
 """One editable, plain-language SME packet with immutable question identities."""
 from .domain import path_is_link
 from io import BytesIO
+from html.parser import HTMLParser
 from pathlib import Path
 import html
 import json
@@ -429,6 +430,239 @@ def packet_document(process):
     return doc
 
 
+# The browser renders questions from this hash-bound JSON using textContent.
+# Save captures the untouched document shell and changes only the answer payload;
+# imports compare that shell without executing HTML or JavaScript.
+HTML_RETURN_HEADER = b'<!doctype html>\n<html lang="en" data-workbench-sme="1">'
+_HTML_PACKET_ID = 'workbench-sme-packet'
+_HTML_RETURN_ID = 'workbench-sme-return'
+_HTML_STYLE = '''
+:root{font-family:Segoe UI,Arial,sans-serif;color:#202329;background:#f5f4f1;font-size:16px;line-height:1.5;--accent:#aa1728;--border:#d9d9d6}*{box-sizing:border-box}body{margin:0}main{max-width:1100px;margin:auto;padding:28px 24px 70px}h1{font-size:32px;line-height:1.2;margin:0 0 8px}h2{font-size:19px;margin:0}p{margin:8px 0}.eyebrow{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.muted{color:#5d6169}.bar,.card,.context{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:18px}.bar{position:sticky;top:0;z-index:2;box-shadow:0 3px 12px #20232909}.toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:190px}label{font-size:14px;font-weight:600}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid #9d9fa4;border-radius:7px;padding:9px 11px;background:#fff;color:inherit}textarea{min-height:80px;resize:vertical}button{border:1px solid #a6a8ad;border-radius:7px;background:#fff;color:inherit;padding:10px 16px;cursor:pointer;font-weight:600}button.primary{background:var(--accent);color:white;border-color:var(--accent)}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:3px solid #d69923;outline-offset:3px}.summary{font-size:14px}.tag{display:inline-block;font-size:12px;background:#f3f2ef;border-radius:5px;padding:3px 7px;margin:8px 5px 8px 0}.question{white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px}.evidence{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:#5d6169;margin:12px 0}.answer-row{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start}.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}.status{min-height:24px;white-space:pre-wrap;overflow-wrap:anywhere;color:#642333;font-size:14px}.metadata{font-size:13px;overflow-wrap:anywhere}.context pre{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto}summary{cursor:pointer;font-weight:600}.empty{padding:30px;text-align:center;color:#5d6169}.footer{margin-top:18px;font-size:13px;color:#5d6169}@media(max-width:600px){main{padding:18px 12px 40px}h1{font-size:26px}.bar,.card,.context{padding:15px}.bar{position:static}.field{min-width:100%}.answer-row{grid-template-columns:1fr}.pagination{flex-wrap:wrap}button.primary{width:100%}}
+'''
+_HTML_SCRIPT = r'''
+'use strict';
+(() => {
+  const shell = document.documentElement.cloneNode(true);
+  const packet = JSON.parse(document.getElementById('workbench-sme-packet').textContent);
+  const model = JSON.parse(document.getElementById('workbench-sme-return').textContent);
+  const app = document.getElementById('sme-app');
+  const answers = new Map(model.items.map(item => [item.id, item]));
+  let page = 0;
+  const pageSize = 20;
+  const make = (tag, text, className) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+  const field = (title, control) => {
+    const box = make('div', undefined, 'field');
+    const label = make('label', title); label.htmlFor = control.id;
+    box.append(label, control); return box;
+  };
+  app.append(make('p', 'ONE PROCESS / ONE REVIEW PACKET', 'eyebrow'));
+  app.append(make('h1', 'Review the process understanding'));
+  app.append(make('p', 'Choose Yes, No or Not sure for each statement. Add commentary or corrections where needed. No answer is approved by default.', 'muted'));
+  const metadata = make('p', 'Process: ' + packet.process_id + '\nPacket: ' + packet.packet_hash + '\nSource snapshot: ' + packet.source_snapshot, 'metadata');
+  metadata.style.whiteSpace = 'pre-wrap'; app.append(metadata);
+  const bar = make('div', undefined, 'bar');
+  const toolbar = make('div', undefined, 'toolbar');
+  const reviewer = make('input'); reviewer.id = 'sme-reviewer'; reviewer.type = 'text'; reviewer.maxLength = 160; reviewer.autocomplete = 'name'; reviewer.value = model.reviewer;
+  reviewer.addEventListener('input', () => { model.reviewer = reviewer.value; status.textContent = 'Unsaved changes. Save the portable review file when ready.'; });
+  const save = make('button', 'Save review file', 'primary'); save.type = 'button'; save.id = 'sme-save';
+  toolbar.append(field('Reviewer name (required to save)', reviewer), save);
+  const filters = make('div', undefined, 'toolbar'); filters.style.marginTop = '14px';
+  const search = make('input'); search.id = 'sme-search'; search.type = 'search'; search.placeholder = 'Question, program, evidence or ID';
+  const filter = make('select'); filter.id = 'sme-filter';
+  for (const [value, label] of [['all','All statements'],['','Unanswered'],['No','No'],['Not sure','Not sure'],['Yes','Yes']]) {
+    const option = make('option', label); option.value = value; filter.append(option);
+  }
+  filters.append(field('Find a statement', search), field('Answer filter', filter));
+  const counts = make('p', undefined, 'summary'); counts.id = 'sme-counts';
+  const status = make('p', 'This file works offline. Save downloads one HTML file; return that saved file to the workbench.', 'status'); status.id = 'sme-status'; status.setAttribute('role','status'); status.setAttribute('aria-live','polite');
+  bar.append(toolbar, filters, counts, status); app.append(bar);
+  const cards = make('div'); cards.id = 'sme-items'; app.append(cards);
+  const navigation = make('div', undefined, 'pagination');
+  const previous = make('button', 'Previous'); previous.type = 'button'; previous.id = 'sme-previous';
+  const pageLabel = make('span'); pageLabel.id = 'sme-page';
+  const next = make('button', 'Next'); next.type = 'button'; next.id = 'sme-next';
+  navigation.append(previous, pageLabel, next); app.append(navigation);
+  const context = make('details', undefined, 'context'); context.append(make('summary', 'Complete process context and source references'), make('pre', packet.context)); app.append(context);
+  app.append(make('p', 'One review round. Blank answers, Not sure, No and corrections remain unresolved. These statements are source-derived expectations, not observed mainframe parity. Your browser may ask where to save the single HTML file.', 'footer'));
+  const updateCounts = () => {
+    const answered = model.items.filter(item => item.answer !== '').length;
+    counts.textContent = answered + ' of ' + packet.items.length + ' answered · ' + (packet.items.length - answered) + ' unresolved blanks';
+  };
+  const selected = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    return packet.items.filter(item => (filter.value === 'all' || answers.get(item.id).answer === filter.value) && (!query || (item.id + ' ' + item.question + ' ' + item.evidence + ' ' + item.kind).toLocaleLowerCase().includes(query)));
+  };
+  const render = () => {
+    updateCounts(); const items = selected(); const pages = Math.max(1, Math.ceil(items.length/pageSize)); page = Math.min(page, pages-1);
+    cards.replaceChildren();
+    for (const item of items.slice(page*pageSize,(page+1)*pageSize)) {
+      const answer = answers.get(item.id); const card = make('section', undefined, 'card'); card.dataset.itemId = item.id;
+      card.append(make('h2', item.id), make('span', item.kind.replaceAll('_',' '), 'tag'), make('p', item.question, 'question'), make('p', 'Source evidence: ' + item.evidence, 'evidence'));
+      const control = make('select'); control.id = 'answer-' + item.id; control.dataset.answerId = item.id;
+      for (const [value,label] of [['','Choose an answer'],['Yes','Yes'],['No','No'],['Not sure','Not sure']]) { const option = make('option',label); option.value = value; control.append(option); }
+      control.value = answer.answer;
+      control.addEventListener('change', () => { answer.answer = control.value; updateCounts(); status.textContent = 'Unsaved changes. Save the portable review file when ready.'; });
+      const commentary = make('textarea'); commentary.id = 'comment-' + item.id; commentary.maxLength = 4000; commentary.value = answer.correction; commentary.dataset.commentId = item.id;
+      commentary.addEventListener('input', () => { answer.correction = commentary.value; status.textContent = 'Unsaved changes. Save the portable review file when ready.'; });
+      const row = make('div', undefined, 'answer-row'); row.append(field('Answer',control), field('Commentary / correction',commentary)); card.append(row); cards.append(card);
+    }
+    if (!items.length) cards.append(make('p','No statements match the current filters.','empty'));
+    pageLabel.textContent = 'Page ' + (page+1) + ' of ' + pages + ' · ' + items.length + ' statements shown by filter'; previous.disabled = page === 0; next.disabled = page >= pages-1;
+  };
+  search.addEventListener('input', () => { page = 0; render(); }); filter.addEventListener('change', () => { page = 0; render(); });
+  previous.addEventListener('click', () => { page--; render(); }); next.addEventListener('click', () => { page++; render(); });
+  const safeJSON = value => JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, character => '\\u' + character.charCodeAt(0).toString(16).padStart(4,'0'));
+  save.addEventListener('click', () => {
+    model.reviewer = reviewer.value.trim();
+    if (!model.reviewer || model.reviewer.length > 160) { status.textContent = 'Enter the actual reviewer name before saving.'; reviewer.focus(); return; }
+    if (model.items.some(item => !['','Yes','No','Not sure'].includes(item.answer) || typeof item.correction !== 'string' || item.correction.length > 4000)) { status.textContent = 'Check the answer choices and commentary limits before saving.'; return; }
+    const output = shell.cloneNode(true);
+    output.querySelector('#workbench-sme-packet').textContent = safeJSON(packet);
+    output.querySelector('#workbench-sme-return').textContent = safeJSON(model);
+    const blob = new Blob(['<!doctype html>\n',output.outerHTML], {type:'text/html;charset=utf-8'});
+    if (blob.size > 8388608) { status.textContent = 'The review exceeds the 8 MiB import limit. Shorten commentary before saving; no file was downloaded.'; return; }
+    const link = document.createElement('a'); const url = URL.createObjectURL(blob); link.href = url; link.download = packet.process_id + '-sme-return.html'; link.style.display = 'none'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = 'Saved one portable HTML review file. ' + model.items.filter(item => item.answer === '').length + ' blank answers remain unresolved. Return the downloaded file, not this original.';
+  });
+  render();
+})();
+'''
+
+
+def _html_json(value):
+    # Script raw-text parsing ignores HTML entities, so escape JSON characters.
+    text = encode(value).decode('utf-8')
+    for character, escaped in (('<', '\\u003c'), ('>', '\\u003e'), ('&', '\\u0026'), ('\u2028', '\\u2028'), ('\u2029', '\\u2029')):
+        text = text.replace(character, escaped)
+    return text
+
+
+def _html_response(packet):
+    return {'version': 1, 'kind': 'SME_HTML_RETURN', 'process_id': packet['process_id'],
+            'packet_hash': packet['packet_hash'], 'source_snapshot': packet['source_snapshot'],
+            'reviewer': '', 'items': [{'id': item['id'], 'answer': '', 'correction': ''} for item in packet['items']]}
+
+
+def render_html_packet(packet, response=None):
+    """Render the one issued packet; no external assets or inferred answers."""
+    import base64
+    import hashlib
+    script_hash = base64.b64encode(hashlib.sha256(_HTML_SCRIPT.encode()).digest()).decode('ascii')
+    style_hash = base64.b64encode(hashlib.sha256(_HTML_STYLE.encode()).digest()).decode('ascii')
+    policy = "default-src 'none'; script-src 'sha256-"+script_hash+"'; style-src 'sha256-"+style_hash+"'; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    text = HTML_RETURN_HEADER.decode() + '\n<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="'+policy+'"><title>Process review</title><style>'+_HTML_STYLE+'</style></head>\n<body><main id="sme-app"></main><noscript>This review needs JavaScript enabled in a normal browser. No network connection is needed.</noscript>\n<script type="application/json" id="'+_HTML_PACKET_ID+'">'+_html_json(packet)+'</script>\n<script type="application/json" id="'+_HTML_RETURN_ID+'">'+_html_json(_html_response(packet) if response is None else response)+'</script>\n<script id="workbench-sme-ui">'+_HTML_SCRIPT+'</script>\n</body></html>'
+    data = text.encode('utf-8')
+    require(len(data) <= MAX_UPLOAD, 'SME HTML document exceeds the supported upload size; narrow the process scope before issuing')
+    return data
+
+
+class _HTMLReviewShape(HTMLParser):
+    """Normalize browser serialization while rejecting any altered active shell."""
+    def __init__(self, text):
+        super().__init__(convert_charrefs=False)
+        self.events, self.payloads, self.current = [], {}, None
+        self.feed(text); self.close()
+        require(self.current is None, 'Unclosed HTML review payload')
+
+    def handle_starttag(self, tag, attrs):
+        require(len({key for key, _ in attrs}) == len(attrs), 'Duplicate HTML attribute')
+        self.events.append(('start', tag, tuple(sorted(attrs))))
+        if tag == 'script' and dict(attrs).get('id') in (_HTML_PACKET_ID, _HTML_RETURN_ID):
+            identity = dict(attrs)['id']
+            require(self.current is None and identity not in self.payloads, 'Duplicate HTML review payload')
+            self.payloads[identity] = ''; self.current = identity
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in ('meta', 'input', 'br', 'hr', 'link', 'img'):
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        self.events.append(('end', tag))
+        if tag == 'script': self.current = None
+
+    def handle_data(self, data):
+        if self.current is not None:
+            self.payloads[self.current] += data
+        elif data.strip():
+            self.events.append(('data', data))
+
+    def handle_entityref(self, name): self.events.append(('data', html.unescape('&'+name+';')))
+    def handle_charref(self, name): self.events.append(('data', html.unescape('&#'+name+';')))
+    def handle_comment(self, data): self.events.append(('comment', data))
+    def handle_decl(self, decl): self.events.append(('declaration', decl.lower()))
+    def unknown_decl(self, data): self.events.append(('unknown_declaration', data))
+    def handle_pi(self, data): self.events.append(('processing_instruction', data))
+
+
+def is_html_return(data):
+    """Typed guard only; read_html_return still validates the complete document."""
+    return isinstance(data, bytes) and data.startswith(HTML_RETURN_HEADER)
+
+
+def _returned_document(data, packet, reviewer, answers):
+    if packet.get('version') == 4:
+        groups = json.loads(packet['context']).get('rule_groups', {})
+        for group_id, group in groups.items():
+            answer = answers[group_id]
+            for member in group['members']:
+                require(member not in answers, 'Duplicate grouped rule identity')
+                answers[member] = {**answer, 'group_id': group_id}
+    return {'packet_hash': packet['packet_hash'], 'source_snapshot': packet['source_snapshot'],
+            'reviewer': reviewer.strip(), 'items': answers, 'return_hash': sha(data)}
+
+
+def read_html_return(data, packet, reviewer):
+    """Read bounded JSON evidence only; never execute uploaded HTML/scripts."""
+    require(isinstance(reviewer, str) and 0 < len(reviewer.strip()) <= 160,
+            'Name the reviewer responsible for this returned file')
+    require(packet.get('packet_hash') == sha(encode({k: v for k, v in packet.items() if k != 'packet_hash'})),
+            'Frozen packet content/hash changed')
+    require(is_html_return(data) and len(data) <= MAX_UPLOAD, 'Invalid or oversized SME HTML return')
+    try:
+        shape = _HTMLReviewShape(data.decode('utf-8'))
+    except ValidationError:
+        raise
+    except (UnicodeError, RecursionError, ValueError) as exc:
+        raise ValidationError('Invalid UTF-8 HTML review document') from exc
+    frozen = _HTMLReviewShape(render_html_packet(packet).decode('utf-8'))
+    require(shape.events == frozen.events, 'HTML review shell, instructions or script changed')
+    require(set(shape.payloads) == {_HTML_PACKET_ID, _HTML_RETURN_ID}, 'Missing HTML review payload')
+    embedded = decode(shape.payloads[_HTML_PACKET_ID], limit=MAX_UPLOAD)
+    require(isinstance(embedded, dict) and embedded.get('packet_hash') ==
+            sha(encode({key: value for key, value in embedded.items() if key != 'packet_hash'}))
+            and encode(embedded, limit=MAX_UPLOAD) == encode(packet, limit=MAX_UPLOAD),
+            'Original HTML packet changed')
+    response = decode(shape.payloads[_HTML_RETURN_ID], limit=MAX_UPLOAD)
+    require(isinstance(response, dict) and set(response) == {'version', 'kind', 'process_id', 'packet_hash', 'source_snapshot', 'reviewer', 'items'}, 'HTML return fields changed')
+    require(type(response['version']) is int and response['version'] == 1 and response['kind'] == 'SME_HTML_RETURN', 'Invalid HTML return version or kind')
+    require(all(response[key] == packet[key] for key in ('process_id', 'packet_hash', 'source_snapshot')), 'HTML return belongs to a different packet or process')
+    require(isinstance(response['reviewer'], str) and response['reviewer'].strip() == reviewer.strip(), 'HTML reviewer attribution must match the named reviewer')
+    expected = {item['id']: item for item in packet['items']}; answers = {}
+    require(isinstance(response['items'], list) and len(response['items']) == len(expected), 'Missing or extra HTML checklist items')
+    for returned in response['items']:
+        require(isinstance(returned, dict) and set(returned) == {'id', 'answer', 'correction'}, 'HTML answer fields changed')
+        rid, answer, correction = returned['id'], returned['answer'], returned['correction']
+        require(isinstance(rid, str) and rid in expected and rid not in answers, 'Unknown or duplicate question ID')
+        require(isinstance(answer, str) and answer in ('Yes', 'No', 'Not sure', ''), 'Answer must be Yes, No, Not sure or blank')
+        require(isinstance(correction, str) and len(correction) <= 4000, 'Returned commentary exceeds supported bounds')
+        original = expected[rid]
+        answers[rid] = {'answer': answer or 'Unanswered', 'correction': correction.strip(),
+                        'reviewer': reviewer.strip(), 'question': original['question'], 'kind': original['kind']}
+    require(set(answers) == set(expected), 'Missing checklist items')
+    return {**_returned_document(data, packet, reviewer, answers), 'return_format': 'html'}
+
+
+def read_return(data, packet, reviewer):
+    """One import contract for the HTML file and preserved legacy workbook."""
+    return read_html_return(data, packet, reviewer) if is_html_return(data) else read_answers(data, packet, reviewer)
+
+
 def export_packet(process, directory):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
@@ -477,8 +711,8 @@ def export_packet(process, directory):
         for item in document['items']:
             word.add_heading(item['id'],2);word.add_paragraph(item['question']);word.add_paragraph('Evidence: '+item['evidence']);word.add_paragraph('Yes / No / Not sure. If No: __________________')
         word.save(temp/'sme-checklist.docx')
-        rendered='<!doctype html><meta charset="utf-8"><title>SME checklist</title><h1>'+html.escape(process['name'])+'</h1><p>Return the Excel workbook. One review round. No mainframe execution.</p><pre>'+html.escape(document['context'])+'</pre>'+''.join('<section><h2>'+html.escape(i['id'])+'</h2><p>'+html.escape(i['question'])+'</p><small>'+html.escape(i['evidence'])+'</small></section>' for i in document['items'])
-        write_new(temp/'sme-checklist.html',rendered.encode());write_new(temp/'packet.json',encode(document));temp.rename(directory)
+        rendered=render_html_packet(document)
+        write_new(temp/'sme-checklist.html',rendered);write_new(temp/'packet.json',encode(document));temp.rename(directory)
         return document
     finally:
         shutil.rmtree(temp,ignore_errors=True)
@@ -530,12 +764,5 @@ def read_answers(data, packet, reviewer):
             require(len(correction)<=4000 and 0<len(actor)<=160,'Returned text exceeds supported bounds')
             answers[rid]={'answer':answer or 'Unanswered','correction':correction,'reviewer':actor,'question':original['question'],'kind':kind}
         require(set(answers)==set(expected),'Missing checklist items')
-        if packet.get('version') == 4:
-            groups=json.loads(packet['context']).get('rule_groups',{})
-            for group_id,group in groups.items():
-                answer=answers[group_id]
-                for member in group['members']:
-                    require(member not in answers,'Duplicate grouped rule identity')
-                    answers[member]={**answer,'group_id':group_id}
-        return {'packet_hash':packet['packet_hash'],'source_snapshot':packet['source_snapshot'],'reviewer':reviewer.strip(),'items':answers,'return_hash':sha(data)}
+        return _returned_document(data,packet,reviewer,answers)
     finally:book.close()

@@ -178,7 +178,12 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             'Lineage export exceeds the source line bound')
     knowledge = knowledge if knowledge is not None else load_knowledge(Path(__file__).resolve().parent.parent)
     validate_snapshot(knowledge)
-    cics_v1 = manifest.get('cics_contract_version') == 1
+    cics_version=manifest.get('cics_contract_version')
+    guided_version=manifest.get('guided_contract_version')
+    require(cics_version is None or type(cics_version) is int and cics_version==1,'Unsupported frozen CICS screen contract')
+    require(guided_version is None or type(guided_version) is int and guided_version==1,'Unsupported frozen guided intake contract')
+    cics_v1=cics_version==1
+    catalog_v1=cics_v1 or guided_version==1
     inventory_paths = sorted(files); sources = dict(files); classifications = classify_files(sources, manifest, knowledge)
     original_scope = manifest.get('original_source_files', manifest.get('authorization', {}).get('scope', files))
     require(isinstance(original_scope, (dict, list, tuple)) and set(original_scope).issubset(files),
@@ -232,7 +237,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         text = sources[path]; file_id = 'source_file:' + path; current_mapset = None
         classification = classifications[path]
         catalog_receipt = None
-        if cics_v1:
+        if catalog_v1:
             from .db2_catalog import table_description
             catalog_receipt = table_description(text, provenance.get(path))
             if catalog_receipt:classification = {**classification, 'kind': 'db2_catalog_evidence', 'conflicts': []};classifications[path] = classification

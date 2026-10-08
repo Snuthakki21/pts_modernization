@@ -7,6 +7,45 @@ executive report.
 Python/SQLite is the non-production target. Unsupported semantics require tested
 adapters; a plan cannot be marked converted.
 
+## The analyst job aid
+
+Follow the **Your next step** panel for the selected process. It shows the current
+prompt, exact return folder and saved instructions; use **Refresh guide** after
+an assistant finishes. The normal sequence is:
+
+1. **Save setup**. Enter nonsecret Zowe and approved Db2 MCP choices. Save writes
+   `.migration/workstation.md` and shows **Add a process**. Complete the displayed
+   native secure credential/client steps; configuration alone does not prove access.
+2. **Add a process**. Paste/upload the ordered process Markdown. Choose **No exports
+   yet** if files have not been collected, then **Prepare process guide**.
+   The fictional template keeps an explicit fictional flag and is excluded from real
+   inventory and forecasts. Clear it only when supplying an actual process.
+3. **Copy Copilot prompt**. Paste the exact generated prompt into GitHub Copilot
+   in VS Code. It retrieves source with Zowe CLI and Db2 facts with approved MCP
+   into that request's inbox. Click **Continue after Copilot saves files**.
+   Missing or wrong identities stop here and remain named gaps.
+4. **Choose logic**. Everything defaults to Yes. Uncheck unwanted units and
+   **Save requirements and continue**. The immutable requirements Markdown is
+   conversion input; No retains its exact exclusion reason and source evidence.
+5. **Copy Claude prompt**. Paste the current analysis, development and test prompt
+   into Claude Code. It reads the pinned process guide, source, context and
+   requirements locally. After its current task-bound return, click Continue.
+   Missing evidence leads back to a specific Copilot request; Claude has no MCP.
+6. **SME review**. Share the one issued review file. The actual SME answers,
+   comments and saves a return. Import that file with their real reviewer name.
+   An unanswered/default choice is never approval; no second questionnaire is issued.
+7. **Validate and compare**. The Coordinator executes supported targets and
+   creates the accepted report. Filter **Program comparison → Gaps only**, inspect
+   saved No reasons and source/Python evidence, and download **management.pptx**.
+   The read-only Database view exposes registered SQLite schema candidates and
+   tables; schema creation does not convert business SQL or establish Db2 parity.
+
+The process guide is `processes/PROCESS_ID/analysis/process-guide.md`; each saved
+version is pinned under `analysis/process-guide/SHA256.md`. Prompts reference the
+immutable version and exact task/requirements hashes. Setup changes affect future
+intake; existing frozen process evidence stays intact. Same-input Prepare retries
+reuse the existing process and its saved choices. Changed inputs require a new ID.
+
 ## 1. Install and open
 
 Use CPython **3.12** and a writable folder on your local disk.
@@ -124,8 +163,8 @@ reference for precedence and recovery details.
 
 ## 3. Provide your process
 
-Put the complete UTF-8 export in **`Endeavor/`**, or choose source files in the
-UI. Keep original relative names. Supply Markdown following
+Choose **No exports yet** to prepare an exact retrieval request before source exists,
+or put the complete UTF-8 export in **`Endeavor/`** or choose source files in the UI. Keep original relative names. Supply Markdown following
 [examples/process-input.md](examples/process-input.md), or download the Excel
 intake template in the UI. It names the process, ordered jobs/steps, programs
 and input/output groups. Use a new process ID for changed source.
@@ -148,10 +187,13 @@ Add custom utility facts to **`knowledge/application-knowledge.json`**, created
 by setup. The **Knowledge** screen and [knowledge guide](knowledge/README.md)
 explain file classification, utilities, required evidence and editable facts.
 
-## 4. Click Start
+## 4. Follow the process guide
 
+Click **Prepare process guide** to save the process and begin discovery.
+Existing ready processes show **Start discovery** in their guide.
 The workbench retains the full export, maps the job's transitive objects, checks
-local definitions, and tries configured typed Zowe/Db2 reads for missing objects.
+local definitions, and prepares exact Copilot retrieval requests for missing objects.
+The local Claude workflow makes no remote connector calls.
 **Waiting for discovery** stops before conversion or questions when identities
 are missing/ambiguous. Correct the named configuration/evidence and retry.
 **Select requirements** shows every retained file and a paged source breakdown.
@@ -183,9 +225,13 @@ records are run or uploaded there.
 
 ## 5. Return the one SME checklist
 
-Download `sme-checklist.xlsx`. The actual reviewer selects **Yes**, **No** or
-**Not sure**, adds corrections and returns it. Import the workbook with their
-name. Agents must never fill these answers. The workbench automatically runs
+Download **`sme-checklist.html`** and share that one file. The SME opens it in
+their normal browser, explicitly chooses **Yes**, **No** or **Not sure**, adds
+commentary, enters their name and clicks **Save return**. That downloads one
+answer-bearing HTML file; they send it back and you import it with their actual
+name. No install or server is required for the SME. The original file is not
+overwritten automatically; return the downloaded file. The legacy
+`sme-checklist.xlsx` remains an alternative for the same single packet. Agents must never fill these answers. The workbench automatically runs
 source-derived synthetic tests, comparisons, adversarial checks and reporting.
 Every new run requires **at least 20 distinct randomized valid source logic states per applicable
 supported logic item**, generated at runtime with a recorded random seed, plus boundaries, invalid
@@ -198,7 +244,9 @@ job cases, recorded seed and target architecture assessment. Each program includ
 runnable `tests/run-NNNN/PROGRAM/test_generated.py`; keep the process folder intact
 and run the file with Python 3 to replay its frozen comparisons. The architecture
 view explains SQLite's current scope and Oracle qualification requirements.
-Oracle conversion/execution is not yet implemented.
+Oracle, BigQuery, Java and .NET are future target candidates behind the same
+versioned generation/comparison contract. They are not yet implemented or selectable;
+a warehouse target requires explicit workload and transaction qualification.
 
 ## 6. Open the executive report
 
@@ -251,7 +299,7 @@ route Claude through a Copilot tool.
    AMBIGUOUS results stop at a visible checkpoint; Claude does not repeat the same
    retrieval automatically.
 5. Claude implements and verifies selected behavior, refreshes stale analysis
-   after adapter changes and submits the fresh result. Your actual SME workbook
+   after adapter changes and submits the fresh result. Your actual SME HTML review or workbook
    remains the one human review; retrieval packets do not answer it or add a
    second questionnaire.
 
@@ -298,7 +346,7 @@ automatically launched, and host policy/authentication still need workstation
 verification. Existing source-free development packets are historical evidence,
 not the active no-MCP Claude workflow.
 
-For a safe trial, use **Run fictional example** in the UI. Its results are
+For a safe trial, use **Explore a fictional example** in the UI. Its results are
 excluded from real portfolio totals. No real process has been converted in the
 software validation supplied with this repository.
 
@@ -443,10 +491,28 @@ source-specific obligations. A layout-only package disables transaction executio
 Supported record modules can also expose the existing tested record API. Neither
 candidate is a claim of full CICS replacement or observed mainframe parity.
 The package includes OpenAPI, HTTP comparisons and Windows/POSIX launchers. Use
-the existing Python environment, set a private `ONLINE_TOKEN` (32+ characters),
-and run `python application.py` from the package directory. Open localhost:8766.
-Session data stays outside the immutable package; see the technical reference
-for `ONLINE_STATE` and other configuration.
+the existing Python environment and set a private `ONLINE_TOKEN` (32+ characters).
+Choose a free candidate port separate from the Workbench and Db2 MCP server.
+When the Db2 gateway uses 8766, use 8767 if available. From the package directory,
+with the reviewed Python environment active:
+
+On Windows PowerShell:
+
+```powershell
+$env:ONLINE_PORT = "8767"
+python application.py
+```
+
+On Linux/macOS:
+
+```bash
+ONLINE_PORT=8767 python application.py
+```
+
+Open `http://127.0.0.1:8767`. If that port is occupied, choose another free port
+and use it in both the launch environment and browser. Session data stays outside
+the immutable package; see the technical reference for `ONLINE_STATE` and other
+configuration. Do not edit an issued package to change its port.
 
 Add this to the initial prompt above:
 

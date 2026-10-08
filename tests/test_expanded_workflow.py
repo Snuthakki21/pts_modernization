@@ -355,7 +355,15 @@ class ExpandedPacketTests(ExpandedFixture):
 
     def test_r751_html_packet_escapes_source_markup(self):
         doc=self.doc(); doc['analysis']['rules'][0]['plain']='<script>fixture()</script>'; folder=self.root/'.implementation/tmp/html-packet'; export_packet(doc,folder)
-        html=(folder/'sme-checklist.html').read_text(); self.assertNotIn('<script>',html); self.assertIn('&lt;script&gt;',html)
+        from workbench.review import _HTMLReviewShape
+        html=(folder/'sme-checklist.html').read_text()
+        self.assertNotIn('<script>fixture()</script>',html)
+        shape=_HTMLReviewShape(html)
+        embedded=decode(shape.payloads['workbench-sme-packet'])
+        self.assertEqual(embedded['items'][0]['question'],'<script>fixture()</script>')
+        self.assertIn(r'\u003cscript\u003e',shape.payloads['workbench-sme-packet'])
+        self.assertIn('node.textContent = text',html)
+        self.assertIn("connect-src 'none'",html)
 
     def test_r752_export_failure_leaves_no_partial_published_packet(self):
         folder=self.root/'.implementation/tmp/failure-packet'
