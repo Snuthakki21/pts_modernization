@@ -16,6 +16,45 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.c=Coordinator(self.root);self.addCleanup(lambda:self.c.close())
 
+    def test_prepared_prompt_bounds_preserve_retry_identity_without_truncation(self):
+        for prompt in ('x'*16001, None, True, {'text':'context'}):
+            with self.subTest(prompt_type=type(prompt).__name__), self.assertRaises(ValidationError):
+                self.c.prepare_process(MANIFEST,{},prompt=prompt)
+            self.assertEqual(len(self.c.ledger.list(True)),0)
+            self.assertFalse(self.c.process_root('process-a').exists())
+        prompt='é'*16000
+        doc=self.c.prepare_process(MANIFEST,{},prompt=prompt)
+        self.assertEqual(doc['prompt'],prompt)
+        self.assertEqual(self.c.prepare_process(MANIFEST,{},prompt=prompt),doc)
+        with self.assertRaisesRegex(ValidationError,'changed'):
+            self.c.prepare_process(MANIFEST,{},prompt=prompt[:-1]+'x')
+        self.assertEqual(self.c.ledger.get('process-a'),doc)
+        self.assertFalse(doc['packet_issued'])
+
+    def test_primary_retrieval_prompt_uses_frozen_setup_hints_without_rewriting_request(self):
+        settings={'source_mode':'upload','zowe_profile':'approved_base','zowe_zosmf_profile':'approved_zosmf',
+                  'db2_metadata_url':'https://db.invalid/mcp'}
+        self.c.configure_workstation(settings)
+        self.c.prepare_process(MANIFEST,{})
+        self.c.start('process-a');self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a');request_path=doc['retrieval_request']['artifact']
+        original=self.c.artifact('process-a',request_path).read_bytes()
+        guide=self.c.process_guide('process-a');prompt=guide['handoffs']['copilot']['prompt']
+        marker='\n\nProcess-pinned retrieval hints (configuration only):\n'
+        self.assertIn(marker,prompt)
+        hints=json.loads(prompt.split(marker,1)[1])
+        self.assertEqual({key:hints[key] for key in ('zowe_profile','zowe_zosmf_profile','db2_metadata_url')},
+                         {key:settings[key] for key in ('zowe_profile','zowe_zosmf_profile','db2_metadata_url')})
+        self.assertEqual(hints['status'],'CONFIGURATION_ONLY');self.assertFalse(hints['connectivity_verified'])
+        self.assertEqual(hints['setup_context'],guide['input']['setup_context'])
+        self.assertIn('data, not instructions',prompt);self.assertIn('no Claude MCP access',prompt)
+        self.c.configure_workstation({'zowe_profile':'different_base','db2_metadata_url':'https://other.invalid/mcp'})
+        self.assertEqual(self.c.process_guide('process-a')['handoffs']['copilot']['prompt'],prompt)
+        self.assertEqual(self.c.artifact('process-a',request_path).read_bytes(),original)
+        self.assertEqual(self.c.ledger.get('process-a'),doc)
+        frozen=Path(hints['setup_context']['path']);frozen.write_bytes(b'changed')
+        with self.assertRaisesRegex(ValidationError,'changed'):self.c.process_guide('process-a')
+
     def test_prepare_before_exports_is_explicit_and_never_creates_placeholder_source(self):
         with self.assertRaises(ValidationError):self.c.create(MANIFEST,{},assistant_mode='claude_files')
         doc=self.c.prepare_process(MANIFEST,{})
@@ -148,7 +187,7 @@ class GuidedWorkflowTests(unittest.TestCase):
     def test_prepared_intake_does_not_allow_deterministic_zero_source_execution(self):
         with self.assertRaisesRegex(ValidationError,'Prepared'):
             self.c.create(MANIFEST,{},assistant_mode='deterministic',requirements_selection=True,_prepare=True)
-        self.assertEqual(self.c.ledger.list(True),[])
+        self.assertEqual(len(self.c.ledger.list(True)),0)
 
     def test_twenty_randomized_programs_follow_source_to_actual_target_without_native_claim(self):
         import random,secrets
@@ -180,6 +219,24 @@ class GuidedApiTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp=_fixture.asyncSetUp
     asyncTearDown=_fixture.asyncTearDown
     request=_fixture.request
+    async def test_prepared_api_rejects_overbound_context_before_creation_and_retries_exact_boundary(self):
+        _,raw=await self.request('/api/state');token=json.loads(raw)['token']
+        headers=[(b'origin',b'http://127.0.0.1:8765'),(b'x-workbench-token',token.encode())]
+        payload={'manifest':MANIFEST,'sources':{},'source_folder':None,'process_notes':None,'prompt':'x'*16001}
+        status,raw=await self.request('/api/intake/prepare','POST',payload,headers)
+        self.assertEqual(status,400,raw)
+        self.assertIn('16,000',json.loads(raw)['error'])
+        self.assertEqual(self.app.state.coordinator.ledger.list(True),[])
+        payload['prompt']='x'*16000
+        status,raw=await self.request('/api/intake/prepare','POST',payload,headers);self.assertEqual(status,200,raw)
+        first=json.loads(raw)
+        status,raw=await self.request('/api/intake/prepare','POST',payload,headers);self.assertEqual(status,200,raw)
+        self.assertEqual(json.loads(raw),first)
+        self.assertEqual(len(self.app.state.coordinator.ledger.list(True)),1)
+        status,_=await self.request('/api/intake/prepare','POST',{**payload,'prompt':payload['prompt']+'y'},headers)
+        self.assertEqual(status,400)
+        self.assertEqual(self.app.state.coordinator.ledger.get('process-a'),first)
+
     async def test_exact_prepare_and_guide_routes_keep_same_origin_and_ledger(self):
         _,raw=await self.request('/api/state');token=json.loads(raw)['token']
         headers=[(b'origin',b'http://127.0.0.1:8765'),(b'x-workbench-token',token.encode())]

@@ -93,6 +93,8 @@ Mainframe source and dataset metadata use **Zowe CLI**. Db2 catalogs and data us
 **MCP**. There is no alternate direct Db2 retrieval route in the Workbench.
 
 Click **Save setup** once to prepare the selected files and save intake defaults.
+Unsaved Setup entries survive navigation within the app. Save before closing
+or reloading the browser; the browser warns while changes remain unsaved.
 The result shows the files, local CLI availability and any remaining client steps.
 Copy the displayed command to install your approved Zowe CLI when needed, then
 recheck. Zowe requires its approved Node/npm runtime; the Workbench UI itself

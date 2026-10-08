@@ -34,3 +34,9 @@
 .guide-current-panel{border:0;padding:0;margin:0;min-width:0}
 
 .database-comparison-counts{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);font-size:13px;gap:8px}.database-comparison-counts dt{overflow-wrap:anywhere}.database-comparison-counts dd{margin:0;text-align:right}
+
+/* Shared scroll ownership and keyboard affordances for every app overflow region. */
+:root{--scrollbar-thumb:#8d8983;--scrollbar-track:#f4f0ed;--scrollbar-hover:#64615d;scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);scrollbar-width:auto}
+*::-webkit-scrollbar{width:12px;height:12px}*::-webkit-scrollbar-track{background:var(--scrollbar-track)}*::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border:3px solid var(--scrollbar-track);border-radius:8px}*::-webkit-scrollbar-thumb:hover{background:var(--scrollbar-hover)}*::-webkit-scrollbar-thumb:active{background:var(--ink)}
+[hidden]{display:none!important}button:active:not(:disabled),.button:active{transform:translateY(1px)}
+@media(forced-colors:active){:root{scrollbar-color:auto}*::-webkit-scrollbar-thumb{background:ButtonText}*::-webkit-scrollbar-track{background:Canvas}}

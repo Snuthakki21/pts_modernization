@@ -182,6 +182,7 @@ class Coordinator:
     def prepare_process(self,manifest_text,source_files=None,prompt='',source_folder=None,process_notes=None,demo=False):
         """Prepare a manifest before source arrives; explicit demos retain portfolio exclusion."""
         require(type(demo) is bool,'Fictional process intent must be a boolean')
+        require(isinstance(prompt,str) and len(prompt)<=16000,'Analysis prompt must be text with at most 16,000 characters')
         if source_files is None and source_folder is None:source_files={}
         manifest=parse_manifest(manifest_text)
         with self.lock:

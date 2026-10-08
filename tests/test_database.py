@@ -357,6 +357,83 @@ class DatabaseTests(unittest.TestCase):
                 mutant=validate_snapshot(encode(bad).decode());result=compare_snapshots(source_before,source_after,target_before,mutant,CONTEXT)
                 self.assertFalse(result['summary']['complete_exported_scope_match']);self.assertTrue(result['gaps'])
 
+    def test_twenty_composite_record_runs_preserve_null_blank_decimal_and_all_operations(self):
+        seed=secrets.randbits(63);rng=random.Random(seed);states=set()
+        ddl=('CREATE TABLE APP.SALE (ID CHAR(8) NOT NULL, PART INTEGER NOT NULL, '
+             'VALUE VARCHAR(40), AMOUNT DECIMAL(31,7), BIG BIGINT NOT NULL, PRIMARY KEY(ID,PART));')
+        schema=schema_candidate(ddl,source_path='db2/composite-sale.ddl')
+        def observed(rows,phase,side,inputs):
+            value=raw(receipt([],phase,side));value.update(rows=rows,column_names=['ID','PART','VALUE','AMOUNT','BIG'],
+                key_columns=['ID','PART'],input_hashes=inputs)
+            return validate_snapshot(encode(value).decode())
+        for index,number in enumerate(rng.sample(range(10**6),20)):
+            with self.subTest(seed=seed,run=index):
+                identity=str(number).zfill(8);large=2**63-1-index
+                fraction=str(rng.randrange(1,10**7)).zfill(7)
+                money='-'+str(rng.randrange(10**20,10**24))+'.'+fraction
+                old=[{'ID':identity,'PART':1,'VALUE':None,'AMOUNT':money,'BIG':large},
+                     {'ID':identity,'PART':2,'VALUE':'','AMOUNT':None,'BIG':-large},
+                     {'ID':identity,'PART':3,'VALUE':'delete','AMOUNT':'0.0000000','BIG':0}]
+                after=[dict(old[0]),{**old[1],'VALUE':'updated-'+str(rng.randrange(10**9)),'AMOUNT':'1.'+fraction},
+                       {'ID':identity,'PART':4,'VALUE':'insert','AMOUNT':None,'BIG':large}]
+                # Distinct local linked sales/referral inputs are hashed before target execution;
+                # their shared customer identity is an evidence witness, not a business matcher.
+                linked={'sales':{'ID':identity,'PART':[1,2,3,4]},'referrals':{'ID':identity,'SOURCE':'synthetic'}}
+                inputs={f'input/{name}.json':sha(encode(data)) for name,data in linked.items()}
+                context={**deepcopy(CONTEXT),'input_hashes':inputs};states.add(sha(encode(linked)))
+                source_before=observed(old,'before','db2',inputs);source_after=observed(after,'after','db2',inputs)
+                bp=Path(self.tmp.name)/f'composite-before-{index}.sqlite';ap=Path(self.tmp.name)/f'composite-after-{index}.sqlite'
+                before=create_application_database(bp,[schema],{'APP.SALE':old});after_db=create_application_database(ap,[schema],{'APP.SALE':after})
+                with patch('workbench.database.datetime',wraps=datetime) as clock:
+                    clock.now.side_effect=(datetime(2026,10,7,16,tzinfo=timezone.utc),datetime(2026,10,7,17,tzinfo=timezone.utc))
+                    target_before=sqlite_snapshot(bp,before['sha256'],'APP.SALE',source_before,context['sqlite_run_id'],inputs,context['sqlite_environment'],'before')
+                    target_after=sqlite_snapshot(ap,after_db['sha256'],'APP.SALE',source_after,context['sqlite_run_id'],inputs,context['sqlite_environment'],'after')
+                result=compare_snapshots(source_before,source_after,target_before,target_after,context)
+                self.assertTrue(result['summary']['complete_exported_scope_match']);self.assertFalse(result['native_database_verified'])
+                self.assertEqual(result['summary']['records'],4);self.assertEqual(result['summary']['changed_records'],3)
+                self.assertEqual(result['summary']['matching_changed_records'],3);self.assertEqual(result['summary']['historical_records'],1)
+                self.assertEqual({r['db2_operation'] for r in result['records']},{'INSERT','UPDATE','DELETE','UNCHANGED'})
+                self.assertEqual(target_before['rows'],old);self.assertEqual(target_after['rows'],after)
+                self.assertEqual({r['key'][0] for r in result['records']},{identity})
+                changed=next(r for r in result['records'] if r['key']==[identity,2])
+                self.assertEqual(changed['changed_columns'],['VALUE','AMOUNT'])
+                # Preserve row totals and operation counts while corrupting one exact decimal.
+                bad=raw(target_after);bad['rows'][1]['AMOUNT']='2.'+fraction
+                mismatch=compare_snapshots(source_before,source_after,target_before,validate_snapshot(encode(bad).decode()),context)
+                self.assertFalse(mismatch['summary']['run_delta_matches']);self.assertEqual(mismatch['summary']['final_gap_records'],1)
+                self.assertEqual(mismatch['summary']['db2_after_rows'],mismatch['summary']['sqlite_after_rows'])
+                failed=next(r for r in mismatch['records'] if r['key']==[identity,2]);self.assertFalse(failed['final_match'])
+                self.assertEqual(failed['sqlite_after']['AMOUNT'],'2.'+fraction)
+        self.assertEqual(len(states),20)
+
+    def test_twenty_explicit_composite_scopes_preserve_absence_and_typed_key_identity(self):
+        seed=secrets.randbits(63);rng=random.Random(seed);states=set()
+        schema=schema_candidate('CREATE TABLE APP.SALE (ID CHAR(8) NOT NULL, PART INTEGER NOT NULL, VALUE VARCHAR(40), PRIMARY KEY(ID,PART));',
+                                source_path='db2/scoped-sale.ddl')
+        for index,number in enumerate(rng.sample(range(1,10**6),20)):
+            with self.subTest(seed=seed,run=index):
+                identity=str(number).zfill(8);kept={'ID':identity,'PART':1,'VALUE':'selected-'+str(rng.randrange(10**9))}
+                rows=[kept,{'ID':identity,'PART':2,'VALUE':'different composite key'},
+                      {'ID':str(number+1).zfill(8),'PART':1,'VALUE':'unrelated customer'}]
+                source=raw(receipt([],'after'));source.update(column_names=['ID','PART','VALUE'],key_columns=['ID','PART'],rows=[kept],
+                    scope={'kind':'explicit_keys','keys':[[identity,1],[identity,9]],'complete':True})
+                source=validate_snapshot(encode(source).decode());states.add(source['source_hash'])
+                target=Path(self.tmp.name)/f'composite-scope-{index}.sqlite';created=create_application_database(target,[schema],{'APP.SALE':rows})
+                actual=sqlite_snapshot(target,created['sha256'],'APP.SALE',source,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'after')
+                self.assertEqual(actual['rows'],[kept]);self.assertEqual(actual['scope'],source['scope'])
+                self.assertTrue(actual['scope']['complete']);self.assertEqual(len(actual['scope']['keys']),2)
+                # Numeric 123 is a different requested key from fixed-width text 00000123;
+                # an absent requested key is retained rather than padded or coerced.
+                altered=raw(source);altered['rows']=[];altered['scope']['keys']=[[number,1],[identity,'1']]
+                typed=validate_snapshot(encode(altered).decode())
+                omitted=sqlite_snapshot(target,created['sha256'],'APP.SALE',typed,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'after')
+                self.assertEqual(omitted['rows'],[]);self.assertEqual(omitted['scope']['keys'],[[number,1],[identity,'1']])
+                for bad_rows in ([kept,dict(kept)],[{**kept,'PART':None}],[{**kept,'PART':True}]):
+                    invalid=raw(source);invalid['rows']=bad_rows
+                    with self.assertRaises(ValidationError):validate_snapshot(encode(invalid).decode())
+                self.assertEqual(sha(target.read_bytes()),created['sha256'])
+        self.assertEqual(len(states),20)
+
     def test_same_totals_different_keys_operations_and_values_are_specific_gaps(self):
         before=[{'ID':'00000001','VALUE':'a'},{'ID':'00000002','VALUE':'b'}];after=[{'ID':'00000001','VALUE':'changed'},{'ID':'00000003','VALUE':'c'}]
         target=[{'ID':'00000001','VALUE':'wrong'},{'ID':'00000004','VALUE':'c'}]

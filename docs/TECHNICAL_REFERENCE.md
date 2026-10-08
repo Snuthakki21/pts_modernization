@@ -306,7 +306,7 @@ not change these process limits.
 | Connectors | Local-first typed transitive discovery, Zowe source/metadata reads, Db2 catalog lookup and explicit row exports | Account/service visibility and parser limits remain explicit. No schema allowlist; missing libraries/dynamic bindings/TPX-only facilities need exports or actual service mappings. |
 | UI | Local React intake/prompt/file workflow, real stage events, rule lineage, source coverage filters, review import, Pause/Resume/Cancel and downloads | New CICS intakes support source-bound literal BMS character layouts and FastAPI rendering; native controller, symbolic buffers, AID, state, security and data semantics remain named gaps. Workbench controls are not business replacements. |
 | Reporting | One primary executive HTML report, six editable PPT slides, metric XLSX/CSV/JSON/history, complete source coverage JSON/CSV/XLSX/HTML, unique/membership counts, LOC and blockers | CICS/VSAM/interfaces unknown until evidenced. Db2 metric is distinct references in supplied SQL, not a confirmed estate table count. Physical/code LOC convention differs by source kind and is not equivalent complexity. |
-| Inspection | PPT reopened, editable table count and canvas bounds checked, hashes recorded | Six sample slides rendered and visually inspected through Artifact Tool. Native PowerPoint/LibreOffice, browser rendering and Windows launch remain unverified. |
+| Inspection | PPT reopened, editable table count and canvas bounds checked, hashes recorded | Six sample slides rendered and visually inspected through Artifact Tool. Local browser and hosted Windows/POSIX setup/launch checks are scoped software evidence. Native PowerPoint, Windows 11 desktop and complete manual accessibility remain unverified. |
 
 
 New agent-mode processes issue SME packet version 4; other modes retain version 3. Technical obligations group across
@@ -1164,8 +1164,10 @@ context, knowledge and original source membership, with `source_intake_pending=t
 until compatible static closure and outstanding receipt identities are resolved.
 Empty input never creates a placeholder program, starts conversion or issues SME
 questions. Legacy `/api/intake` retains its one-or-more source requirement. Same
-manifest/initial source/context/prompt retries reuse the existing prepared process;
-changed input needs a new stable ID. The existing Start/advance/Continue lifecycle,
+manifest/initial source/context/prompt retries reuse the existing prepared process.
+Prepared analysis context must be text of at most 16,000 characters; overbound
+requests are rejected before process creation rather than silently truncated.
+Changed input needs a new stable ID. The existing Start/advance/Continue lifecycle,
 ledger and single writer own all transitions.
 
 `GET /api/process/ID/guide` is read-only. It presents eight steps and the actual
@@ -1191,7 +1193,12 @@ MCP, driver, HTTP proxy or second writer is introduced. Historic request bytes a
 replay contracts remain unchanged. Copilot only retrieves. The current Claude
 prompt references actual process, context, source, task, requirements and guide
 paths/hashes and instructs local analysis, implementation, randomized tests,
-adversarial review, adapter refresh and fresh analysis return. No code plan clears
+adversarial review, adapter refresh and fresh analysis return. The primary Copilot
+prompt appends configured Zowe aliases and the Db2 endpoint from the registered
+frozen process setup context, when present, as configuration-only data with its
+path/hash. Later global settings do not substitute another environment. Original
+request bytes, identity and exact return inbox remain unchanged; unavailable or
+conflicting approved connections require an explicit retrieval gap. No code plan clears
 a gap. Requirements Save and authentic review remain separate human gates.
 
 The Database view uses only registered, hash-checked process SQLite artifacts.
@@ -1236,3 +1243,30 @@ raw bytes as `input/sme-return.html`; XLSX retains its historical receipt contra
 Runner watch accepts either designated `input/sme-return-inbox.html` or `.xlsx` and
 refuses simultaneous files. Coverage, integrity, reports and bundles revalidate the
 accepted format. Modified, unanswered or mismatched returns cannot create approval.
+
+
+## Interface ownership and accessibility
+
+This reference is the maintained design and interaction contract. The local tool
+uses the public Wells Fargo red/yellow direction, system typography including
+Segoe UI on Windows, semantic text states and visible keyboard focus. Internal
+Wells Fargo design-system compliance requires its approved standards.
+
+| Capability | Canonical owner | Source of truth | Allowed variants | Verification |
+| --- | --- | --- | --- | --- |
+| Navigation and saved place | `frontend/src/main.tsx` | Existing Coordinator and selected process | Overview, Setup, Intake, Evidence; Setup drafts remain mounted across navigation | Frontend navigation regression and local Chrome keyboard walkthrough |
+| Setup fields, errors and commands | `frontend/src/WorkspaceSetup.tsx` | Validated workstation API settings | Existing/create/import Zowe and approved Db2 modes; app-owned Setup errors and first-invalid focus | Setup regressions, field/error associations and browser failure/recovery |
+| Next step and exact prompts | `frontend/src/GuidedProcess.tsx`, `workbench/guide.py` | Hash-bound process guide and current request | Eight workflow steps; stale or missing evidence blocks actions | Guided API/local-file regressions |
+| Source comparison and gaps | `frontend/src/ProgramComparison.tsx` | Accepted immutable report evidence | Per-program, gap and selected-No filters | Source/target report and frontend filter tests |
+| Database records | `frontend/src/DatabasePanel.tsx` | Registered SQLite artifacts and typed snapshot comparison | Paged read-only tables and exact key filters | Composite-key, identifier/decimal, delta/history and byte-limit checks |
+| Colors, focus and scrollbars | `frontend/src/style.css` | Shared application stylesheet | Native controls; visible scrollbar and forced-colors fallback | Frontend tests plus scoped contrast, keyboard, narrow-screen and zoom observations |
+
+Setup owns its validation messages instead of browser validation bubbles, links
+the invalid field to the persistent error and preserves the draft after failures.
+Leaving Setup inside the app preserves its values; actual page unload uses the
+browser's unsaved-change warning. Setup collects no passwords or tokens. Route titles
+identify the current screen. These safeguards do not establish full screen-reader,
+all-route accessibility or Windows 11 browser acceptance. A third-party static
+auditor that requires separate `DESIGN.md`/`UX-CONTRACT.md` cannot certify this
+repository's consolidated contract; record that tool result separately from
+executed runtime checks rather than converting it into a passing receipt.

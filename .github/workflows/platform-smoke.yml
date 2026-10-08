@@ -28,6 +28,20 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: bash scripts/setup.sh
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Exercise frontend regression tests
+        working-directory: frontend
+        run: node --test --test-reporter=tap test-ui.mjs
+      - name: Check frontend types
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend assets
+        working-directory: frontend
+        run: npm run build
+      - name: Check committed frontend assets
+        run: git diff --exit-code -- workbench/static
       - name: Exercise native intake, ledger, reports and CLI
         shell: python
         run: |
