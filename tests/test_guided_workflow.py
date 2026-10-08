@@ -16,6 +16,16 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.c=Coordinator(self.root);self.addCleanup(lambda:self.c.close())
 
+    def test_sme_next_step_names_the_actual_offline_save_action(self):
+        from workbench.guide import _next
+        stage, action = _next({'status': 'WAITING_SME'}, {'request': None})
+        self.assertEqual(stage, 'review')
+        self.assertEqual(action['kind'], 'human_review')
+        self.assertIn('click Save review file', action['description'])
+        self.assertIn('downloaded file', action['description'])
+        self.assertIn('actual name', action['description'])
+        self.assertNotIn('Save a return', action['description'])
+
     def test_prepared_prompt_bounds_preserve_retry_identity_without_truncation(self):
         for prompt in ('x'*16001, None, True, {'text':'context'}):
             with self.subTest(prompt_type=type(prompt).__name__), self.assertRaises(ValidationError):

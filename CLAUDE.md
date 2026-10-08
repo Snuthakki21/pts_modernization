@@ -2,6 +2,11 @@
 
 Read [AGENTS.md](AGENTS.md), then the host roles in the single shared
 [prompts/START_MODERNIZATION.md](prompts/START_MODERNIZATION.md) workflow.
+For operator how-to questions, read [prompts/OPERATOR_GUIDE.json](prompts/OPERATOR_GUIDE.json)
+first and use its bounded routes. Validate changed source bindings with
+`python tools/check_handoff.py`; never use cached examples as current process
+status or scan databases to answer guide questions.
+
 Claude Code may run in the organization-approved VS Code extension. **Claude has
 no MCP servers.** Do not install, register or invoke one, use a Copilot tool as a
 Claude proxy, or tunnel MCP/remote access through a shell or HTTP wrapper.

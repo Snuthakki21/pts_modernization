@@ -98,13 +98,14 @@ export function onlineInteger(raw:string,field:OnlineField,name='Value'):number|
  if(integer<minimum||integer>maximum)throw new Error(name+' must be between '+minimum+' and '+maximum);
  return integer>=BigInt(Number.MIN_SAFE_INTEGER)&&integer<=BigInt(Number.MAX_SAFE_INTEGER)?Number(integer):integer;
 }
+export class OnlineFieldError extends Error {constructor(public field:string,message:string){super(message);}}
 export function onlineRecord(fields:Record<string,OnlineField>,values:Record<string,string>):Record<string,unknown>{
  return Object.fromEntries(Object.entries(fields).map(([name,field])=>{
-  const raw=values[name]??'';
+  try{const raw=values[name]??'';
   if(field.type==='integer')return [name,onlineInteger(raw,field,name)];
   if(field.type!=='string'||!Number.isInteger(field.width)||field.width<1||field.width>256||typeof raw!=='string')throw new Error('Unsupported field contract: '+name);
   if(Array.from(raw).length!==field.width)throw new Error(name+' requires exactly '+field.width+' characters, including spaces');
-  return [name,raw];
+  return [name,raw];}catch(error){throw new OnlineFieldError(name,error instanceof Error?error.message:String(error));}
  }));
 }
 export function onlineDefaults(fields:Record<string,OnlineField>):Record<string,string>{

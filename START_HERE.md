@@ -20,8 +20,9 @@ an assistant finishes. The normal sequence is:
 1. **Save setup**. Enter nonsecret Zowe and approved Db2 MCP choices. Save writes
    `.migration/workstation.md` and shows **Add a process**. Complete the displayed
    native secure credential/client steps; configuration alone does not prove access.
-2. **Add a process**. Paste/upload the ordered process Markdown. Choose **No exports
-   yet** if files have not been collected, then **Prepare process guide**.
+2. **Add a process**. Paste/upload the ordered manifest Markdown or intake workbook.
+   Add prose process notes separately under **Add optional analysis context**.
+   Choose **No exports yet** if files have not been collected, then **Prepare process guide**.
    The fictional template keeps an explicit fictional flag and is excluded from real
    inventory and forecasts. Clear it only when supplying an actual process.
 3. **Copy Copilot prompt**. Paste the exact generated prompt into GitHub Copilot
@@ -33,10 +34,12 @@ an assistant finishes. The normal sequence is:
    conversion input; No retains its exact exclusion reason and source evidence.
 5. **Copy Claude prompt**. Paste the current analysis, development and test prompt
    into Claude Code. It reads the pinned process guide, source, context and
-   requirements locally. After its current task-bound return, click Continue.
+   requirements locally. After its current task-bound return, click
+   **Continue after Claude returns analysis**.
    Missing evidence leads back to a specific Copilot request; Claude has no MCP.
 6. **SME review**. Share the one issued review file. The actual SME answers,
-   comments and saves a return. Import that file with their real reviewer name.
+   comments and clicks **Save review file**. Import the downloaded file with their
+   real reviewer name.
    An unanswered/default choice is never approval; no second questionnaire is issued.
 7. **Validate and compare**. The Coordinator executes supported targets and
    creates the accepted report. Filter **Program comparison → Gaps only**, inspect
@@ -49,6 +52,17 @@ version is pinned under `analysis/process-guide/SHA256.md`. Prompts reference th
 immutable version and exact task/requirements hashes. Setup changes affect future
 intake; existing frozen process evidence stays intact. Same-input Prepare retries
 reuse the existing process and its saved choices. Changed inputs require a new ID.
+
+For questions about these steps, assistants first read the compact
+[operator reference](prompts/OPERATOR_GUIDE.json). It routes questions to exact
+labels, guide steps and relevant source spans. It is a checked navigation cache,
+not process evidence: changing a bound file invalidates it. Current status,
+prompts, counts and return paths must come from the selected process's current
+guide or existing runner, never from cached examples or a direct database scan.
+
+For the detailed walkthrough, open the [offline screenshot job aid](examples/mainframe-modernization-job-aid.html)
+in your browser. Its 46 steps, screenshots and fictional sample ZIP are embedded
+in one file. It remains a review draft; screenshot paths are illustrative.
 
 ## 1. Install and open
 
@@ -69,6 +83,20 @@ Commands shown as `python` below use the repository's locked environment:
 `.\.venv\Scripts\python.exe` on Windows PowerShell, or `.venv/bin/python` on
 Linux/macOS. Use that executable directly for agent and maintenance commands;
 no separate global dependency installation is needed.
+
+To keep evidence outside the installed repository, create an empty local
+workspace folder first. In the repository's PowerShell terminal, run:
+
+```powershell
+.\scripts\Setup.ps1
+.\.venv\Scripts\python.exe -m workbench.preflight --workspace "C:\MainframeFactory\JobAidWorkspace" --initialize-knowledge
+.\.venv\Scripts\python.exe -m workbench.launch --root "C:\MainframeFactory\JobAidWorkspace" --port 8765
+```
+
+`C:\MainframeFactory\JobAidWorkspace` is an example; use your actual folder.
+`Start.ps1` launches the repository root and has no `-Root` option. The explicit
+`--root` command selects a separate workspace; it serves the installed assets and
+standard catalog without copying implementation files into that workspace.
 
 ## 2. Enter your settings and save once
 
@@ -170,10 +198,24 @@ reference for precedence and recovery details.
 ## 3. Provide your process
 
 Choose **No exports yet** to prepare an exact retrieval request before source exists,
-or put the complete UTF-8 export in **`Endeavor/`** or choose source files in the UI. Keep original relative names. Supply Markdown following
+or put the complete UTF-8 export in **`WORKSPACE/Endeavor/`**, select **Copy from a
+folder on this workstation**, or choose source files in the UI. Keep original
+relative names. Supply the canonical manifest following
 [examples/process-input.md](examples/process-input.md), or download the Excel
 intake template in the UI. It names the process, ordered jobs/steps, programs
 and input/output groups. Use a new process ID for changed source.
+
+Keep each process's editable intake package in its own folder outside the evidence
+workspace, for example `C:\MainframeFactory\Inputs\referral-batch\`.
+`manifest.md` contains the stable ID and ordered job/step or transaction table;
+upload it in **Process manifest**. `process-specific.md` contains ordinary prose
+about dependencies and business context; enter its full path in **Add optional
+analysis context → Process Markdown path on this workstation**. A prose notes
+file alone is not a valid manifest. Claude may derive a manifest from explicit
+notes/JCL facts locally; missing facts stay Unknown.
+The Coordinator freezes the manifest as `input/process-input.md`, the original
+source under `input/sources/`, and notes inside `analysis/process-context.json`
+under that process ID. Do not add `input/process-specific.md` or edit frozen copies.
 
 The local export permits **10,000 files**, **16 MiB per file**, **512 MiB combined**,
 and **2 million physical lines**. Browser uploads permit 32 MiB combined; larger
@@ -208,7 +250,10 @@ click **Save requirements and continue**. Save updates
 `processes/PROCESS_ID/analysis/requirements.md` and pins an immutable Markdown
 revision as the conversion input. Related source statements share a unit; each
 parsed rule remains selectable. Source excerpts include hashes and full-source
-downloads. Choices persist across pages; Save detects conflicting edits.
+downloads. Unsaved choices survive pages, filters and in-app route/process
+switches; they are not saved evidence. Save before closing/reloading the browser;
+unsaved scope warns on unload. A live hash/revision conflict blocks Save;
+**Reload saved choices** explicitly discards the draft and loads current choices.
 
 No means **“Not converted because selected No in requirements.”** That reason
 remains in the original-versus-modernized report with the saved requirements
@@ -233,19 +278,21 @@ records are run or uploaded there.
 
 Download **`sme-checklist.html`** and share that one file. The SME opens it in
 their normal browser, explicitly chooses **Yes**, **No** or **Not sure**, adds
-commentary, enters their name and clicks **Save return**. That downloads one
-answer-bearing HTML file; they send it back and you import it with their actual
-name. No install or server is required for the SME. The original file is not
+commentary, enters their name and clicks **Save review file**. That downloads
+`PROCESS_ID-sme-return.html`; they send that answer-bearing file back and you import
+it with their actual name. No install or server is required for the SME. The original file is not
 overwritten automatically; return the downloaded file. The legacy
 `sme-checklist.xlsx` remains an alternative for the same single packet. Agents must never fill these answers. The workbench automatically runs
 source-derived synthetic tests, comparisons, adversarial checks and reporting.
-Every new run requires **at least 20 distinct randomized valid source logic states per applicable
+New process fixture contracts require **at least 20 distinct randomized valid source logic states per applicable
 supported logic item**, generated at runtime with a recorded random seed, plus boundaries, invalid
 inputs and source-evidenced linked-record matches/mismatches. Unsupported,
 unreachable, undersampled or failing obligations stay explicit gaps. Expectations
 are frozen before Python execution; no synthetic records go to the mainframe.
 Unresolved answers remain blockers; it does not issue another questionnaire.
-In **Evidence & reports → Factory**, inspect the minimum, executed unit tests,
+Any nonempty correction/commentary also remains an unresolved review fact, even
+beside Yes. Record concerns honestly; do not erase commentary to obtain approval.
+In **Evidence & reports → Inspect evidence → Factory**, inspect the minimum, executed unit tests,
 job cases, recorded seed and target architecture assessment. Each program includes
 runnable `tests/run-NNNN/PROGRAM/test_generated.py`; keep the process folder intact
 and run the file with Python 3 to replay its frozen comparisons. The architecture
@@ -433,7 +480,8 @@ After Copilot finishes, tell Claude: **“Continue process `[PROCESS_ID]` in
 
 ## Application inventory and program knowledge
 
-Open **Evidence → Factory → Application inventory and program knowledge**.
+Open **Evidence & reports**, choose **Factory** under **Inspect evidence**, then
+open **Application inventory and program knowledge**.
 The inventory separates retained files, selected files and observed definitions:
 COBOL programs, copybooks, DCL/DCLGEN, JCL jobs/PROCs, CICS BMS sources, SQL/Db2,
 control cards, scheduler definitions and other retained types. Db2 procedure
@@ -447,8 +495,8 @@ It does not invent business purpose or claim that a parsed screen is converted.
 Verified counts require replayed coverage. Program details page in groups of 20;
 bounded lists flag omissions and point to the complete source and rule reports.
 
-At the end of conversion, open **Evidence → Program comparison** or click
-**Compare COBOL and Python** in Reports. Choose a program and click **Gaps only**.
+At the end of conversion, open **Evidence & reports**, choose **Program comparison**
+under **Inspect evidence**, or click **Compare COBOL and Python** in Reports. Choose a program and click **Gaps only**.
 Each source unit shows the original file/lines beside the actual Python
 file/lines, accepted status and evidence. Gaps name the recorded reason,
 missing branch or distinct-state count, differing case IDs, and evidence needed
@@ -471,8 +519,8 @@ SME checklist remain authoritative.
 For an online process, the agent derives a transaction table from your process
 notes and source instead of inventing batch jobs. Give it transaction, entry
 program and map bindings when available. Missing identities stay discovery gaps.
-Evidence → **Factory** shows capability coverage, transaction/API candidates and
-paged obligations. The final report links the same factory detail and Excel sheets.
+**Evidence & reports → Inspect evidence → Factory** shows capability coverage,
+transaction/API candidates and paged obligations. The final report links the same factory detail and Excel sheets.
 
 For CICS intake, include the transaction/program/map table in your process Markdown,
 then supply that file and your export folder through the existing Start flow.
@@ -542,7 +590,8 @@ Add this to the initial prompt above:
 
 ## Pilot effort, AI credits and the remaining estate
 
-Open **Evidence → Effort & scale**. Service stages, retries, elapsed time and
+Open **Evidence & reports → Inspect evidence → Effort & scale**, or the sidebar's
+**Effort & scale** button. Service stages, retries, elapsed time and
 SME/agent waiting are recorded automatically. Use the existing effort controls to record discovery, mainframe, conversion,
 SQL and validation work windows; stop clocks before human waiting.
 Framework work is recorded once, separately from repeatable process work.

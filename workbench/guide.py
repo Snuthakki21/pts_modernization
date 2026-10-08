@@ -81,7 +81,7 @@ def _next(doc, model):
     if status == 'WAITING_COPILOT':
         return 'build', {'id': 'continue-analysis', 'kind': 'local_action', 'action': 'continue', 'label': 'Continue after Claude returns analysis', 'description': 'Copy the Claude prompt below. Claude analyzes, develops, tests and reviews locally, then writes the current task-bound return.'}
     if status == 'WAITING_SME':
-        return 'review', {'id': 'human-review', 'kind': 'human_review', 'label': 'Return the single SME review file', 'description': 'Ask the SME to open the issued HTML review, answer, Save a return (or use the workbook), and supply their actual name. Development cannot answer this human gate.'}
+        return 'review', {'id': 'human-review', 'kind': 'human_review', 'label': 'Return the single SME review file', 'description': 'Ask the SME to open the issued HTML review, answer, enter their actual name, click Save review file, and return the downloaded file. The legacy workbook remains supported. Development cannot answer this human gate.'}
     if status in ('COMPLETED', 'COMPLETED_WITH_BLOCKERS') and model['results']['comparison_available']:
         return 'results', {'id': 'results', 'kind': 'results', 'label': 'Review converted logic and specific gaps', 'description': 'Compare source and target evidence by program. Exclusions, unsupported behavior and missing native parity remain visible.'}
     if status in ('PAUSED', 'FAILED', 'REPORTING_FAILED'):

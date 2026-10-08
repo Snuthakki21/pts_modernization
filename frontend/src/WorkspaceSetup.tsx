@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import {fieldErrorFeedback} from './formAccessibility';
 
 export type WorkstationSettings={source_mode:'folder'|'upload';source_folder:string|null;process_notes:string|null;wedlx_folder:string|null;tran_repository_folder:string|null;zowe_profile:string|null;zowe_zosmf_profile:string|null;db2_metadata_url:string|null};
 type ZoweMode='off'|'existing'|'create'|'import';
@@ -74,7 +75,7 @@ export function intakeSourceSelection(mode:string,folder:string,notes:string,sou
 const humanStatus=(status:string)=>status.toLowerCase().replaceAll('_',' ');
 
 export function setupFieldFeedback(id:string,invalidField:string,help?:string){
- return {'aria-invalid':invalidField===id||undefined,'aria-describedby':[help,invalidField===id?'setup-save-error':undefined].filter(Boolean).join(' ')||undefined};
+ return fieldErrorFeedback(id,invalidField,'setup-save-error',help);
 }
 
 export function WorkspaceSetup({model,loading,error,disabled=false,onRetry,onSave,onContinue,onDirtyChange}:{model:WorkstationSetupModel|null;loading:boolean;error:string;disabled?:boolean;onRetry:()=>void;onSave:(settings:WorkstationSettings,connections?:WorkstationConnections)=>Promise<WorkstationSetupModel>;onContinue:()=>void;onDirtyChange?:(dirty:boolean)=>void}){

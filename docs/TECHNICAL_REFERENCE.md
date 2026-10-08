@@ -291,7 +291,9 @@ failure and open the browser after service startup. `-NoBrowser` /
 `--no-browser` suppress browser opening. The launch path owns one Coordinator.
 Operators use the committed React bundle; Node 22+ is needed only to develop the UI. Keep the workspace on
 local disk, back up the whole workspace, and run one Coordinator at a time.
-Stop the UI before using the CLI on the same workspace. Never delete a lock or
+Stop the UI before direct-writer CLI commands on the same workspace. The
+`runner agent` local command inbox uses the running Coordinator and is the
+explicit exception. Never delete a lock or
 recalculate frozen hashes to get past a blocker. Restart/Resume preserves stage,
 review quota and evidence. Transient stage retries are limited to three.
 
@@ -398,6 +400,7 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 | `processes/PROCESS_ID/input/sme-return-inbox.html` or `sme-return-inbox.xlsx` | Place exactly one chosen return format in the designated automatic inbox. Requires explicit actual `--reviewer` attribution; both inboxes present is rejected. |
 | `processes/PROCESS_ID/input/sme-return.html` or `sme-return.xlsx` | Service-preserved accepted return in its original format. Never place a return here manually. |
 | `processes/PROCESS_ID/analysis/` | Structured analysis and source accounting, including reasons for unknown/unsupported/omitted lines. |
+| `processes/PROCESS_ID/analysis/process-context.json` | Immutable indexed prose notes and knowledge inbox snapshot; notes are unverified context, not a manifest or executable instructions. |
 | `processes/PROCESS_ID/analysis/process-guide.md` | Mutable convenience copy of the current guided instructions; never substitutes for immutable task/requirements evidence. |
 | `processes/PROCESS_ID/analysis/process-guide/SHA256.md` | One immutable process guide per distinct checkpoint or explicit Save, never per rule. |
 | `processes/PROCESS_ID/analysis/requirements.md` | Mutable UI convenience copy of the latest saved process scope; never used in place of pinned evidence. |
@@ -414,6 +417,7 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 | `knowledge/mainframe-catalog.json`, `knowledge/README.md` | Versioned standard classifications, utilities, native-semantic checklist and official references. |
 | `knowledge/application-knowledge.json` | Editable private application/vendor utility knowledge, initialized from `examples/application-knowledge.json`; future intakes freeze edits. |
 | `knowledge/records.json`, `knowledge/INDEX.md` | Canonical provenance-bound SME-confirmed interpretations and one compact index; target verification is separate. |
+| `prompts/OPERATOR_GUIDE.json` | Compact checked navigation/FAQ cache with source hashes and relevant spans; never process state, rules, approvals or a second workflow. |
 | `workbench/`, `frontend/`, `tests/`, `tools/`, `scripts/`, `docs/`, `prompts/`, `examples/`, `.github/` | Repository implementation, verification, entrypoints, instructions, synthetic examples and GitHub/Copilot metadata. |
 
 Process IDs are stable, validated identifiers beginning with a letter. Process
@@ -424,7 +428,10 @@ belong in `target` or `tests`, not analysis/review/input. Input allows only the
 manifest, source snapshot and two designated return paths. Use structured
 coverage records; never create a Markdown file per rule or per source line.
 Process Markdown is limited to the input manifest, original source exports under
-`input/sources`, and the explicitly requested requirements copy/version paths above.
+`input/sources`, and the explicitly requested process-guide/requirements copy and
+version paths above. Editable `process-specific.md` notes stay in the external
+authoring package; their indexed content is frozen as structured process context.
+Do not add another Markdown file in process input.
 
 
 ## Failure and recovery matrix
@@ -548,7 +555,8 @@ workspace validation.
 
 Install frontend development dependencies with `npm ci` in `frontend/`, then
 `npm run typecheck`, `npm run build`; from the repository root run
-`node frontend/test-ui.mjs` for the component/behavior checks. Engineering tests use fictional fixtures only and clear
+`npm --prefix frontend test` for the component, accessibility and layout checks.
+The same test script runs in the hosted platform-smoke workflow. Engineering tests use fictional fixtures only and clear
 all source/provider environment settings. The real HTTP tests bind loopback.
 The 1,000 named checks comprise R001–R500 and 500 new R501–R1000 checks. They are
 not 1,000 independent reviewers. The required campaign selects 200,000 unique
@@ -1138,7 +1146,11 @@ contiguous technical/context spans are grouped. POST to the same route supplies
 protection and compare-and-swap revisions. The UI attribution means the local
 operator clicked Save; it is not an authenticated named SME identity. An identical
 retry of the last request returns the saved revision; changed stale requests fail.
-Sources and selections are checked before use. The complete frozen UTF-8 source
+Sources and selections are checked before use. The UI retains an
+in-memory draft per process across route/process switches, tied to its original
+catalog hash and revision. A changed live binding blocks Save until explicit
+**Reload saved choices**; no draft becomes evidence before Save. Browser unload
+warns about unsaved scope, but does not persist it across reloads. The complete frozen UTF-8 source
 is downloadable through GET `/requirements/source?path=FILE`, with a verified hash
 and attachment disposition, including portable Unicode filenames.
 
@@ -1157,7 +1169,8 @@ The selected IR omits No rules, preserves original rules as `omitted_rules`, and
 binds target semantics to the requirements hash. An omitted writer consumed by
 retained logic blocks generation, including later conditional job steps, repeated
 program invocations and successive jobs sharing records. Excluded required
-layouts, COPY/platform dependencies and job behavior require a verified redesign;
+layouts, COPY/platform dependencies and job behavior require a verified
+behavior-preserving replacement;
 unknown semantics are never cleared by a No flag. Generated supported modules
 retain record validation, ordered effects, rule trace and source/requirements
 hashes. Real source-derived comparisons and adversarial mutation evidence remain
@@ -1266,7 +1279,7 @@ qualification, not automatic transactional Db2 substitution.
 
 The single issued SME packet also exports a self-contained local HTML review.
 Explicit Yes/No/Not sure answers, bounded commentary and the actual reviewer are
-saved by downloading one answer-bearing HTML file; browser files cannot silently
+saved with **Save review file**, downloading `PROCESS_ID-sme-return.html`; browser files cannot silently
 overwrite the original. No network, extensions, Python or MCP are required for the
 SME. The operator imports exactly one base64 `html` or `xlsx` return with reviewer
 attribution. The parser never executes returned HTML; it validates the canonical
@@ -1275,7 +1288,33 @@ explicit answer values. HTML consumes the same ledger quota and preserves exact
 raw bytes as `input/sme-return.html`; XLSX retains its historical receipt contract.
 Runner watch accepts either designated `input/sme-return-inbox.html` or `.xlsx` and
 refuses simultaneous files. Coverage, integrity, reports and bundles revalidate the
-accepted format. Modified, unanswered or mismatched returns cannot create approval.
+accepted format. Modified, unanswered or mismatched returns cannot create approval. Any nonempty
+correction/commentary remains unresolved even with Yes; preserve the actual concern
+rather than deleting it to obtain a green result.
+
+### Compact operator reference
+
+`prompts/OPERATOR_GUIDE.json` is a source-bound index for assistants answering
+operator questions. It records portable paths/SHA-256 bindings, bounded relevant
+line spans, exact UI labels, FAQ answers and all 46 numbered review-job-aid steps.
+The authoritative owners remain this reference, `START_HERE.md`, the shared Start
+prompt and implementation. `tools/check_handoff.py` rejects stale or unsafe bound
+sources/ranges. After an owner changes, inspect its affected facts, revise the
+cache and rebind hashes; never merely rehash contradictory text. The separately
+offline HTML review draft is tracked at
+`examples/mainframe-modernization-job-aid.html`, with embedded fictional inputs
+and screenshots. Its portable path and hash are bound in the cache; it is the
+illustrated companion to `START_HERE.md`, not another workflow or process receipt.
+
+Read this cache first for static how-to questions, then only the relevant cited
+spans if detail is needed. It has no mutable process status, current prompt,
+counts, credentials or billing. For current-task inspection use existing
+`runner agent PROCESS_ID --workspace WORKSPACE`; an inspection can enable the
+local-file workflow on historical processes, advance queued work or prepare a
+missing retrieval request, so it is not universally read-only. For status only,
+use `runner status` after stopping the UI, or the running UI's read-only guide.
+Do not query raw SQLite/ledger files or create a new HTTP/MCP status proxy.
+Unknown gates stay Unknown; no cached screenshot or green label clears them.
 
 
 ## Interface ownership and accessibility
@@ -1297,7 +1336,7 @@ Canonical UI Map:
 | Colors, focus and scrollbars | `frontend/src/style.css` | Shared application stylesheet | Native controls; visible scrollbar and forced-colors fallback | Frontend tests plus scoped contrast, keyboard, narrow-screen and zoom observations |
 | Table Selection | `frontend/src/RequirementsPanel.tsx` | Hash-bound requirements catalog and explicit Save | Native Yes/No checkboxes per source unit; filtered selections retain all IDs | Requirements selection, CICS selection and frontend tests |
 | Select/Listbox | Native HTML select in its owning panel | Current filter/mode state and validated API options | Operating-system popup is intentional; no authored listbox | Frontend labels/filter tests; full popup matrix remains pending |
-| Form | `frontend/src/WorkspaceSetup.tsx` and each owning panel | Server validation and form state | Setup owns persistent validation; other native form variants remain an accessibility follow-up | Setup error/focus/browser regressions; all-form manual qualification pending |
+| Form | `frontend/src/WorkspaceSetup.tsx` and each owning panel | Server validation and form state | Setup, estate scenario and database filters own persistent field errors and first-invalid focus; other operations focus their error summary | Field association/focus regressions and scoped browser checks; all-form assistive-technology qualification pending |
 | Scrollbar | `frontend/src/style.css` | Global scrollbar tokens and forced-colors CSS | Document/panel overflow keeps visible operable scrollbars | Frontend style tests and scoped Chrome media observations |
 | Toast | `frontend/src/main.tsx` and owning panel inline feedback | Actual operation result or persistent error | Persistent status/alert feedback; critical content does not depend on an ephemeral toast | Frontend status tests and operator save/error walkthrough |
 | CRUD | Existing Coordinator through `frontend/src/main.tsx` | Ledger lifecycle, immutable artifacts and explicit saved scope | Prepare/update scope/cancel preserve evidence; no hard-delete variant | Guided API, requirements, cancellation and named workflow checks |
@@ -1311,3 +1350,19 @@ all-route accessibility or Windows 11 browser acceptance. A third-party static
 auditor that requires separate `DESIGN.md`/`UX-CONTRACT.md` cannot certify this
 repository's consolidated contract; record that tool result separately from
 executed runtime checks rather than converting it into a passing receipt.
+
+
+The shared stylesheet is copied to `workbench/static/style.css` by the frontend
+build. The bounded online pilot stylesheet is an adapter checked against the same
+font and control tokens. Input borders use `--field-border: #827c71` and keyboard
+focus uses `--focus: #1763aa`; body fonts prefer Segoe UI on Windows. The skip link
+is clipped while idle and occupies normal document flow when focused. Table and
+lineage regions have a name and keyboard focus so wide evidence can scroll within
+the panel. Scope drafts remain local and unsaved until the actual operator Save. Native textareas intentionally allow vertical resizing so long instructions remain expandable; horizontal width stays contained. The generic design auditor's resize-none and separate ownership-manifest requirements remain recorded policy findings, not a conformance waiver.
+
+Verification uses [WCAG reflow guidance](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html),
+[non-text contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+and [focus visibility guidance](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html).
+Scoped browser geometry and finite contrast tests do not certify complete WCAG
+conformance. Windows 11, screen-reader, native popup, actual browser zoom and
+organization-specific design-system acceptance remain separately qualified.

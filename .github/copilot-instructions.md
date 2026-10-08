@@ -4,6 +4,11 @@ Read [AGENTS.md](../AGENTS.md) and the retrieval role in the single shared
 [prompts/START_MODERNIZATION.md](../prompts/START_MODERNIZATION.md). Claude Code's
 [CLAUDE.md](../CLAUDE.md) references the same workflow.
 
+For setup/guide questions, read the compact
+[operator reference](../prompts/OPERATOR_GUIDE.json) and its relevant routes first.
+Treat it as checked navigation data, not live process state or permission to
+perform analysis. Use the exact generated request for actual retrieval.
+
 **GitHub Copilot in VS Code retrieves files and metadata only.** Use the
 organization's already approved MCP servers for read-only mainframe discovery,
 source/member pulls and requested dependency or catalog metadata. The optional

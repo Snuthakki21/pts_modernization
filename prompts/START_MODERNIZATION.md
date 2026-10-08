@@ -6,6 +6,17 @@ agents. Repository entrypoints: [AGENTS.md](../AGENTS.md) and
 [.github/copilot-instructions.md](../.github/copilot-instructions.md). Folder contract:
 [docs/TECHNICAL_REFERENCE.md](../docs/TECHNICAL_REFERENCE.md).
 
+### Answer operator questions efficiently
+
+For how-to questions, read [OPERATOR_GUIDE.json](OPERATOR_GUIDE.json) first, then
+only the relevant bounded source/document spans. Its source hashes invalidate
+stale labels and instructions; run `python tools/check_handoff.py` before relying
+on a changed checkout. It maps the detailed review job aid's 46 steps without
+linking to private machine paths. It is navigation data, not an execution prompt,
+process state, an approval or conversion evidence. Do not scan databases or the
+entire repository to answer a static guide question. For current task/return
+paths, use the existing runner workflow below. Report unknown state honestly.
+
 ### Host roles and local-file handoff
 
 **GitHub Copilot in VS Code retrieves information only.** It uses the organization's
@@ -83,8 +94,11 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
 
 1. Use the configured Python environment from `START_HERE.md`. Identify the
    user-supplied manifest and workspace. The manifest names the stable process
-   ID and ordered jobs/steps, or online transaction/program/map bindings. The workspace must contain the selected local,
-   read-only `Endeavor/` export. Only Copilot uses already approved MCP connections
+   ID and ordered jobs/steps, or online transaction/program/map bindings. For CLI
+   Start, provide the complete read-only local export in `WORKSPACE/Endeavor/`
+   or with `--source-folder`. The UI's **No exports yet — prepare Copilot retrieval**
+   creates a guided intake before source exists and stops at discovery; it does
+   not permit conversion of an empty snapshot. Only Copilot uses already approved MCP connections
    to retrieve missing source and bounded read-only Zowe/Db2 metadata. Conversion
    requires the complete local export snapshot. Do not execute legacy programs,
    submit jobs, upload source, perform mainframe writes, or add unrestricted
@@ -120,7 +134,11 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
    python -m workbench.runner run --manifest MANIFEST --workspace WORKSPACE --assistant claude_files --select-requirements
    ```
 
-   `start` is an alias of `run`. Intake reads `WORKSPACE/Endeavor/` automatically.
+   `start` is an alias of `run`. Intake reads `WORKSPACE/Endeavor/` by default;
+   append `--source-folder SOURCE_FOLDER --process-notes PROCESS_MD` for supplied
+   external files. The canonical manifest and prose notes are separate inputs.
+   Notes freeze in `analysis/process-context.json`; the manifest freezes as
+   `input/process-input.md`. Never create `input/process-specific.md`.
    An existing process ID is reused only with the recorded immutable manifest
    SHA-256 (both supplied bytes and pinned snapshot must match) and an
    intact source snapshot. Repeated Start preserves the original packet/hash.
@@ -175,7 +193,7 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
 
    The same issued packet also has a self-contained HTML review. The SME opens
    `sme-checklist.html` locally, explicitly answers/commentates, enters their name
-   and clicks Save return. Save downloads one answer-bearing HTML file; return that
+   and clicks **Save review file**. This downloads `PROCESS_ID-sme-return.html`; return that
    file through the UI, or place it in exactly
    `WORKSPACE/processes/PROCESS_ID/input/sme-return-inbox.html`. Use one inbox only;
    two simultaneous formats are ambiguous. Import binds the original packet,
@@ -207,7 +225,8 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
    review quota atomically. The service preserves the accepted file as
    `input/sme-return.xlsx` or `input/sme-return.html`, matching its actual format. An identical return with the same attribution is an
    idempotent import; a different second return is refused. No/Not sure,
-   missing answers or corrections remain unresolved. Do not create another
+   missing answers or any nonempty correction/commentary remain unresolved,
+   including commentary beside Yes. Do not create another
    SME round to turn blockers into success.
 6. Inspect generated coverage, tests, target comparisons, adversarial evidence
    and reports. Account for every selected exported file and line, including
