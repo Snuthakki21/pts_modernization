@@ -1252,6 +1252,8 @@ uses the public Wells Fargo red/yellow direction, system typography including
 Segoe UI on Windows, semantic text states and visible keyboard focus. Internal
 Wells Fargo design-system compliance requires its approved standards.
 
+Canonical UI Map:
+
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 | --- | --- | --- | --- | --- |
 | Navigation and saved place | `frontend/src/main.tsx` | Existing Coordinator and selected process | Overview, Setup, Intake, Evidence; Setup drafts remain mounted across navigation | Frontend navigation regression and local Chrome keyboard walkthrough |
@@ -1260,6 +1262,12 @@ Wells Fargo design-system compliance requires its approved standards.
 | Source comparison and gaps | `frontend/src/ProgramComparison.tsx` | Accepted immutable report evidence | Per-program, gap and selected-No filters | Source/target report and frontend filter tests |
 | Database records | `frontend/src/DatabasePanel.tsx` | Registered SQLite artifacts and typed snapshot comparison | Paged read-only tables and exact key filters | Composite-key, identifier/decimal, delta/history and byte-limit checks |
 | Colors, focus and scrollbars | `frontend/src/style.css` | Shared application stylesheet | Native controls; visible scrollbar and forced-colors fallback | Frontend tests plus scoped contrast, keyboard, narrow-screen and zoom observations |
+| Table Selection | `frontend/src/RequirementsPanel.tsx` | Hash-bound requirements catalog and explicit Save | Native Yes/No checkboxes per source unit; filtered selections retain all IDs | Requirements selection, CICS selection and frontend tests |
+| Select/Listbox | Native HTML select in its owning panel | Current filter/mode state and validated API options | Operating-system popup is intentional; no authored listbox | Frontend labels/filter tests; full popup matrix remains pending |
+| Form | `frontend/src/WorkspaceSetup.tsx` and each owning panel | Server validation and form state | Setup owns persistent validation; other native form variants remain an accessibility follow-up | Setup error/focus/browser regressions; all-form manual qualification pending |
+| Scrollbar | `frontend/src/style.css` | Global scrollbar tokens and forced-colors CSS | Document/panel overflow keeps visible operable scrollbars | Frontend style tests and scoped Chrome media observations |
+| Toast | `frontend/src/main.tsx` and owning panel inline feedback | Actual operation result or persistent error | Persistent status/alert feedback; critical content does not depend on an ephemeral toast | Frontend status tests and operator save/error walkthrough |
+| CRUD | Existing Coordinator through `frontend/src/main.tsx` | Ledger lifecycle, immutable artifacts and explicit saved scope | Prepare/update scope/cancel preserve evidence; no hard-delete variant | Guided API, requirements, cancellation and named workflow checks |
 
 Setup owns its validation messages instead of browser validation bubbles, links
 the invalid field to the persistent error and preserves the draft after failures.
