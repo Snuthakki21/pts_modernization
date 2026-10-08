@@ -1,11 +1,13 @@
 """Actual bounded SQLite storage and frozen keyed-export comparison tests."""
 from copy import deepcopy
+from datetime import datetime,timezone
 from pathlib import Path
 import random
 import secrets
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from workbench.database import (schema_candidate,create_application_database,sqlite_schema,sqlite_rows,
                                 validate_snapshot,sqlite_snapshot,compare_snapshots as _compare_snapshots,_value_valid,SNAPSHOT_FIELDS,decode_filters)
@@ -341,8 +343,14 @@ class DatabaseTests(unittest.TestCase):
                 bp=Path(self.tmp.name)/f'before-{index}.sqlite';ap=Path(self.tmp.name)/f'after-{index}.sqlite'
                 br=create_application_database(bp,[schema],{'APP.SALE':old});ar=create_application_database(ap,[schema],{'APP.SALE':after})
                 source_before=receipt(old,'before');source_after=receipt(after,'after')
-                target_before=sqlite_snapshot(bp,br['sha256'],'APP.SALE',source_before,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'before')
-                target_after=sqlite_snapshot(ap,ar['sha256'],'APP.SALE',source_after,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'after')
+                # Synthetic capture chronology must not depend on OS clock tick resolution.
+                capture_times=(datetime(2026,10,7,16,tzinfo=timezone.utc),datetime(2026,10,7,17,tzinfo=timezone.utc))
+                with patch('workbench.database.datetime',wraps=datetime) as clock:
+                    clock.now.side_effect=capture_times
+                    target_before=sqlite_snapshot(bp,br['sha256'],'APP.SALE',source_before,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'before')
+                    target_after=sqlite_snapshot(ap,ar['sha256'],'APP.SALE',source_after,CONTEXT['sqlite_run_id'],CONTEXT['input_hashes'],CONTEXT['sqlite_environment'],'after')
+                self.assertEqual(clock.now.call_count,2)
+                self.assertEqual([s['provenance']['retrieved_at'] for s in (target_before,target_after)],[t.isoformat() for t in capture_times])
                 result=compare_snapshots(source_before,source_after,target_before,target_after,CONTEXT)
                 self.assertTrue(result['summary']['complete_exported_scope_match']);self.assertEqual({r['db2_operation'] for r in result['records']},{'INSERT','UPDATE'})
                 bad=raw(target_after);bad['rows'][0]['VALUE']='adversarial mismatch'
@@ -412,9 +420,14 @@ class DatabaseTests(unittest.TestCase):
         snapshots=[receipt([],'before'),receipt([],'after'),receipt([],'before','sqlite'),receipt([],'after','sqlite')]
         result=_compare_snapshots(*snapshots,CONTEXT)
         self.assertFalse(result['summary']['complete_exported_scope_match']);self.assertEqual(len(result['gaps']),4)
-        reversed_after=raw(snapshots[1]);reversed_after['provenance']['retrieved_at']='2026-10-07T15:00:00Z'
-        result=compare_snapshots(snapshots[0],validate_snapshot(encode(reversed_after).decode()),snapshots[2],snapshots[3],CONTEXT)
-        self.assertFalse(result['summary']['run_delta_matches']);self.assertTrue(any(g.get('field')=='retrieved_at' for g in result['gaps']))
+        for side,after_index in (('db2',1),('sqlite',3)):
+            for timestamp in ('2026-10-07T15:00:00Z','2026-10-07T16:00:00Z'):
+                with self.subTest(side=side,after_timestamp=timestamp):
+                    after=raw(snapshots[after_index]);after['provenance']['retrieved_at']=timestamp
+                    changed=list(snapshots);changed[after_index]=validate_snapshot(encode(after).decode())
+                    result=compare_snapshots(*changed,CONTEXT)
+                    self.assertFalse(result['summary']['complete_exported_scope_match']);self.assertFalse(result['summary']['run_delta_matches'])
+                    self.assertTrue(any(g.get('field')=='retrieved_at' and g.get('side')==side for g in result['gaps']))
 
     def test_create_and_read_operations_propagate_cancellation_without_partial_database(self):
         schema=schema_candidate(DDL)
