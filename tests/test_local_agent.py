@@ -74,7 +74,7 @@ class RetrievalLifecycleTests(LocalAgentFixture):
         for need in request['needs']:
             item={'need_id':need['need_id'],'status':'FOUND' if found else 'NOT_FOUND','provenance':provenance}
             if found:
-                dest=inbox/'files'/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(text,encoding='utf-8')
+                dest=inbox/'files'/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(text.encode('utf-8'))
                 item.update(path=path,sha256=sha(text))
             else:item['reason']='Not present in the approved library'
             items.append(item)
