@@ -1,11 +1,16 @@
 import copy
 import json
+import random
+import secrets
 import tempfile
 import unittest
 from pathlib import Path
 
 from workbench.domain import ValidationError, encode, sha
 from workbench.mainframe import classify_files, load_knowledge, utility_findings, validate_snapshot
+from workbench.preflight import inspect_workspace
+from workbench.source import analyze_sources
+from workbench.target import emit_jobs
 
 
 class MainframeKnowledgeTests(unittest.TestCase):
@@ -149,5 +154,64 @@ class MainframeKnowledgeTests(unittest.TestCase):
         self.assertEqual(self.snapshot,load_knowledge(self.root))
         self.assertEqual(len(self.snapshot['catalog']['categories']),17)
         self.assertGreaterEqual(len(self.snapshot['catalog']['utilities']),17)
+
+    def test_db2_utility_without_verified_equivalent_retains_each_named_obligation(self):
+        """Recognition of twenty driver contexts cannot become SQLite/no-op credit."""
+        rng = random.Random(secrets.randbits(63))
+        identities = rng.sample(range(1000000), 20)
+        jobs, files = [], {}
+        rows = []
+        for index, identity in enumerate(identities):
+            job, step = f'J{identity:06d}', f'S{index:03d}'
+            utility = ('DSNUTILB', 'DSNTIAUL')[index % 2]
+            jobs.append({'name': job, 'steps': [{'name': step, 'program': utility,
+                         'condition': 'ALWAYS', 'inputs': ['SYSIN'], 'outputs': ['SYSREC']}]})
+            # These are immutable simulated source exports; nothing is executed.
+            files[f'{job}.jcl'] = f'//{job} JOB\n//{step} EXEC PGM={utility}\n'
+            control = (f'REORG TABLESPACE APP.T{identity:06d}\n' if utility == 'DSNUTILB'
+                       else f'SELECT * FROM APP.T{identity:06d};\n')
+            files[f'{job}.control'] = control
+            rows.append(f'| {index + 1} | {job} | 1 | {step} | {utility} | SYSIN | SYSREC | Always |')
+        manifest_text = ('# Fictional Db2 utility preservation\n'
+            '- Process ID: db2-fidelity\n- Process name: Fictional utility contexts\n'
+            '| Job order | Job | Step order | Step | Program or utility | Input files/tables | Output files/tables | Condition or dependency |\n'
+            '|---|---|---|---|---|---|---|---|\n' + '\n'.join(rows) + '\n')
+        export = self.root / 'Endeavor'; export.mkdir()
+        for path, text in files.items():
+            (export / path).write_text(text, encoding='utf-8')
+        manifest_path = self.root / 'process-input.md'; manifest_path.write_text(manifest_text)
+        original = {path: (export / path).read_bytes() for path in files}
+        preflight = inspect_workspace(self.root, manifest_path, environ={})
+        self.assertEqual(preflight['status'], 'READY', preflight['checks'])
+        self.assertEqual(preflight['conversion_status'], 'BLOCKED')
+        manifest = {'jobs': jobs, 'mainframe_knowledge': self.snapshot}
+        analysis = analyze_sources(files, manifest)
+        findings = analysis['utility_findings']
+        self.assertEqual(len(findings), 20)
+        self.assertEqual({(item['job'], item['step'], item['program']) for item in findings},
+                         {(job['name'], job['steps'][0]['name'], job['steps'][0]['program']) for job in jobs})
+        gaps = [gap for gap in analysis['blockers'] if gap['kind'] == 'unsupported_utility']
+        self.assertEqual(len(gaps), 20)
+        self.assertEqual({(gap['job'], gap['step'], gap['utility_id']) for gap in gaps},
+                         {(item['job'], item['step'], item['utility_id']) for item in findings})
+        for finding, gap in zip(findings, gaps):
+            self.assertEqual(finding['conversion_support'], 'adapter_required')
+            self.assertTrue(finding['required_evidence'])
+            self.assertEqual(finding['source_refs'], [{'path': finding['job'] + '.jcl', 'line': 2}])
+            self.assertEqual(gap['source_refs'], finding['source_refs'])
+            self.assertIn('no verified executable adapter', gap['message'])
+            self.assertIn(finding['program'], gap['message'])
+            self.assertIn(finding['required_evidence'][0], gap['message'])
+        self.assertFalse(analysis['programs'])
+        self.assertFalse(analysis['rules'])
+        self.assertEqual({asset['path'] for asset in analysis['assets']}, set(files))
+        for asset in analysis['assets']:
+            self.assertEqual(asset['source_text'], files[asset['path']])
+            self.assertEqual(asset['source_hash'], sha(files[asset['path']]))
+            self.assertEqual(asset['loc']['physical'], len(files[asset['path']].splitlines()))
+            self.assertTrue(asset['selected'])
+        with self.assertRaisesRegex(ValidationError, 'Missing version-pinned program'):
+            emit_jobs(manifest, {})
+        self.assertEqual({path: (export / path).read_bytes() for path in files}, original)
 
 if __name__=='__main__': unittest.main()

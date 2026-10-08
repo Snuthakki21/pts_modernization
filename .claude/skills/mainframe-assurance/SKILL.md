@@ -14,6 +14,12 @@ assertion is never source parity, an authenticated test receipt or SME approval.
 Use [the technical contract](../../../docs/TECHNICAL_REFERENCE.md), existing
 coverage/reports and Coordinator ledger. Independently review changed semantics
 and run the mandated tests. Do not fabricate reviewer answers or observed parity.
+Review for fidelity to actual source behavior, including legacy defects, rather
+than preferred business behavior. Verify source/target/test evidence for preserved
+issues; a silent correction is a mismatch. Test source-supported boundaries,
+duplicates, NULL/numeric/error behavior, sequential effects and platform details.
+Functionality-specific Db2/mainframe behavior lacking a verified equivalent stays
+a precise named gap; selected No is an omission, not parity credit.
 
 One question can cover only frozen, explicitly listed equivalent occurrences.
 Equal prose is insufficient: layouts, predicate/action semantics, dependencies,

@@ -6,6 +6,10 @@ Claude Code to analyze, build and test, review one checklist, and receive one
 executive report.
 Python/SQLite is the non-production target. Unsupported semantics require tested
 adapters; a plan cannot be marked converted.
+Conversion preserves the mainframe's evidenced behavior, even when its design
+appears incorrect. Source issues are reported rather than fixed. The comparison
+shows the corresponding target code and tests; a Db2/mainframe function without
+a verified replacement remains a specific gap.
 
 ## The analyst job aid
 
@@ -395,7 +399,11 @@ Copy this initial prompt into **Claude Code**:
 > Analyze business rules separately from technical logic. Present all conversion
 > choices as Yes by default and wait for my explicit UI Save; retain every No
 > with its exclusion reason. Implement selected behavior in professional
-> Python/SQLite and document evidence for any future Oracle decision. Generate
+> Python/SQLite, preserving evidenced legacy behavior including design defects.
+> Refactor only with verified observable equivalence; report source issues and
+> unsupported Db2/mainframe operations with source/target/test evidence or exact
+> missing replacements. Do not silently correct or retire behavior. Document
+> evidence for any future Oracle decision. Generate
 > at least 20 distinct runtime-randomized valid source states per supported logic,
 > pin seeds, execute unit and target-comparison tests, and perform independent
 > adversarial review. Own analysis, development, integration, testing and reporting.

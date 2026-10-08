@@ -124,10 +124,19 @@ class SavedRequirementsTests(unittest.TestCase):
         omitted=next(r for r in model['items'] if r['kind']=='rule');self.save(model,[omitted['id']]);self.c.advance('process-a')
         doc=self.c.ledger.get('process-a');self.assertFalse(doc['program_versions'])
         self.assertTrue(any('reads fields written' in b['message'] for b in doc['blockers']))
+        for blocker in doc['blockers']:
+            if blocker['kind']=='requirements_dependency':
+                self.assertIn('verified behavior-preserving replacement',blocker['message'])
+                self.assertIn('do not repair legacy logic',blocker['message'])
+                self.assertNotIn('verified redesign',blocker['message'])
 
     def test_no_required_layout_never_runs_hidden_validation(self):
         model=self.ready();omitted=next(r for r in model['items'] if r['kind']=='data_layout');self.save(model,[omitted['id']]);self.c.advance('process-a')
         doc=self.c.ledger.get('process-a');self.assertFalse(doc['program_versions']);self.assertTrue(any(b['kind']=='requirements_dependency' for b in doc['blockers']))
+        for blocker in doc['blockers']:
+            if blocker['kind']=='requirements_dependency':
+                self.assertIn('verified behavior-preserving replacement',blocker['message'])
+                self.assertIn('do not repair legacy logic',blocker['message'])
 
     def test_no_jcl_prevents_job_execution_even_with_supported_program(self):
         model=self.ready(extra={'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n'})
@@ -175,6 +184,10 @@ class SavedRequirementsTests(unittest.TestCase):
         self.save(model,[omitted['id']]);self.c.advance('process-a');doc=self.c.ledger.get('process-a')
         self.assertNotIn('FOLLOW',doc['program_versions'])
         self.assertTrue(any(b['kind']=='requirements_dependency' and 'upstream' in b['message'] for b in doc['blockers']))
+        for blocker in doc['blockers']:
+            if blocker['kind']=='requirements_dependency':
+                self.assertIn('verified behavior-preserving replacement',blocker['message'])
+                self.assertIn('do not repair legacy logic',blocker['message'])
 
     def test_saved_markdown_survives_restart_and_failed_convenience_copy(self):
         from unittest.mock import patch

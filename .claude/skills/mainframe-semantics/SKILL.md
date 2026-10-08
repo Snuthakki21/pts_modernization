@@ -27,6 +27,13 @@ Explicit rule_classification_defaults can classify a program’s extracted decis
 when the same category applies; per-rule exceptions override the default. Unparsed spans stay
 unclassified; do not turn each unsupported line into a supposed business rule.
 
+Preserve evidenced behavior even when the source design appears incorrect.
+Document suspected legacy defects and their consequences in existing structured
+analysis; do not substitute intended or preferred behavior for what the source
+does. Record exact source versions/spans and unresolved interpretation. Apply
+the technical contract's Legacy behavior fidelity section; a functionality-specific
+Db2/mainframe operation without a verified equivalent remains a named gap.
+
 Before interpreting behavior, establish applicable semantics:
 - COBOL: compiler/options, paragraph fall-through, PERFORM ranges, nested decisions,
   CALL/CANCEL and storage lifetime, condition names, REDEFINES/OCCURS, reference

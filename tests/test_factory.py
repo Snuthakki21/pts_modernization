@@ -29,6 +29,10 @@ class FactoryTests(unittest.TestCase):
         view = factory_view({'id':'p','status':'READY','jobs':[], 'blockers':[], 'artifacts':[]})
         self.assertEqual(view['counts']['verified_capabilities'], 0)
         self.assertTrue(all(c['state']=='NOT_ASSESSED' for c in view['capabilities']))
+        guidance=' '.join(view['investigation_strategy'])
+        self.assertIn('behavior-preserving replacement',guidance)
+        self.assertIn('never silently repair legacy logic',guidance)
+        self.assertNotIn('target design change',guidance)
 
     def test_transaction_duplicate_and_partial_map_binding_rejected(self):
         with self.assertRaises(ValidationError):parse_manifest(ONLINE+'| elig | ELIGIBLE | | |\n')

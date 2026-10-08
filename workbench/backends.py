@@ -19,16 +19,26 @@ class TargetBackend(Protocol):
     def compare(self, program: dict, code: str, suite: dict, **options) -> dict: ...
 
 
+LEGACY_FIDELITY_REQUIREMENT = (
+    'Preserve evidenced legacy behavior one-for-one, including known legacy design defects. '
+    'Never silently repair source business or technical logic. A legacy defect alone is not an exclusion or unsupported-logic reason. '
+    'Refactor only with equivalent observable behavior '
+    'and source/target/test evidence. Keep functionality-specific Db2 utilities/programs without verified '
+    'equivalents as named unverified gaps; labels, age, a plan or SME Yes cannot prove a replacement. '
+    'Explicit saved No remains an accounted omission, not parity.'
+)
+
+
 TARGET_EXTENSION_CONTRACT = {
     'version': 1,
     'implemented': ['python-sqlite'],
     'future_candidates': ['python-oracle', 'python-bigquery', 'java', 'dotnet'],
     'fixed_source_access': ['read_only_zowe_cli', 'approved_read_only_db2_mcp'],
-    'required': ['versioned source model and target artifacts', 'selected requirement mappings',
+    'required': [LEGACY_FIDELITY_REQUIREMENT, 'versioned source model and target artifacts', 'selected requirement mappings',
                  'generation and actual execution comparisons', 'types, failures and transactional semantics',
                  '20 distinct randomized valid logic states with linked witnesses',
                  'independent adversarial review and immutable report gates'],
-    'bigquery_boundary': 'A warehouse target requires workload and transaction redesign qualification; it is not an automatic transactional Db2 replacement.',
+    'bigquery_boundary': 'A warehouse target requires source-equivalent workload and transaction qualification; it is not an automatic transactional Db2 replacement. Behavior-changing redesign cannot earn migration parity credit.',
 }
 
 
@@ -41,7 +51,8 @@ class PythonSQLiteBackend:
         return {'name': self.name, 'contract_version': self.contract_version,
                 'source_profile': 'Existing flat IF / literal MOVE record adapter',
                 'database': 'SQLite comparison storage; native Db2 parity is not implied',
-                'evidence_basis': 'SOURCE_DERIVED_EXPECTED'}
+                'evidence_basis': 'SOURCE_DERIVED_EXPECTED',
+                'behavior_fidelity': LEGACY_FIDELITY_REQUIREMENT}
 
     def generate(self, program):
         from .target import emit_program
@@ -199,7 +210,7 @@ def target_architecture(doc):
             *[{'name':name,'title':title,'selectable':False,'implementation_status':'NOT_IMPLEMENTED',
                'native_db2_parity_verified':False,'scope':'Future target adapter candidate; no generation or execution implemented',
                'rationale':rationale} for name,title,rationale in (
-                   ('python-bigquery','Python / BigQuery','Qualify warehouse workload, data types and transaction redesign; do not assume a transactional Db2 substitute.'),
+                   ('python-bigquery','Python / BigQuery','Qualify source-equivalent warehouse workload, data types and transactions; behavior-changing redesign is outside migration parity and no transactional Db2 substitute is assumed.'),
                    ('java','Java','Implement source-model generation and native target comparisons behind the same Coordinator gates.'),
                    ('dotnet','.NET','Implement source-model generation and native target comparisons behind the same Coordinator gates.'))],
         ],

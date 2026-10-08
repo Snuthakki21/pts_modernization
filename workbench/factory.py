@@ -29,7 +29,7 @@ STAGE_BY_STATUS = {
 INVESTIGATION = ['Retrieve cited source and release/site-specific documentation',
                  'Inspect existing verified adapters and dependency contracts',
                  'Implement and independently test an equivalent or compatibility adapter',
-                 'Evaluate an explicit target design change; retain behavior differences',
+                 'Evaluate a verified behavior-preserving replacement; retain differences as unresolved gaps, never silently repair legacy logic',
                  'Record exact missing evidence or unsupported semantics if unresolved']
 
 

@@ -27,6 +27,12 @@ write source/Db2 datasets or turn off safety gates. Source-derived expectations
 are separate from observed mainframe parity. Every exported file and source line
 needs a disposition and evidence/reason in the coverage report; omissions must
 remain visible. Platform-specific behavior requires a verified replacement.
+Preserve evidenced legacy behavior even when its design appears incorrect;
+fix framework defects, not source business/technical behavior. Refactor only
+with verified observable equivalence. Record preserved source issues with
+source/target/test evidence. A Db2/mainframe operation without a verified
+equivalent remains an exact named gap, never an assumed unnecessary feature.
+See the reference's Legacy behavior fidelity contract.
 
 Before interpreting mainframe exports, read `knowledge/README.md`, the standard
 `knowledge/mainframe-catalog.json`, the workspace's editable

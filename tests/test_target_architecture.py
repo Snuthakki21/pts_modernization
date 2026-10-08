@@ -26,6 +26,19 @@ class TargetArchitectureTests(unittest.TestCase):
         self.assertEqual(view['extension_contract']['implemented'],['python-sqlite'])
         self.assertIn('warehouse',view['extension_contract']['bigquery_boundary'].lower())
 
+    def test_current_and_future_backend_contracts_require_source_fidelity_not_repairs(self):
+        view=backends.target_architecture(self.document())
+        requirements=' '.join(view['extension_contract']['required'])
+        self.assertIn('including known legacy design defects',requirements)
+        self.assertIn('Never silently repair',requirements)
+        self.assertIn('named unverified gaps',requirements)
+        capabilities=backends.get_backend().capabilities()
+        self.assertIn('including known legacy design defects',capabilities['behavior_fidelity'])
+        self.assertEqual(capabilities['evidence_basis'],'SOURCE_DERIVED_EXPECTED')
+        self.assertTrue(all(not c['native_db2_parity_verified'] for c in view['candidates']))
+        self.assertTrue(all(o['status']=='UNVERIFIED' for o in view['obligations']))
+        self.assertFalse(view['production_ready'])
+
     def test_missing_analysis_remains_provisional(self):
         view=backends.target_architecture({'id':'empty'})
         self.assertEqual(view['status'],'ASSESSMENT_INCOMPLETE')

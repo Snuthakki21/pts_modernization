@@ -187,12 +187,12 @@ def project(analysis,selection,jobs=()):
             if rule['id'] in omitted_rules:written.update(e['field'] for e in rule['then']+rule['else'])
             elif written & reads(rule['predicate']):
                 gap={'kind':'requirements_dependency','program':name,'path':p['path'],'lines':list(range(rule['source_start'],rule['source_end']+1)),
-                     'message':'Selected Yes rule '+rule['id']+' reads fields written by a selected No predecessor: '+', '.join(sorted(written & reads(rule['predicate'])))+'. A verified redesign or revised requirements is needed.'}
+                     'message':'Selected Yes rule '+rule['id']+' reads fields written by a selected No predecessor: '+', '.join(sorted(written & reads(rule['predicate'])))+'. Explicit revised requirements or a verified behavior-preserving replacement is needed; do not repair legacy logic.'}
                 p['blockers'].append(gap);out['blockers'].append(gap)
         for unit in excluded.values():
             if unit['source_path']==p['path'] and unit['kind'] not in ('rule','blank','comment','structure','paragraph') and not cosmetic(unit):
                 gap={'kind':'requirements_dependency','program':name,'path':p['path'],'lines':list(range(unit['start_line'],unit['end_line']+1)),
-                     'message':NO_REASON+' Required layout/return/platform behavior was excluded; retained program semantics need a verified redesign before target generation.'}
+                     'message':NO_REASON+' Required layout/return/platform behavior was excluded; retained program semantics need explicit revised requirements or a verified behavior-preserving replacement before target generation; do not repair legacy logic.'}
                 p['blockers'].append(gap);out['blockers'].append(gap)
     upstream=set()
     for job in jobs:
@@ -204,7 +204,7 @@ def project(analysis,selection,jobs=()):
                 if dependencies:
                     gap={'kind':'requirements_dependency','program':p['name'],'path':p['path'],
                         'lines':list(range(rule['source_start'],rule['source_end']+1)),
-                        'message':'Selected Yes rule '+rule['id']+' in '+job['name']+'/'+step['name']+' reads fields written by a selected No upstream job step: '+', '.join(sorted(dependencies))+'. A verified redesign or revised requirements is needed.'}
+                        'message':'Selected Yes rule '+rule['id']+' in '+job['name']+'/'+step['name']+' reads fields written by a selected No upstream job step: '+', '.join(sorted(dependencies))+'. Explicit revised requirements or a verified behavior-preserving replacement is needed; do not repair legacy logic.'}
                     p['blockers'].append(gap);out['blockers'].append(gap)
             # Conservatively preserve possible effects across conditional steps,
             # repeated program invocations and jobs sharing the target record.
@@ -213,7 +213,7 @@ def project(analysis,selection,jobs=()):
         if unit['program'] is not None or unit['kind'] in ('blank','comment') or cosmetic(unit):continue
         dependents=[p for p in out['programs'].values() if unit['source_path'] in {d.get('path') for d in p.get('dependencies',[])} or any(f.get('source_ref','').rsplit(':',1)[0]==unit['source_path'] for f in p.get('fields',{}).values()) or p['name'] in unit.get('programs',[])]
         gap={'kind':'requirements_dependency','path':unit['source_path'],'lines':list(range(unit['start_line'],unit['end_line']+1)),
-             'message':NO_REASON+' This source file participates in the selected process; its consumers need a verified redesign before execution.'}
+             'message':NO_REASON+' This source file participates in the selected process; its consumers need explicit revised requirements or a verified behavior-preserving replacement before execution; do not repair legacy logic.'}
         out['blockers'].append(gap)
         for p in dependents:p['blockers'].append({**gap,'program':p['name']})
     out['rules']=[r for p in out['programs'].values() for r in p['rules']]

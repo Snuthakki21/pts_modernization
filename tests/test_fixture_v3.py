@@ -1,13 +1,16 @@
 """Opt-in fixture density counts executed logic inputs, not padded records."""
 import copy
 import json
+import random
+import secrets
+import string
 import unittest
 
 from workbench.domain import ValidationError, encode, sha
 from workbench.fixtures import adversarial_review, plan_cases, verify_program
 from workbench.reference import predicate, run_reference
 from workbench.source import analyze_program
-from workbench.target import emit_program
+from workbench.target import emit_program, prepare_generated
 from test_source import COBOL
 
 
@@ -333,6 +336,154 @@ class FixtureV3Tests(unittest.TestCase):
                 with self.subTest(mutation=mutate.__name__, validator=validator.__name__):
                     with self.assertRaises(ValidationError):
                         validator(program, emit_program(program), changed)
+
+
+
+    def test_counterintuitive_legacy_threshold_and_override_are_not_repaired(self):
+        """Fictional faulty policy stays source-equivalent, including override order."""
+        text = (COBOL.replace('PROGRAM-ID. ELIGIBLE.', 'PROGRAM-ID. COUNTER.')
+                .replace('IF AGE >= 18', 'IF AGE < 18')
+                .replace('IF ACTIVE = "N"\n    MOVE "N" TO DECISION',
+                         'IF ACTIVE = "N"\n    MOVE "Y" TO DECISION'))
+        program = self.program(text)
+        frozen_source = encode(program)
+        seed = secrets.randbits(63)
+        rng = random.Random(seed)
+        ages = [0, 17, 18, 19, 999]
+        ages += rng.sample([age for age in range(1000) if age not in ages], 35)
+        flags = ['N'] + rng.sample([flag for flag in string.ascii_uppercase + string.digits
+                                   if flag != 'N'], 35)
+        flags += rng.sample(flags, 4)
+        records = [{'AGE': age, 'ACTIVE': flags[index], 'DECISION': ' '}
+                   for index, age in enumerate(ages)]
+        # Force the threshold equality and later override witnesses.
+        records[2]['ACTIVE'] = 'Y'
+        records[3]['ACTIVE'] = 'N'
+        expected = []
+        for record in records:
+            age_branch = record['AGE'] < 18
+            inactive_branch = record['ACTIVE'] == 'N'
+            expected.append({'input_status': 'ACCEPT_INPUT',
+                'record': {**record, 'DECISION': 'Y' if age_branch or inactive_branch else 'N'},
+                'trace': [{'rule_id': program['rules'][index]['id'], 'branch': branch,
+                           'source_refs': list(program['rules'][index]['source_refs'])}
+                          for index, branch in enumerate((age_branch, inactive_branch))],
+                'return_code': 0})
+        frozen_expectations = encode(expected)
+        self.assertEqual(len({record['AGE'] for record in records}), 40)
+        self.assertGreaterEqual(len({record['ACTIVE'] for record in records}), 20)
+        code = emit_program(program)
+        execute = prepare_generated(code)
+        for record, legacy_result in zip(records, expected):
+            with self.subTest(seed=seed, record=record):
+                original = encode(record)
+                self.assertEqual(execute(record), legacy_result)
+                self.assertEqual(encode(record), original)
+        suite = plan_cases(program, seed=seed, min_records_per_logic=20)
+        self.assertTrue(all(count >= 20 for count in self.independent_counts(program, suite).values()))
+        self.assert_files_are_input_projections(program, suite)
+        result = verify_program(program, code, suite)
+        self.assertFalse(result['differences'])
+        self.assertFalse(result['observed_legacy_parity'])
+        # Plausible policy "repairs" must mismatch the unmodified source oracle.
+        repairs = [code.replace("row['AGE'] < 18", "row['AGE'] >= 18"),
+                   code.replace("row['ACTIVE'] == 'N'", "row['ACTIVE'] == 'Y'")]
+        for repair in repairs:
+            self.assertNotEqual(code, repair)
+            repaired_execute = prepare_generated(repair)
+            self.assertTrue(any(repaired_execute(record) != legacy_result
+                                for record, legacy_result in zip(records, expected)))
+            self.assertEqual(verify_program(program, repair, suite)['status'], 'MISMATCH')
+        self.assertTrue(adversarial_review(program, code, suite)['passed'])
+        self.assertEqual(encode(program), frozen_source)
+        self.assertEqual(encode(expected), frozen_expectations)
+
+    def test_counterintuitive_linked_customer_or_employee_logic_stays_exact(self):
+        """Do not silently replace a source OR or wrong-customer comparison."""
+        text = '''IDENTIFICATION DIVISION.
+PROGRAM-ID. BADMATCH.
+DATA DIVISION.
+LINKAGE SECTION.
+COPY MATCHREC.
+PROCEDURE DIVISION USING SALE-RECORD REFERRAL-RECORD.
+  IF SALE-ID <> REF-ID OR EMP-NO = REF-EMP-NO
+    MOVE "Y" TO RESULT
+  ELSE
+    MOVE "N" TO RESULT
+  END-IF.
+  GOBACK.
+'''
+        copybook = '''01 SALE-RECORD.
+  05 SALE-ID PIC X(4).
+  05 EMP-NO PIC X(4).
+  05 RESULT PIC X.
+01 REFERRAL-RECORD.
+  05 REF-ID PIC X(4).
+  05 REF-EMP-NO PIC X(4).
+'''
+        program = analyze_program('BADMATCH.cbl', text, {'MATCHREC.cpy': copybook})
+        self.assertFalse(program['blockers'], program['blockers'])
+        program['target_contract_version'] = 2
+        dependency, = program['dependencies']
+        self.assertEqual(dependency['path'], 'MATCHREC.cpy')
+        self.assertEqual(dependency['source_hash'], sha(copybook))
+        self.assertTrue(all(field['source_ref'].startswith('MATCHREC.cpy:')
+                            for field in program['fields'].values()))
+        frozen_source = encode(program)
+        seed = secrets.randbits(63)
+        rng = random.Random(seed)
+        ids = [0, 1, 999, 1000, 9999] + rng.sample(range(1001, 9999), 35)
+        records = []
+        for index, key in enumerate(ids):
+            employee = rng.randrange(10000)
+            same_customer = index % 4 < 2
+            same_employee = index % 2 == 0
+            records.append({'SALE-ID': f'{key:04d}',
+                'REF-ID': f'{key if same_customer else (key + 1) % 10000:04d}',
+                'EMP-NO': f'{employee:04d}',
+                'REF-EMP-NO': f'{employee if same_employee else (employee + 1) % 10000:04d}',
+                'RESULT': ' '})
+        # Freeze literal source expectations before executing target code.
+        expected = []
+        for record in records:
+            branch = record['SALE-ID'] != record['REF-ID'] or record['EMP-NO'] == record['REF-EMP-NO']
+            expected.append({'input_status': 'ACCEPT_INPUT',
+                'record': {**record, 'RESULT': 'Y' if branch else 'N'},
+                'trace': [{'rule_id': program['rules'][0]['id'], 'branch': branch,
+                           'source_refs': list(program['rules'][0]['source_refs'])}],
+                'return_code': 0})
+        expected_hash = sha(encode(expected))
+        self.assertEqual(len({sha(encode(record)) for record in records}), 40)
+        self.assertEqual({(row['SALE-ID'] == row['REF-ID'], row['EMP-NO'] == row['REF-EMP-NO'])
+                          for row in records}, {(True, True), (True, False), (False, True), (False, False)})
+        self.assertTrue(any(row['SALE-ID'].startswith('0') for row in records))
+        code = emit_program(program)
+        execute = prepare_generated(code)
+        for record, legacy_result in zip(records, expected):
+            with self.subTest(seed=seed, record=record):
+                original = encode(record)
+                self.assertEqual(execute(record), legacy_result)
+                self.assertEqual(encode(record), original)
+        suite = plan_cases(program, seed=seed, min_records_per_logic=20)
+        self.assertGreaterEqual(self.independent_counts(program, suite)[program['rules'][0]['id']], 20)
+        self.assert_files_are_input_projections(program, suite)
+        # Compound OR metadata is not a universal join; exact linked file
+        # values above and the suite's input projections are the witnesses.
+        self.assertFalse(program['relationships'])
+        result = verify_program(program, code, suite)
+        self.assertFalse(result['differences'])
+        self.assertFalse(result['observed_legacy_parity'])
+        original_predicate = "((row['SALE-ID'] != row['REF-ID']) or (row['EMP-NO'] == row['REF-EMP-NO']))"
+        for repair in [code.replace("row['SALE-ID'] != row['REF-ID']", "row['SALE-ID'] == row['REF-ID']"),
+                       code.replace(original_predicate, original_predicate.replace(' or ', ' and '))]:
+            self.assertNotEqual(code, repair)
+            repaired_execute = prepare_generated(repair)
+            self.assertTrue(any(repaired_execute(record) != legacy_result
+                                for record, legacy_result in zip(records, expected)))
+            self.assertEqual(verify_program(program, repair, suite)['status'], 'MISMATCH')
+        self.assertTrue(adversarial_review(program, code, suite)['passed'])
+        self.assertEqual(encode(program), frozen_source)
+        self.assertEqual(sha(encode(expected)), expected_hash)
 
     def test_canonical_round_trip_and_same_seed_keep_opt_in_suite_deterministic(self):
         program = self.program(LINKED)

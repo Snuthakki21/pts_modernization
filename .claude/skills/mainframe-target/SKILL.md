@@ -18,11 +18,20 @@ Keep source rules separate from target emission so expected results cannot be
 copied from the target. Preserve rule IDs, versions and many-to-many source/target
 mappings. Native data, SQL and external-system gaps require executable replacements.
 
-Reproduce an observed defect before fixing it. For every newly supported logic
-item use at least 20 distinct source-valid states, branch outcomes, boundaries, errors,
-sequence interactions, and consistent linked-file keys where applicable. Compare
-full outputs, traces and return codes by actually executing the exported target.
-Test malformed inputs at the target interface, not only in the test harness.
+Preserve evidenced legacy behavior, including known design defects; never repair
+source business/technical logic during migration. Consolidation requires equivalent
+observable outputs, effects, order and errors, with actual target comparisons.
+Record preserved source issues with source/target versions, spans and test evidence
+in existing artifacts. A missing Db2/utility equivalent remains a named gap, not
+an assumed mainframe-only or unnecessary operation.
+
+Reproduce a workbench implementation defect before fixing it. For every newly
+supported logic item use at least 20 distinct source-valid states, branch outcomes,
+boundaries, errors, sequence interactions, and consistent linked-file keys where
+applicable. Compare full outputs, traces and return codes by actually executing
+the exported target. Test malformed inputs at the target interface, not only in
+the test harness. Include counterintuitive source-supported cases and detect silent
+behavior corrections; finite tests never establish all possible edge cases.
 
 After integration tests pass, reload changed adapter code: if the running service
 reports a stale adapter fingerprint, restart it through the existing launcher

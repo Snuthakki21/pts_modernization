@@ -71,6 +71,11 @@ Claude executes the lifecycle below using this local workflow. Preserve read-onl
 mainframe access, frozen evidence and one authentic human SME round. Never
 fabricate review answers, mark unanswered questions Yes, or use a model assertion
 to clear a gate. The agent does not establish a second conversion engine.
+Apply the technical reference's Legacy behavior fidelity contract: preserve
+evidenced source behavior, including wrong-looking legacy logic; record source
+issues instead of repairing them. Refactor only with verified observable
+equivalence. Functionality-specific Db2/mainframe operations without a verified
+equivalent stay named gaps, not assumed unnecessary behavior.
 
 Load only the relevant shared skills from `.claude/skills/`: mainframe-discovery,
 mainframe-semantics, mainframe-target and mainframe-assurance. Claude Code and
@@ -227,8 +232,10 @@ VS Code Copilot use these same skill files. No separate workflow is installed.
    Related files/tables use consistent referral/product/key values and explicit
    unmatched/duplicate/missing/empty cases where source-supported adapters exist.
    Generate expectations from source rules before executing Python; compare full
-   outputs, traces and return codes, then perform adversarial review. Unsupported
-   logic gets no fabricated expectations or verification credit. Keep complete
+   outputs, traces and return codes, then perform adversarial review. Include
+   counterintuitive source behavior; reject silent correction of legacy defects.
+   Unsupported logic gets no fabricated expectations or verification credit.
+   Keep complete
    source/target/test/reason mappings in coverage artifacts, not per-rule Markdown.
 7. Use the diagnostic/continuation commands as needed:
 

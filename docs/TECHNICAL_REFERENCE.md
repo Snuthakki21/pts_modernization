@@ -41,6 +41,39 @@ No source-system writes, mainframe execution or synthetic uploads are permitted.
 Do not use an agent's answer as SME approval. Source-derived comparisons are
 not observed mainframe results. No claim of perfect software is supported.
 
+### Legacy behavior fidelity
+
+Migration preserves evidenced source behavior, including suspected or confirmed
+legacy design defects. Do not correct a wrong-looking condition, remove a dated
+rule, normalize meaningful values or change error handling because a different
+design appears better. Record the source issue and its consequences in the
+existing analysis and comparison commentary; remediation is outside this
+migration. Neither an SME Yes nor target best practices authorize a behavior
+change.
+
+One-for-one means equivalent observable behavior for the selected scope: outputs,
+data effects, ordering, duplicates, NULL/numeric semantics, return/error codes and
+source-supported state/transaction effects. It does not require identical file,
+program or line counts. Refactoring or consolidation is allowed only with
+source-grounded equivalence and actual target tests. A preserved source issue
+needs source version/span, corresponding target version/span, expected behavior
+and test evidence. Source-derived expectations remain distinct from observed
+mainframe results; missing interpretation or evidence stays unresolved.
+
+A functionality-specific Db2 utility, program or other mainframe operation without
+a verified equivalent remains a named gap. Identify the job/step or transaction,
+object/version, source/control-card spans, expected effects and exact missing
+replacement/evidence. Do not hide it as mainframe-only, unnecessary or replaced
+by a generic library. Non-executable structure requires its existing evidenced
+disposition; explicit selected No remains an omission with its saved reason and
+earns no parity credit.
+
+Tests must preserve counterintuitive legacy cases and, where source-supported,
+boundaries, duplicate/missing/empty records, NULLs, significant formatting, numeric
+precision/overflow, errors, sequential effects and platform-specific behavior.
+Adversarial review must reject silent correction as a mismatch. Finite randomized
+and boundary tests establish only their stated scope, never all potential cases.
+
 ## Workspace setup and credentials
 
 The first UI visit opens one settings form for source folders/upload mode,

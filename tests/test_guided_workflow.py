@@ -31,6 +31,23 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertEqual(self.c.ledger.get('process-a'),doc)
         self.assertFalse(doc['packet_issued'])
 
+    def test_local_build_handoffs_require_legacy_fidelity_without_source_or_scope_changes(self):
+        view=self.ready_requirements();self.save_scope(view);self.c.advance('process-a')
+        before=self.c.ledger.get('process-a');sources=self.c.sources(before)
+        guide=self.c.process_guide('process-a');task=self.c.agent_task('process-a')
+        text=Path(guide['markdown']['path']).read_text()
+        prompt=guide['handoffs']['claude']['prompt']
+        for surface in (text,prompt,' '.join(task['constraints'])):
+            self.assertIn('including known legacy design defects',surface)
+            self.assertIn('Never silently repair',surface)
+            self.assertIn('functionality-specific Db2',surface)
+            self.assertIn('named unverified gaps',surface)
+        self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.assertEqual(self.c.sources(before),sources)
+        self.assertEqual(before['status'],'WAITING_COPILOT')
+        self.assertFalse(before['packet_issued']);self.assertFalse(before['packet_imported'])
+        self.assertFalse(guide['results']['native_parity_verified'])
+
     def test_primary_retrieval_prompt_uses_frozen_setup_hints_without_rewriting_request(self):
         settings={'source_mode':'upload','zowe_profile':'approved_base','zowe_zosmf_profile':'approved_zosmf',
                   'db2_metadata_url':'https://db.invalid/mcp'}
