@@ -68,3 +68,5 @@ test('delivered online pilot uses the canonical system typography and control co
 test('scrollbar contrast remains visible where data owns horizontal scroll',()=>{
  expectContrast(tokens['--scrollbar-thumb'],tokens['--scrollbar-track'],3,'Scrollbar thumb');
 });
+
+test('four-phase controls and long lineage labels have explicit intrinsic sizing and readable space',()=>{assert.equal(declarations(stylesheet,'.process-guide-steps li>button')['min-height'],'78px');assert.equal(declarations(stylesheet,'.process-guide-steps li>button').width,'100%');assert.equal(declarations(stylesheet,'.guide-read-status')['min-height'],'24px');assert.equal(declarations(stylesheet,'.lineage>div').padding,'16px');assert.equal(declarations(stylesheet,'.lineage>div>small')['grid-column'],'1/-1');assert.match(stylesheet,/@media\(max-width:620px\).*?\.lineage>div\{grid-template-columns:minmax\(0,1fr\)/s);});

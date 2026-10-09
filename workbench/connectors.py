@@ -510,7 +510,7 @@ class ReadOnlyLineageResolver:
     starts at the first reference and never exceeds 300 seconds across references.
     """
     SOURCE_SUFFIXES={'program':'.cbl','copybook':'.cpy','proc':'.proc','job':'.jcl',
-                     'jcl_include':'.inc','bms_mapset':'.bms'}
+                     'jcl_include':'.inc','bms_mapset':'.bms','control_member':'.cntl'}
     def __init__(self,zowe=None,db2=None,dataset_hints=(),max_datasets=20,max_catalog_pages=5,
                  max_seconds=60,max_requests=100,allow_dataset_content=False,max_total_seconds=300):
         require(isinstance(dataset_hints,(tuple,list)) and len(dataset_hints)<=20,'Dataset hints must be a bounded list')
@@ -546,9 +546,22 @@ class ReadOnlyLineageResolver:
             zowe=ZoweReader(base,service,workspace=workspace,environ=env)
         else:
             zowe=ZoweReader(env['WB_ZOWE_PROFILE'],env.get('WB_ZOWE_ZOSMF_PROFILE')) if env.get('WB_ZOWE_PROFILE') else None
-        db2=Db2MCP(env['WB_DB2_MCP_URL'],env.get('WB_DB2_MCP_TOKEN','')) if env.get('WB_DB2_MCP_URL') else None
+        # A qualified shared workspace uses Claude's managed stdio server. Do
+        # not reactivate a stale inherited HTTP endpoint during a Zowe lookup.
+        db2=(Db2MCP(env['WB_DB2_MCP_URL'],env.get('WB_DB2_MCP_TOKEN',''))
+             if env.get('WB_DB2_MCP_URL') and not private_values.get('DB2_LOCATION_NAME') else None)
         hints=[env['WB_DATASET_HINT']] if env.get('WB_DATASET_HINT') else []
         return cls(zowe=zowe,db2=db2,dataset_hints=hints,**budgets)
+
+    @classmethod
+    def deferred_from_environment(cls, env=None, *, workspace=None, **budgets):
+        """Delay native client/profile checks until a missing local object needs them.
+
+        A complete local closure must not depend on remote connector setup. The
+        facade grants no permission and does not activate Claude's managed stdio
+        server; missing Db2 evidence still follows the typed MCP return workflow.
+        """
+        return _DeferredLineageResolver(cls, env, workspace, budgets)
 
     def _call(self,client,method,*args,**kwargs):
         remaining=self._deadline-time.monotonic()
@@ -596,12 +609,13 @@ class ReadOnlyLineageResolver:
     __call__=resolve
 
     def _source(self,request):
-        if self.zowe is None:return self._result(request,reason='Zowe profile is not explicitly configured')
-        if not self.dataset_hints:return self._result(request,reason='Supply a user-selected dataset scope for member discovery')
+        if self.zowe is None:return self._result(request,reason='Missing source needs read-only Zowe CLI. Complete the shared .env and run tools/setup_zowe.py for this workspace; local Endeavor evidence is preserved', next_step='PREPARE_ZOWE_FROM_ENV')
+        hints=self._source_scope(request)
+        if not hints:return self._result(request,reason='Exact source library is unknown. Retrieve approved library metadata for this missing member through Zowe CLI before requesting a manual export', next_step='RESOLVE_SOURCE_LIBRARY')
         name=request['name'].upper()
         require(re.fullmatch(r'[A-Z@$#][A-Z0-9@$#]{0,7}',name),'Source lookup requires an exact member name')
         datasets={};complete=True
-        for hint in self.dataset_hints:
+        for hint in hints:
             remaining=self.max_datasets-len(datasets)
             if remaining<=0:complete=False;break
             rows,full=_zowe_items(self._call(self.zowe,'list_datasets',hint,max_items=remaining+1),remaining+1)
@@ -610,6 +624,8 @@ class ReadOnlyLineageResolver:
                 dataset=row.get('dsname',row.get('name',row.get('DSNAME')))
                 require(isinstance(dataset,str),'Dataset metadata omitted its exact name')
                 dataset=zowe_dataset(dataset)
+                require('*' in hint or dataset==hint.upper(),
+                        'Exact library metadata returned a different dataset')
                 if dataset in datasets:continue
                 if len(datasets)>=self.max_datasets:complete=False;break
                 datasets[dataset]=row
@@ -639,10 +655,29 @@ class ReadOnlyLineageResolver:
         from .domain import sha
         return self._result(request,'RESOLVED',coverage=coverage,content=content,filename=filename,
                             provenance=self._provenance('read_member',profile=self.zowe.profile,
-                            dataset_member=member,source_hash=sha(content),discovery_scope=list(self.dataset_hints)))
+                            dataset_member=member,source_hash=sha(content),discovery_scope=list(hints)))
+
+    def _source_scope(self, request):
+        """Use explicit dependency libraries before optional account-wide hints.
+
+        JCLLIB is a PROC/INCLUDE source scope only; it is never a COBOL/COPY
+        source library or an inferred load-library-to-source transformation.
+        A qualified dependency does not fall back to another library on failure.
+        """
+        library=request.get('library')
+        if library is not None:
+            return (zowe_dataset(library),)
+        source_hints=request.get('source_library_hints', [])
+        require(isinstance(source_hints,(tuple,list)) and len(source_hints)<=20,
+                'Source library evidence must contain at most twenty exact datasets')
+        if source_hints:
+            require(request['kind'] in ('proc','jcl_include'),
+                    'JCLLIB scope applies only to PROC and INCLUDE members')
+            return tuple(dict.fromkeys(zowe_dataset(value) for value in source_hints))
+        return self.dataset_hints
 
     def _dataset(self,request):
-        if self.zowe is None:return self._result(request,reason='Zowe profile is not explicitly configured')
+        if self.zowe is None:return self._result(request,reason='Dataset metadata needs read-only Zowe CLI. Complete the shared .env and run tools/setup_zowe.py for this workspace', next_step='PREPARE_ZOWE_FROM_ENV')
         name=zowe_dataset(request['name'])
         rows,complete=_zowe_items(self._call(self.zowe,'list_datasets',name,max_items=2),2)
         matches=[row for row in rows if str(row.get('dsname',row.get('name',row.get('DSNAME','')))).upper()==name]
@@ -658,7 +693,7 @@ class ReadOnlyLineageResolver:
         return self._result(request,'RESOLVED',coverage='COMPLETE',**fields)
 
     def _table(self,request):
-        if self.db2 is None:return self._result(request,reason='Db2 MCP is not explicitly configured')
+        if self.db2 is None:return self._result(request,reason='Required table evidence is not in Endeavor. Collect this exact table schema through Claude Code using the approved Db2 MCP tools and the request-bound inbox; configuration alone does not prove access', next_step='CLAUDE_DB2_MCP_REQUEST')
         if isinstance(self.db2,Db2MCP) and self.db2.protocol is None:self._call(self.db2,'initialize')
         parts=request['name'].upper().split('.')
         require(len(parts) in (1,2),'Use an exact table or schema.table reference')
@@ -700,6 +735,32 @@ class ReadOnlyLineageResolver:
         if not columns:return self._result(request,reason='No columns observed; table existence and authorization remain unverified',metadata=metadata,provenance=provenance)
         if not complete:return self._result(request,reason='Table description is incomplete within its configured budgets',metadata=metadata,provenance=provenance)
         return self._result(request,'RESOLVED',coverage='COMPLETE',metadata=metadata,provenance=provenance)
+
+
+class _DeferredLineageResolver:
+    """Lazy native retrieval facade; never reads .env for a complete local map."""
+    def __init__(self, factory, env, workspace, budgets):
+        self.factory=factory;self.env=dict(env) if env is not None else None
+        self.workspace=workspace;self.budgets=dict(budgets);self.client=None
+        self.setup_failed=False
+
+    def resolve(self, request):
+        require(isinstance(request,dict) and isinstance(request.get('kind'),str)
+                and isinstance(request.get('name'),str), 'Lineage resolution requires a typed object')
+        if self.client is None and not self.setup_failed:
+            try:
+                self.client=self.factory.from_environment(self.env,workspace=self.workspace,**self.budgets)
+            except (ValidationError,OSError,UnicodeError,TypeError,ValueError):
+                # Never forward native/configuration exceptions: they can include
+                # private paths, endpoint details or authentication material.
+                self.setup_failed=True
+        if self.setup_failed:
+            return {'status':'UNAVAILABLE','coverage':'PARTIAL','bounded':True,
+                    'snapshot_consistent':False,'next_step':'PREPARE_SHARED_ENV_CONNECTIONS',
+                    'reason':'Missing evidence needs approved retrieval. Repair the shared .env, approved certificates and generated client profiles locally; existing Endeavor evidence is preserved'}
+        return self.client.resolve(request)
+
+    __call__=resolve
 
 
 def read_only_discovery():

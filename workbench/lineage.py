@@ -6,7 +6,7 @@ Only missing objects in the selected job closure are offered to a read-only
 resolver. Every original export remains in the inventory, including unknowns.
 """
 from collections import defaultdict, deque
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from pathlib import PurePosixPath, Path
 import re
 
@@ -155,6 +155,46 @@ def _cics_operands(block):
     # Commands without lookup operands stay source-semantic obligations in analysis.
     return out
 
+def _jcl_library_scopes(lines):
+    """Index complete static JCLLIB ORDER cards without guessing symbolic scope.
+
+    Return the applicable exact PROC/INCLUDE libraries at each physical line and
+    explicit unsupported declaration spans. These facts do not establish source
+    authorization, existence, search completeness or executable JCL semantics.
+    """
+    scopes={};gaps=[];active=();index=0
+    dataset=re.compile(r'[A-Z@$#][A-Z0-9@$#-]{0,7}(?:\.[A-Z@$#][A-Z0-9@$#-]{0,7})*',re.I)
+    while index<len(lines):
+        number,raw=lines[index]
+        # Each JOB has its own JCLLIB declarations; do not leak another job's scope.
+        if re.match(r'^//'+NAME+r'\s+JOB\b',raw,re.I):active=()
+        match=re.match(r'^//(?:'+NAME+r')?\s+JCLLIB\s+ORDER\s*=\s*(.*)',raw,re.I)
+        if match:
+            begin=index;first=number;value=match[1];parts=[raw];index+=1
+            while value.rstrip().endswith(',') and index<len(lines):
+                continuation_number,continuation=lines[index]
+                next_part=re.match(r'^//\s+(.*)',continuation)
+                if not next_part or re.match(r'(?:JOB|EXEC|DD|INCLUDE|PROC|PEND|JCLLIB)\b',next_part[1],re.I):break
+                value+=next_part[1];parts.append(continuation);number=continuation_number;index+=1
+                if len(value)>65536:break
+            if value.startswith('(') and value.endswith(')'):value=value[1:-1]
+            values=[]
+            for item in value.split(','):
+                item=item.strip()
+                if item.startswith(("'",'\"')) and len(item)>=2 and item[-1]==item[0]:item=item[1:-1]
+                values.append(item.upper())
+            valid=(0<len(values)<=20 and len(set(values))==len(values) and
+                   all(len(v)<=44 and dataset.fullmatch(v) for v in values))
+            active=tuple(values) if valid else ()
+            if not valid:gaps.append((first,number,'\n'.join(parts)))
+            for line,_ in lines[begin:index]:scopes[line]=active
+            continue
+        if re.match(r'^//(?:'+NAME+r')?\s+JCLLIB\b',raw,re.I):
+            active=();gaps.append((number,number,raw))
+        scopes[number]=active;index+=1
+    return scopes,gaps
+
+
 def map_lineage(files, manifest, knowledge=None, resolver=None):
     """Return deterministic JSON metadata for the selected job object closure.
 
@@ -171,10 +211,13 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             'Lineage requires text exports with path identities')
     require(isinstance(manifest, dict) and isinstance(manifest.get('jobs', []), list), 'Lineage requires a manifest job list')
     require(len(files) <= MAX_SOURCE_FILES, 'Lineage export exceeds the source file-count bound')
-    require(all(len(t.encode('utf-8')) <= MAX_SOURCE_FILE_BYTES for t in files.values()),
+    source_sizes = [len(text.encode('utf-8')) for text in files.values()]
+    require(all(size <= MAX_SOURCE_FILE_BYTES for size in source_sizes),
             'Lineage export exceeds the source per-file byte bound')
-    require(sum(len(t.encode('utf-8')) for t in files.values()) <= MAX_SOURCE_BYTES, 'Lineage export exceeds the source byte bound')
-    require(sum(source_line_count(t) for t in files.values()) <= MAX_SOURCE_LINES,
+    source_bytes = sum(source_sizes)
+    require(source_bytes <= MAX_SOURCE_BYTES, 'Lineage export exceeds the source byte bound')
+    source_lines = sum(source_line_count(text) for text in files.values())
+    require(source_lines <= MAX_SOURCE_LINES,
             'Lineage export exceeds the source line bound')
     knowledge = knowledge if knowledge is not None else load_knowledge(Path(__file__).resolve().parent.parent)
     validate_snapshot(knowledge)
@@ -190,12 +233,12 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             'Original source inventory must refer to retained files')
     original_paths = sorted(original_scope)
     nodes = {}; edges = []; outgoing = defaultdict(list); edge_keys = set(); index = defaultdict(list); aliases = defaultdict(list); members = defaultdict(list)
+    node_evidence_keys=defaultdict(set);declarations_by_path=defaultdict(list);gap_keys=set()
+    nodes_by_identity=defaultdict(list)
     frozen_provenance = manifest.get('discovery_provenance', {})
     require(isinstance(frozen_provenance, dict), 'Frozen discovery provenance requires a mapping')
     references = defaultdict(list); parsed = set(); provenance = {p: v for p, v in frozen_provenance.items() if p in files}
-    snapshots = []; lookups = []; lookup_cache = {}
-    source_bytes = sum(len(t.encode('utf-8')) for t in sources.values())
-    source_lines = sum(source_line_count(t) for t in sources.values())
+    snapshots = []; lookups = []; lookup_cache = {}; jcl_library_scopes={}
     gaps = []; selected = set(); visited = set(); root_nodes = []; cycles = []
     utilities = {name.upper() for group in (knowledge['catalog'], knowledge['application'])
                  for utility in group['utilities'] for name in [utility['name'], *utility['aliases']]}
@@ -206,7 +249,11 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         if key not in nodes:
             nodes[key] = {'id': key, 'kind': kind, 'name': name, 'path': path,
                           'resolution': resolution, 'evidence': [], 'selected': False, **extra}
-        if evidence and evidence not in nodes[key]['evidence']: nodes[key]['evidence'].append(evidence)
+            nodes_by_identity[kind,name.upper()].append(key)
+        if evidence:
+            evidence_key=encode(evidence)
+            if evidence_key not in node_evidence_keys[key]:
+                node_evidence_keys[key].add(evidence_key);nodes[key]['evidence'].append(evidence)
         return key
 
     def edge(source, target, kind, evidence, resolution='resolved', **extra):
@@ -218,6 +265,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
 
     def declaration(path, kind, name, number, text, alias=True):
         ev = _evidence(path, number, text); ident = node(kind, name.upper(), path, evidence=ev)
+        if ident not in declarations_by_path[path]:declarations_by_path[path].append(ident)
         if ident not in index[kind, name.upper()]: index[kind, name.upper()].append(ident)
         if alias and (kind != 'program' or PurePosixPath(path).stem.upper() == name.upper()):
             stem = PurePosixPath(path).stem.upper()
@@ -227,6 +275,9 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         return ident
 
     def reference(source, kind, name, relationship, ev, dynamic=False, library=None, **extra):
+        if kind in {'proc','jcl_include'}:
+            hints=jcl_library_scopes.get(ev.get('path'),{}).get(ev.get('line'),())
+            if hints:extra['source_library_hints']=list(hints)
         references[source].append({'source': source, 'kind': kind, 'name': name.upper(),
                                    'relationship': relationship, 'evidence': ev,
                                    'dynamic': dynamic, 'library': library, **extra})
@@ -253,6 +304,10 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             # a synthetic object kind no retrieval can ever declare.
             return
         lines = _lines(text); originals = text.splitlines(); declared = []; owner = file_id; jcl_owner = file_id; step = None; proc_stack = []
+        jcl_library_scopes[path],library_gaps=_jcl_library_scopes(lines)
+        for first,last,raw in library_gaps:
+            reference(file_id,'unknown_dependency','JCLLIB_SOURCE_SCOPE','requires_library_scope',
+                      _evidence(path,first,raw,end_line=last),True)
         if cics_v1 and classification['kind'] == 'unknown' and any(re.match(r'^\s*(?:DEFINE|ALTER)\s+(?:TDQUEUE|TSMODEL)\s*\(', _mask_literals(raw), re.I) for _, raw in lines):
             classification = {**classification, 'kind': 'cics_definition'};classifications[path] = classification;nodes[file_id]['classification'] = 'cics_definition'
         # Copybooks and fragments have dependency evidence rather than named declarations.
@@ -397,6 +452,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                 ev = _evidence(path, block['line'], block['text'], end_line=block['end_line'])
                 for kind, name, relationship, dynamic, library in _cics_operands(block):
                     reference(command_owner, kind, name, relationship, ev, dynamic, library)
+        source_breaks=[m.start() for m in re.finditer('\n',source_masked)]
         resource_commands = list(re.finditer(r'(?m)^\s*(?:DEFINE|ALTER|DELETE|LIST)\s+\w+\s*\(', source_masked, re.I))
         for position, command in enumerate(resource_commands):
             finish = resource_commands[position + 1].start() if position + 1 < len(resource_commands) else len(source_masked)
@@ -404,7 +460,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             if cics_v1:
                 resource = re.match(r'\s*(?:DEFINE|ALTER)\s+(FILE|TDQUEUE)\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
                 if resource:
-                    start_index = source_masked.count('\n', 0, command.start())
+                    start_index = bisect_left(source_breaks,command.start())
                     number = offsets[start_index]
                     kind = 'cics_file_definition' if resource[1].upper() == 'FILE' else 'cics_tdqueue_definition'
                     resource_id = declaration(path, kind, resource[2], number, originals[number - 1], False)
@@ -415,15 +471,15 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                             value, _ = _operand(raw_text, command.start() + match.end())
                             valid = bool(re.fullmatch(QUALIFIED if target_kind == 'dataset' else NAME, value, re.I))
                             reference(resource_id, target_kind, value or '<UNKNOWN ' + attribute + '>', relation,
-                                      _evidence(path, number, originals[number - 1], end_line=offsets[source_masked.count('\n', 0, command.start() + match.end())]), not valid)
+                                      _evidence(path, number, originals[number - 1], end_line=offsets[bisect_left(source_breaks,command.start()+match.end())]), not valid)
             transaction = re.match(r'\s*(?:DEFINE|ALTER)\s+TRANSACTION\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
             if cics_v1 and transaction:
                 bindings = list(re.finditer(r'\bPROGRAM\s*\(', segment, re.I))
-                start_index = source_masked.count('\n', 0, command.start())
+                start_index = bisect_left(source_breaks,command.start())
                 number = offsets[start_index]
                 ident = declaration(path, 'cics_transaction', transaction[1], number, originals[number - 1], False)
                 for binding in bindings:
-                    end_index = source_masked.count('\n', 0, command.start() + binding.end())
+                    end_index = bisect_left(source_breaks,command.start()+binding.end())
                     value, _ = _operand(raw_text, command.start() + binding.end())
                     valid = bool(re.fullmatch(NAME, value, re.I)) and len(value) <= 128
                     reference(ident, 'program', value or '<UNKNOWN CSD PROGRAM>', 'binds_program',
@@ -431,12 +487,12 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                 if len(bindings) > 1:
                     reference(ident, 'unknown_dependency', '<TRANSACTION ' + transaction[1].upper() + ' DUPLICATE PROGRAM BINDING>',
                               'requires_transaction_binding', _evidence(path, number, originals[number - 1],
-                              end_line=offsets[source_masked.count('\n', 0, command.start() + bindings[-1].end())]), True)
+                              end_line=offsets[bisect_left(source_breaks,command.start()+bindings[-1].end())]), True)
             else:
                 binding = re.search(r'\bPROGRAM\s*\(\s*(' + NAME + r')\s*\)', segment, re.I)
                 if transaction and binding:
-                    start_index = source_masked.count('\n', 0, command.start())
-                    end_index = source_masked.count('\n', 0, command.start() + binding.end())
+                    start_index = bisect_left(source_breaks,command.start())
+                    end_index = bisect_left(source_breaks,command.start()+binding.end())
                     if start_index != end_index:
                         number = offsets[start_index]; end_number = offsets[end_index]
                         ident = declaration(path, 'cics_transaction', transaction[1], number, originals[number - 1], False)
@@ -457,21 +513,22 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         sql_static = re.sub(r'\b(?:PREPARE|EXECUTE\s+IMMEDIATE)\b[^;]*?(?=END-EXEC|;|$)',
                             lambda match: ''.join('\n' if c == '\n' else ' ' for c in match[0]), sql_text, flags=re.I)
         sql_static = re.sub(r'\bEND-EXEC\b', '?END-EXEC', sql_static, flags=re.I)
+        sql_breaks=[m.start() for m in re.finditer('\n',sql_static)]
         for match in re.finditer(r'\b(?:CREATE\s+TABLE\s+(' + QUALIFIED + r')|DECLARE\s+(' + QUALIFIED + r')\s+TABLE)\b', sql_static, re.I):
-            number = sql_static.count('\n', 0, match.start()) + 1
+            number = bisect_left(sql_breaks,match.start())+1
             raw, _, _ = sql_by_line[number]
             declaration(path, 'db2_table', match[1] or match[2], number, raw, False)
         cte_names = {m[1].upper() for m in re.finditer(r'\bWITH\s+(' + NAME + r')\s+AS\s*\(', sql_text, re.I)}
         for match in re.finditer(r'\b(?:FROM|JOIN|INTO|UPDATE|REFERENCES)\s+(' + QUALIFIED + r')', sql_static, re.I):
             name = match[1].upper()
             if name in cte_names or name in {'FINAL', 'OLD', 'NEW', 'TABLE', 'SELECT', 'VALUES', 'SET', 'JOIN', 'WHERE', 'ON', 'GROUP', 'ORDER', 'LATERAL'}: continue
-            number = sql_static.count('\n', 0, match.start()) + 1
+            number = bisect_left(sql_breaks,match.start())+1
             raw, _, sql_owner = sql_by_line[number]
             reference(sql_owner, 'db2_table', name, 'sql_table', _evidence(path, number, raw,
-                      end_line=sql_static.count('\n', 0, match.end()) + 1))
+                      end_line=bisect_left(sql_breaks,match.end())+1))
         for match in re.finditer(r'\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+\?', sql_static, re.I):
-            number = sql_static.count('\n', 0, match.start()) + 1
-            end_number = sql_static.count('\n', 0, match.end()) + 1
+            number = bisect_left(sql_breaks,match.start())+1
+            end_number = bisect_left(sql_breaks,match.end())+1
             raw, _, sql_owner = sql_by_line[number]
             if end_number in sql_by_line and any(q in sql_by_line[end_number][0] for q in ('"', "'")):
                 reference(sql_owner, 'db2_table', '<delimited SQL identifier>', 'sql_table',
@@ -487,6 +544,29 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         # Reverse application bindings allow a selected PGM to discover its CICS/CA7 context.
         # They are connected after all local declarations have been indexed.
 
+    def observed_library(ident):
+        observed=nodes['source_file:'+nodes[ident]['path']].get('provenance',{})
+        values=[]
+        for key in ('dataset','dataset_member'):
+            if key not in observed:continue
+            value=observed[key]
+            if not isinstance(value,str):return True,None
+            if key=='dataset_member':
+                member=re.fullmatch(r'('+QUALIFIED+r')\('+NAME+r'\)',value,re.I)
+                if not member:return True,None
+                value=member[1]
+            elif not re.fullmatch(QUALIFIED,value,re.I):return True,None
+            values.append(value.upper())
+        return bool(values),values[0] if values and len(set(values))==1 else None
+
+    def local_library_path_matches(ident,library):
+        # Ordered qualifiers must identify the exact containing library. Neither
+        # reversed directories nor an unrelated intervening directory is a match.
+        parent=PurePosixPath(nodes[ident]['path']).parent
+        qualifiers=[part.upper() for directory in parent.parts for part in directory.split('.')]
+        expected=library.split('.')
+        return len(qualifiers)>=len(expected) and qualifiers[-len(expected):]==expected
+
     def candidates(ref):
         kind, name = ref['kind'], ref['name']
         result = list(dict.fromkeys(index[kind, name] + aliases[kind, name]))
@@ -497,13 +577,23 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             for path in members[name]:
                 if classifications[path]['kind'] == 'unknown':
                     result.append(declaration(path, kind, name, None, 'Local member existence; dependency role requires parser confirmation'))
+        if ref.get('source_library_hints') and not ref.get('library'):
+            hints=set(ref['source_library_hints'])
+            def in_scope(ident):
+                present,dataset=observed_library(ident)
+                # An approved local Endevor declaration remains primary. Any
+                # observed library must agree; conflicting provenance cannot
+                # masquerade as an unqualified local declaration.
+                return not present or dataset in hints
+            result=[ident for ident in result if in_scope(ident)]
         if ref.get('library'):
-            library = ref['library'].upper(); parts = set(re.split(r'[./]', library))
+            library = ref['library'].upper()
             if kind == 'bms_map': result = [ident for ident in result if nodes[ident].get('mapset') == library]
             else:
-                result = [ident for ident in result if
-                          library in nodes['source_file:' + nodes[ident]['path']]['provenance'].get('dataset', '').upper()
-                          or parts.issubset(set(re.split(r'[./]', str(PurePosixPath(nodes[ident]['path']).parent).upper())))]
+                def exact_library(ident):
+                    present,dataset=observed_library(ident)
+                    return dataset==library if present else local_library_path_matches(ident,library)
+                result=[ident for ident in result if exact_library(ident)]
         return sorted(result)
 
     for path in inventory_paths: parse(path)
@@ -613,11 +703,14 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                'relationship': ref['relationship'], 'status': status, 'reason': reason,
                'evidence': [ref['evidence']], 'candidates': candidates_list or [],
                'local_repository_checked': True}
+        if ref.get('library'):gap['library']=ref['library']
+        if ref.get('source_library_hints'):gap['source_library_hints']=list(ref['source_library_hints'])
         if manifest.get('sme_packet_version',1)>=4 and ref['name'][:1] in ('I','Z'):
             alternate=('Z' if ref['name'].startswith('I') else 'I')+ref['name'][1:]
-            gap['environment_candidates']=[{'node':n['id'],'name':n['name'],'path':n.get('path'),'status':'UNVERIFIED_ENVIRONMENT_RELATIONSHIP'} for n in nodes.values() if n['kind']==ref['kind'] and n['name']==alternate]
+            gap['environment_candidates']=[{'node':n['id'],'name':n['name'],'path':n.get('path'),'status':'UNVERIFIED_ENVIRONMENT_RELATIONSHIP'} for key in nodes_by_identity[ref['kind'],alternate] if (n:=nodes[key])['name']==alternate]
             if gap['environment_candidates']:gap['environment_mapping_requirement']='Confirm library/environment/version identity and call-site applicability; prefix similarity cannot resolve this binding'
-        if gap not in gaps: gaps.append(gap)
+        gap_key=encode(gap)
+        if gap_key not in gap_keys:gap_keys.add(gap_key);gaps.append(gap)
         ident = node(ref['kind'], ref['name'], evidence=ref['evidence'], resolution=status,
                      candidates=candidates_list or [])
         edge(ref['source'], ident, ref['relationship'], ref['evidence'], status)
@@ -625,15 +718,19 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
 
     def lookup(ref):
         nonlocal attempts
-        key = (ref['kind'], ref['name'], ref.get('library'))
+        key = (ref['kind'], ref['name'], ref.get('library'),tuple(ref.get('source_library_hints',[])))
         if key in lookup_cache: return lookup_cache[key]
         if resolver is None or attempts >= MAX_LOOKUPS:
-            response = {'status': 'UNAVAILABLE', 'reason': 'Read-only resolver is not configured' if resolver is None else 'Read-only lookup bound reached'}
+            response = {'status': 'UNAVAILABLE', 'reason': (
+                'Missing Db2 evidence must be collected with the approved Db2 MCP tools into the request-bound inbox after the Endeavor search' if ref['kind']=='db2_table' else
+                'Missing source or metadata must be collected with read-only Zowe CLI into the request-bound inbox after the Endeavor search') if resolver is None else 'Read-only lookup bound reached',
+                'next_step': ('CLAUDE_DB2_MCP_REQUEST' if ref['kind']=='db2_table' else 'CLAUDE_ZOWE_REQUEST') if resolver is None else 'CONTINUE_BOUNDED_RETRIEVAL'}
         else:
             request = {'kind': ref['kind'], 'name': ref['name'], 'library': ref.get('library'),
                        'source': ref['evidence']['path'], 'source_path': ref['evidence']['path'],
                        'evidence': [ref['evidence']], 'operation': 'read_only_lookup',
                        'local_repository_checked': True}
+            if ref.get('source_library_hints'):request['source_library_hints']=list(ref['source_library_hints'])
             attempts += 1
             try:
                 response = resolver.resolve(request) if hasattr(resolver, 'resolve') else resolver(request)
@@ -645,7 +742,9 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
         lookups.append({'kind': ref['kind'], 'name': ref['name'], 'library': ref.get('library'),
                         'status': str(response.get('status', 'UNRESOLVED')).upper(),
                         'provenance': response.get('provenance', {}), 'reason': response.get('reason', ''),
-                        'operation': 'read_only_lookup'})
+                        'operation': 'read_only_lookup',
+                        'source_library_hints':list(ref.get('source_library_hints',[])),
+                        'next_step':response.get('next_step','')})
         return response
 
     while pending:
@@ -745,7 +844,7 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
     # A source-owner COPY cycle is projected through the declaration's file role.
     for path in selected_paths:
         file_id = 'source_file:' + path
-        decls = [d for d in nodes if nodes[d].get('path') == path and nodes[d]['kind'] in {'copybook', 'proc', 'program', 'jcl_include'}]
+        decls = [d for d in declarations_by_path[path] if nodes[d]['kind'] in {'copybook', 'proc', 'program', 'jcl_include'}]
         for ref in references[file_id]:
             for target in candidates(ref):
                 for declaration_id in decls: dependencies[declaration_id].add(target)
@@ -802,3 +901,142 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
                        'no_llm': True, 'observed_legacy_parity': False},
             'source_snapshot_hash': sha(encode({p: {'source_hash': sha(t), 'provenance': provenance.get(p, {'origin': 'local_repository_export', 'path': p})}
                                                for p, t in sorted(sources.items())}))}
+
+
+def derive_job_plan(files, declared_manifest, lineage):
+    """Derive version-2 root-job intake from uniquely evidenced simple JCL.
+
+    The operator's immutable Markdown is unchanged. This is a deterministic
+    source-derived plan, not SME approval or a JCL executor. PROC expansion,
+    conditional execution, symbolic operands, allocation and other unsupported
+    cards remain exact obligations. DISP describes allocation, so it never
+    silently assigns an input/output business role.
+    """
+    require(isinstance(files,dict) and all(isinstance(k,str) and isinstance(v,str)
+            for k,v in files.items()), 'Job planning requires retained text source')
+    require(isinstance(declared_manifest,dict) and isinstance(lineage,dict),
+            'Job planning requires the declared intake and lineage evidence')
+    declared_jobs=declared_manifest.get('declared_jobs',declared_manifest.get('jobs',[]))
+    require(isinstance(declared_jobs,list), 'Job planning requires declared root jobs')
+    applicable=declared_manifest.get('process_intake_version')==2
+    result={'schema_version':1,'process_id':declared_manifest.get('id'),
+            'applicable':applicable,'basis':'deterministic_source_jcl',
+            'jobs':[],'source_files':{},'step_evidence':[], 'dd_bindings':[],
+            'gaps':[],'complete':False,'observed_mainframe_parity':False}
+    if not applicable:
+        result['jobs']=declared_jobs
+        return result
+    require(all(isinstance(job,dict) and isinstance(job.get('name'),str)
+                and type(job.get('order'))is int for job in declared_jobs),
+            'Root jobs need explicit names and order')
+    require(len({job['name'].upper() for job in declared_jobs})==len(declared_jobs)
+            and len({job['order'] for job in declared_jobs})==len(declared_jobs),
+            'Root job identities and order must be unique')
+    nodes=lineage.get('nodes',[])
+    require(isinstance(nodes,list), 'Job planning requires a lineage node list')
+
+    def gap(job,path,line,reason,kind='unsupported_jcl_plan',**extra):
+        result['gaps'].append({'kind':kind,'job':job,'path':path,'line':line,
+                              'reason':reason,'status':'UNVERIFIED',**extra})
+
+    for declaration in sorted(declared_jobs,key=lambda j:j['order']):
+        name=declaration['name'].upper()
+        job={'name':declaration['name'],'order':declaration['order'],'steps':[]}
+        result['jobs'].append(job)
+        matches=[n for n in nodes if isinstance(n,dict) and n.get('kind')=='job'
+                 and str(n.get('name','')).upper()==name and n.get('path') in files
+                 and n.get('resolution')=='local_source']
+        if len(matches)!=1:
+            gap(name,None,None,'Root job needs one unique retained JCL declaration',
+                'ambiguous_job' if len(matches)>1 else 'missing_job',candidate_count=len(matches))
+            continue
+        path=matches[0]['path'];text=files[path];source_hash=sha(text)
+        result['source_files'][path]=source_hash
+        lines=_lines(text)
+        headers=[(i,n,raw) for i,(n,raw) in enumerate(lines)
+                 if (m:=re.match(r'^//('+NAME+r')\s+JOB\b',raw,re.I)) and m[1].upper()==name]
+        if len(headers)!=1:
+            gap(name,path,None,'Repeated or unparsed root JOB declarations need identity resolution','ambiguous_job')
+            continue
+        start,header_line,header=headers[0]
+        if not re.fullmatch(r"//[A-Z][A-Z0-9]{0,7}\s+JOB(?:\s+\([^)]*\)(?:,'[^']*')?)?",header.rstrip(),re.I):
+            gap(name,path,header_line,'JOB parameters/continuations need a verified scheduling adapter')
+        current_step=None;step_names=set();conditional_depth=0;proc_depth=0
+        control_stack=[];job_end_line=source_line_count(text)
+        def control_gap(number,reason,kind,end_line=None):
+            last=number if end_line is None else end_line
+            gap(name,path,number,reason,kind,end_line=last,
+                source_ref={'path':path,'line':number,'end_line':last,'source_hash':source_hash})
+        for number,raw in lines[start+1:]:
+            if re.match(r'^//'+NAME+r'\s+JOB\b',raw,re.I):
+                job_end_line=number-1;break
+            card=raw.rstrip()
+            if not card.strip() or card=='//':continue
+            closing=re.match(r'^//(?:'+NAME+r')?\s+(ENDIF|PEND|ELSE)\b',card,re.I)
+            if closing:
+                token=closing[1].upper();expected='PROC' if token=='PEND' else 'IF'
+                if not re.fullmatch(r'//(?:'+NAME+r')?\s+'+token,card,re.I):
+                    control_gap(number,'Malformed '+token+' card cannot close or change an execution scope','malformed_jcl_terminator');continue
+                if not control_stack or control_stack[-1]['kind']!=expected:
+                    control_gap(number,token+' has no matching active '+expected+' scope','unmatched_jcl_terminator');continue
+                if token=='ELSE':
+                    if control_stack[-1].get('else_line'):
+                        control_gap(number,'Repeated ELSE has no unique branch in the active IF scope','unmatched_jcl_terminator')
+                    else:control_stack[-1]['else_line']=number
+                    continue
+                control_stack.pop()
+                if expected=='PROC':proc_depth-=1
+                else:conditional_depth-=1
+                continue
+            if re.match(r'^//'+NAME+r'\s+PROC\b',card,re.I):
+                proc_depth+=1;control_stack.append({'kind':'PROC','line':number})
+                gap(name,path,number,'In-stream PROC expansion requires a verified JCL adapter');continue
+            if re.match(r'^//(?:'+NAME+r')?\s+IF\b',card,re.I):
+                conditional_depth+=1;control_stack.append({'kind':'IF','line':number})
+                gap(name,path,number,'JCL IF/THEN/ELSE execution needs a verified condition adapter');continue
+            if proc_depth:continue
+            execute=re.fullmatch(r'//([A-Z][A-Z0-9]{0,7})\s+EXEC\s+PGM=('+NAME+r')',card,re.I)
+            if execute:
+                if conditional_depth:
+                    gap(name,path,number,'Program is under a JCL condition; unconditional execution cannot be inferred');continue
+                step_name=execute[1].upper();program=execute[2].upper()
+                if step_name in step_names:
+                    gap(name,path,number,'Repeated step identity cannot form a unique ordered plan','ambiguous_step');continue
+                if not re.fullmatch(r'[A-Z][A-Z0-9_-]*',program):
+                    gap(name,path,number,'Program identity needs a portable target-name adapter');continue
+                step_names.add(step_name)
+                current_step={'name':step_name,'order':len(job['steps'])+1,'program':program,
+                              'inputs':[],'outputs':[],'condition':'ALWAYS'}
+                job['steps'].append(current_step)
+                result['step_evidence'].append({'job':name,'step':step_name,'program':program,
+                    'source_ref':{'path':path,'line':number,'end_line':number,'source_hash':source_hash},
+                    'condition_basis':'Complete unconditional EXEC PGM source card'})
+                continue
+            if re.match(r'^//(?:'+NAME+r')?\s+JCLLIB\b',card,re.I):
+                # Scope metadata is already validated by map_lineage. Its presence
+                # does not make the JCL executable or clear library-scope gaps.
+                continue
+            dd=re.match(r'^//('+NAME+r')?\s+DD\b(.*)',card,re.I)
+            if dd:
+                dsn=re.search(r'\b(?:DSN|DSNAME)\s*=\s*([^,\s]+)',dd[2],re.I)
+                binding={'job':name,'step':current_step['name'] if current_step else None,
+                         'dd':dd[1],'dataset':dsn[1].upper() if dsn else 'Unknown',
+                         'role':'Unknown','source_ref':{'path':path,'line':number,'source_hash':source_hash}}
+                result['dd_bindings'].append(binding)
+                gap(name,path,number,'DD allocation/read/write role needs a verified I/O adapter; DISP is not an input/output direction',
+                    'unverified_dd_role',dd=dd[1],step=binding['step'])
+                continue
+            if re.match(r'^//(?:'+NAME+r')?\s+EXEC\b',card,re.I):
+                current_step=None
+                gap(name,path,number,'PROC, conditional, symbolic or parameterized EXEC needs a verified JCL adapter');continue
+            gap(name,path,number,'Source card is outside the verified simple JCL job-plan grammar')
+        for scope in control_stack:
+            control_gap(scope['line'],'Unclosed '+scope['kind']+' scope at the current job boundary',
+                        'unclosed_jcl_'+scope['kind'].lower(),job_end_line)
+        if not job['steps']:gap(name,path,header_line,'No uniquely evidenced executable program steps were derived','missing_job_steps')
+    result['lineage_closure_complete']=lineage.get('closure',{}).get('complete') is True
+    result['lineage_gap_count']=len(lineage.get('closure',{}).get('gaps',[]))
+    result['complete']=(bool(result['jobs']) and all(job['steps'] for job in result['jobs'])
+                        and not result['gaps'] and result['lineage_closure_complete'])
+    result['source_binding_hash']=sha(encode({'declared_jobs':declared_jobs,'source_files':result['source_files']}))
+    return result

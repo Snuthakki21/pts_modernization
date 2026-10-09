@@ -5,12 +5,12 @@ export function usePolling<T>(url:string|null,onData:(value:T)=>void,onError:(er
  const callbacks=useRef({onData,onError});callbacks.current={onData,onError};
  useEffect(()=>{
   if(!url)return;
-  let stopped=false,timer:ReturnType<typeof setTimeout>|undefined,controller:AbortController|undefined,inFlight=false;
+  let stopped=false,timer:ReturnType<typeof setTimeout>|undefined,controller:AbortController|undefined,inFlight=false,lastPayload:string|undefined,failed=false;
   async function poll(){
    if(stopped||document.hidden||inFlight)return;
    inFlight=true;const request=new AbortController();controller=request;
-   try{const response=await fetch(url!,{signal:request.signal});if(!response.ok)throw Error('Connection unavailable. Check that the local workbench is running.');const data=await response.json();if(!stopped&&!request.signal.aborted)callbacks.current.onData(data);}
-   catch(error){if(!stopped&&!request.signal.aborted)callbacks.current.onError(error instanceof Error?error:Error('Connection unavailable.'));}
+   try{const response=await fetch(url!,{signal:request.signal});if(!response.ok)throw Error('Connection unavailable. Check that the local workbench is running.');const data=await response.json();if(!stopped&&!request.signal.aborted){const payload=JSON.stringify(data);if(failed||payload!==lastPayload)callbacks.current.onData(data);lastPayload=payload;failed=false;}}
+   catch(error){if(!stopped&&!request.signal.aborted){failed=true;callbacks.current.onError(error instanceof Error?error:Error('Connection unavailable.'));}}
    finally{inFlight=false;if(!stopped&&!document.hidden)timer=setTimeout(()=>void poll(),interval);}
   }
   function visibility(){if(timer)clearTimeout(timer);if(document.hidden)controller?.abort();else void poll();}

@@ -23,6 +23,8 @@ CHECKLIST_TEXT_LIMIT = 4000
 SME_ITEM_LIMIT = 2000
 TECHNICAL_GAP_KINDS = frozenset(('unsupported_source','unsupported_jcl','unsupported_utility','source_classification'))
 PROGRAM_LIST_TEXT_LIMIT = 240
+# Large portable HTML has no ZIP expansion; legacy workbook limits stay separate.
+MAX_HTML_REVIEW_BYTES = 128 * 1024 * 1024
 
 # Review wording, not semantic support claims. These categories are deliberately
 # conservative; unknown or compound obligations are never guessed from messages.
@@ -423,6 +425,9 @@ def packet_document(process):
     if details:context_data['checklist_details']=details
     context=json.dumps(context_data,ensure_ascii=False,indent=2,sort_keys=True)
     doc={'version':packet_version,'process_id':process['id'],'source_snapshot':a['source_snapshot'],'items':items,'context':context}
+    html_version=process.get('review_html_contract_version')
+    require(html_version is None or type(html_version) is int and html_version in (1,2), 'Unsupported frozen HTML review contract')
+    if html_version == 2:doc['html_contract_version']=2
     doc['packet_hash']=sha(encode(doc))
     for row in _metadata_rows(doc):
         for value in row:_validate_cell_capacity(value,'Review metadata')
@@ -548,16 +553,35 @@ def _html_response(packet):
             'reviewer': '', 'items': [{'id': item['id'], 'answer': '', 'correction': ''} for item in packet['items']]}
 
 
+
+# Keep the original shell byte-for-byte for already issued immutable packets.
+_HTML_SCRIPT_LARGE = _HTML_SCRIPT.replace(
+    "if (blob.size > 8388608) { status.textContent = 'The review exceeds the 8 MiB import limit. Shorten commentary before saving; no file was downloaded.'; return; }",
+    "if (blob.size > 134217728) { status.textContent = 'This review exceeds 128 MiB. Keep the file local and ask the operator to inspect its packet scope; no file was downloaded.'; return; }")
+
+
+def review_return_limit(prefix):
+    """Bound local transport by detected format before reading the whole file."""
+    return MAX_HTML_REVIEW_BYTES if is_html_return(prefix) else MAX_UPLOAD
+
+
+def _html_contract(packet):
+    version=packet.get('html_contract_version')
+    require(version is None or type(version) is int and version == 2, 'Unsupported frozen HTML review contract')
+    return (_HTML_SCRIPT_LARGE, MAX_HTML_REVIEW_BYTES) if version == 2 else (_HTML_SCRIPT, MAX_UPLOAD)
+
+
 def render_html_packet(packet, response=None):
     """Render the one issued packet; no external assets or inferred answers."""
     import base64
     import hashlib
-    script_hash = base64.b64encode(hashlib.sha256(_HTML_SCRIPT.encode()).digest()).decode('ascii')
+    script, limit = _html_contract(packet)
+    script_hash = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode('ascii')
     style_hash = base64.b64encode(hashlib.sha256(_HTML_STYLE.encode()).digest()).decode('ascii')
     policy = "default-src 'none'; script-src 'sha256-"+script_hash+"'; style-src 'sha256-"+style_hash+"'; connect-src 'none'; form-action 'none'; base-uri 'none'"
-    text = HTML_RETURN_HEADER.decode() + '\n<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="'+policy+'"><title>Process review</title><style>'+_HTML_STYLE+'</style></head>\n<body><main id="sme-app"></main><noscript>This review needs JavaScript enabled in a normal browser. No network connection is needed.</noscript>\n<script type="application/json" id="'+_HTML_PACKET_ID+'">'+_html_json(packet)+'</script>\n<script type="application/json" id="'+_HTML_RETURN_ID+'">'+_html_json(_html_response(packet) if response is None else response)+'</script>\n<script id="workbench-sme-ui">'+_HTML_SCRIPT+'</script>\n</body></html>'
+    text = HTML_RETURN_HEADER.decode() + '\n<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="'+policy+'"><title>Process review</title><style>'+_HTML_STYLE+'</style></head>\n<body><main id="sme-app"></main><noscript>This review needs JavaScript enabled in a normal browser. No network connection is needed.</noscript>\n<script type="application/json" id="'+_HTML_PACKET_ID+'">'+_html_json(packet)+'</script>\n<script type="application/json" id="'+_HTML_RETURN_ID+'">'+_html_json(_html_response(packet) if response is None else response)+'</script>\n<script id="workbench-sme-ui">'+script+'</script>\n</body></html>'
     data = text.encode('utf-8')
-    require(len(data) <= MAX_UPLOAD, 'SME HTML document exceeds the supported upload size; narrow the process scope before issuing')
+    require(len(data) <= limit, 'SME HTML document exceeds the supported upload size; retain the complete local file and inspect its scope')
     return data
 
 
@@ -623,7 +647,8 @@ def read_html_return(data, packet, reviewer):
             'Name the reviewer responsible for this returned file')
     require(packet.get('packet_hash') == sha(encode({k: v for k, v in packet.items() if k != 'packet_hash'})),
             'Frozen packet content/hash changed')
-    require(is_html_return(data) and len(data) <= MAX_UPLOAD, 'Invalid or oversized SME HTML return')
+    _, limit = _html_contract(packet)
+    require(is_html_return(data) and len(data) <= limit, 'Invalid or oversized SME HTML return')
     try:
         shape = _HTMLReviewShape(data.decode('utf-8'))
     except ValidationError:
@@ -633,12 +658,12 @@ def read_html_return(data, packet, reviewer):
     frozen = _HTMLReviewShape(render_html_packet(packet).decode('utf-8'))
     require(shape.events == frozen.events, 'HTML review shell, instructions or script changed')
     require(set(shape.payloads) == {_HTML_PACKET_ID, _HTML_RETURN_ID}, 'Missing HTML review payload')
-    embedded = decode(shape.payloads[_HTML_PACKET_ID], limit=MAX_UPLOAD)
+    embedded = decode(shape.payloads[_HTML_PACKET_ID], limit=limit)
     require(isinstance(embedded, dict) and embedded.get('packet_hash') ==
             sha(encode({key: value for key, value in embedded.items() if key != 'packet_hash'}))
-            and encode(embedded, limit=MAX_UPLOAD) == encode(packet, limit=MAX_UPLOAD),
+            and encode(embedded, limit=limit) == encode(packet, limit=limit),
             'Original HTML packet changed')
-    response = decode(shape.payloads[_HTML_RETURN_ID], limit=MAX_UPLOAD)
+    response = decode(shape.payloads[_HTML_RETURN_ID], limit=limit)
     require(isinstance(response, dict) and set(response) == {'version', 'kind', 'process_id', 'packet_hash', 'source_snapshot', 'reviewer', 'items'}, 'HTML return fields changed')
     require(type(response['version']) is int and response['version'] == 1 and response['kind'] == 'SME_HTML_RETURN', 'Invalid HTML return version or kind')
     require(all(response[key] == packet[key] for key in ('process_id', 'packet_hash', 'source_snapshot')), 'HTML return belongs to a different packet or process')
@@ -668,7 +693,20 @@ def export_packet(process, directory):
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.worksheet.datavalidation import DataValidation
     from docx import Document
-    directory=Path(directory);document=packet_document(process)
+    directory=Path(directory)
+    # A changed default must not rewrite/reissue an existing packet shell.
+    candidate=process
+    if directory.exists():
+        require(not any(path_is_link(path) for path in [directory,*directory.parents]), 'Existing packet path is unsafe')
+        require(all((directory/name).is_file() and not path_is_link(directory/name)
+                    for name in ('packet.json','sme-checklist.xlsx','sme-checklist.docx','sme-checklist.html')),
+                'Existing packet is incomplete; recover its preserved snapshot')
+        prior_path=directory/'packet.json'
+        require(prior_path.stat().st_size <= MAX_UPLOAD, 'Existing packet exceeds the frozen packet size bound')
+        with prior_path.open('rb') as stream: prior_raw=stream.read(MAX_UPLOAD+1)
+        prior=decode(prior_raw,MAX_UPLOAD)
+        candidate={**process,'review_html_contract_version':prior.get('html_contract_version',1)}
+    document=packet_document(candidate)
     if directory.exists():
         require(all((directory/name).is_file() and not path_is_link(directory/name)
                     for name in ('packet.json','sme-checklist.xlsx','sme-checklist.docx','sme-checklist.html')),

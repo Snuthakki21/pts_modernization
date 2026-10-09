@@ -22,6 +22,20 @@ from .limits import (MAX_SOURCE_FILES, MAX_SOURCE_ENTRIES, MAX_SOURCE_FILE_BYTES
 _UNSET = object()
 
 
+def _intake_context(root, manifest, text, process_notes):
+    from .process_context import freeze_context, context_from_markdown, MAX_CONTEXT_BYTES, MAX_CONTEXT_FILES
+    snapshot=freeze_context(root,process_notes)
+    if manifest.get('process_intake_version')==2:
+        note=context_from_markdown(text)
+        if not any(d['sha256']==note['sha256'] for d in snapshot['documents']):
+            require(len(snapshot['documents'])<MAX_CONTEXT_FILES,'Combined process context exceeds document limit')
+            require(sum(len(d['text'].encode('utf-8')) for d in snapshot['documents'])+len(text.encode('utf-8'))<=MAX_CONTEXT_BYTES,
+                    'Combined process context exceeds 1 MiB; provide one Process.md')
+            note['id']='NOTE_'+str(len(snapshot['documents'])+1)
+            snapshot['documents'].append(note)
+    return snapshot
+
+
 class StageInterrupted(Exception):
     pass
 
@@ -96,18 +110,19 @@ class Coordinator:
 
     def create(self, manifest_text, source_files=None, demo=False, prompt='', assistant_mode=None, source_folder=_UNSET, process_notes=_UNSET, requirements_selection=False, *, _prepare=False):
         require_layout(self.root)
+        manifest=parse_manifest(manifest_text)
         from .setup import intake_defaults
         defaults=intake_defaults(self.root)
-        if source_folder is _UNSET:source_folder=defaults['source_folder'] if source_files is None else None
-        if process_notes is _UNSET:process_notes=defaults['process_notes']
-        manifest=parse_manifest(manifest_text)
+        if source_folder is _UNSET:
+            source_folder=(self.root/'Endeavor' if manifest.get('process_intake_version')==2 else defaults['source_folder']) if source_files is None else None
+        if process_notes is _UNSET:process_notes=None if manifest.get('process_intake_version')==2 else defaults['process_notes']
         require(type(requirements_selection) is bool,'Requirements selection mode must be a boolean')
         require(source_folder is None or isinstance(source_folder,(str,Path)) and bool(str(source_folder).strip()),'Source folder must be a nonempty path')
         require(process_notes is None or isinstance(process_notes,(str,Path)) and bool(str(process_notes).strip()),'Process notes must be a nonempty path')
         require(source_folder is None or source_files is None,'Choose uploaded sources or one source folder')
         if source_files is None:
             from .preflight import _read_sources
-            source_files,_=_read_sources(self.root,source_folder)
+            source_files,_=_read_sources(self.root,source_folder,allow_empty=_prepare)
         require(isinstance(source_files,dict) and (0 if _prepare else 1)<=len(source_files)<=MAX_SOURCE_FILES,f'Provide a source folder with 1 to {MAX_SOURCE_FILES:,} supported text files')
         require(all(isinstance(k,str) and isinstance(v,str) for k,v in source_files.items()),'Source filenames and contents must be text')
         require(all('\x00' not in value for value in source_files.values()),'Source contains NUL/binary content; provide readable source separately from data/load modules')
@@ -132,7 +147,7 @@ class Coordinator:
         from .mainframe import load_knowledge
         knowledge=load_knowledge(self.root)
         from .process_context import freeze_context
-        context_snapshot=freeze_context(self.root,process_notes)
+        context_snapshot=_intake_context(self.root,manifest,manifest_text,process_notes)
         with self.lock:
             require_layout(self.root)
             require(not self.process_root(manifest['id']).exists(),'Process directory already exists')
@@ -148,11 +163,16 @@ class Coordinator:
                 doc['source_files']=hashes
                 if _prepare:doc['intake_source_files']=dict(hashes)
                 doc['manifest_hash']=sha(encoded_manifest);doc['prompt']=prompt[:16000]
+                if manifest.get('process_intake_version')==2:
+                    doc['declared_jobs']=json.loads(json.dumps(manifest['jobs']))
                 doc['requirements_selection']=requirements_selection
                 if _prepare:
                     doc['guided_contract_version']=1;doc['guided_workspace']=str(self.root)
                     doc['source_intake_pending']=True
                 doc['assistant_mode']=assistant_mode;doc['sme_packet_version']=4 if agent_mode else 3
+                doc['review_html_contract_version']=2
+                if manifest.get('process_intake_version')==2 or (_prepare and manifest.get('transactions')):
+                    doc['accelerator_contract_version']=1
                 doc['agent_host']='external' if agent_mode else assistant_mode
                 doc['development_contract_version']=2 if local_files else 1
                 if local_files:doc['agent_transport']='local_files'
@@ -190,7 +210,13 @@ class Coordinator:
         """Prepare a manifest before source arrives; explicit demos retain portfolio exclusion."""
         require(type(demo) is bool,'Fictional process intent must be a boolean')
         require(isinstance(prompt,str) and len(prompt)<=16000,'Analysis prompt must be text with at most 16,000 characters')
-        if source_files is None and source_folder is None:source_files={}
+        if source_files is None and source_folder is None:
+            # Normal accelerator intake always examines the fixed local export first.
+            # Explicit sources={} remains the compatibility retrieval-only choice.
+            if (self.root/'Endeavor').is_dir():
+                from .preflight import _read_sources
+                source_folder=self.root/'Endeavor'
+            else:source_files={}
         manifest=parse_manifest(manifest_text)
         with self.lock:
             existing=next((p for p in self.ledger.list(True) if p['id']==manifest['id']),None)
@@ -199,12 +225,12 @@ class Coordinator:
                 self.sources(existing)
                 if source_files is None:
                     from .preflight import _read_sources
-                    source_files,_=_read_sources(self.root,source_folder)
+                    source_files,_=_read_sources(self.root,source_folder,allow_empty=True)
                 require(isinstance(source_files,dict) and all(isinstance(k,str) and isinstance(v,str) for k,v in source_files.items()),'Prepared sources must be text files')
                 from .process_context import freeze_context
                 require(sha(manifest_text)==existing['manifest_hash'] and
                         {path:sha(text) for path,text in source_files.items()}==existing.get('intake_source_files') and
-                        freeze_context(self.root,process_notes)==existing['process_context'] and prompt==existing['prompt'] and demo==existing['demo'],
+                        _intake_context(self.root,manifest,manifest_text,process_notes)==existing['process_context'] and prompt==existing['prompt'] and demo==existing['demo'],
                         'Process input changed; select the existing process or use a new process ID')
                 return existing
             return self.create(manifest_text,source_files,demo,prompt,'claude_files',source_folder,process_notes,True,_prepare=True)
@@ -378,7 +404,14 @@ class Coordinator:
         raw=output_path(self.root,doc['id'],'input/process-input.md').read_bytes()
         require(sha(raw)==doc['manifest_hash'],'Frozen process manifest changed; existing evidence cannot be credited')
         frozen=parse_manifest(raw.decode('utf-8'))
-        require(all(frozen.get(key)==doc.get(key) for key in ('id','name','jobs','transactions','workload')),'Process metadata differs from the frozen manifest')
+        simple=frozen.get('process_intake_version')==2
+        require(simple==(doc.get('process_intake_version')==2),'Process intake version differs from the frozen manifest')
+        require(all(frozen.get(key)==doc.get(key) for key in ('id','name','transactions','workload')),'Process metadata differs from the frozen manifest')
+        if simple:
+            require(frozen['jobs']==doc.get('declared_jobs'),'Declared jobs differ from the frozen Process.md')
+            from .intake import verify_job_plan
+            verify_job_plan(doc,self.process_root(doc['id']))
+        else:require(frozen['jobs']==doc['jobs'],'Process metadata differs from the frozen manifest')
         if 'mainframe_knowledge' in doc or 'analysis/mainframe-knowledge.json' in doc.get('artifact_hashes',{}):
             from .mainframe import validate_snapshot
             snapshot=doc.get('mainframe_knowledge');validate_snapshot(snapshot)
@@ -610,6 +643,8 @@ class Coordinator:
                 'source_directory':str(self.process_root(pid)/'input/sources'),
                 'requirements_file':None,
                 'requirements':model_requirements(doc),
+                'manual_fallback':{'available':bool(doc.get('supplemental_available')),
+                    'action':'continue','policy':'Only exact requested operator exports after an accepted absent-member Zowe read; original failures and source obligations remain preserved'},
                 'analysis_return_inbox':str(output_path(self.root,pid,'analysis/agent-return-inbox.json')),
                 'retrieval':request,'retrieval_state':None if not doc.get('retrieval_request') else
                     {key:value for key,value in doc['retrieval_request'].items() if key in
@@ -624,7 +659,9 @@ class Coordinator:
 
     @staticmethod
     def _retrieval_need_key(need):
-        return sha(encode({k:need.get(k) for k in ('kind','name','source','relationship')}))
+        fields={k:need.get(k) for k in ('kind','name','source','relationship')}
+        fields.update({k:need[k] for k in ('library','source_library_hints') if k in need})
+        return sha(encode(fields))
 
     def request_retrieval(self, pid, needs=None):
         from .retrieval import build_request,write_request,validate_binding,MAX_NEEDS
@@ -639,7 +676,8 @@ class Coordinator:
                 return self.local_agent_view(pid)
             total=None
             if needs is None:
-                fields=('kind','name','reason','source','relationship','status')
+                from .retrieval import _NEED_FIELDS
+                fields=_NEED_FIELDS
                 gaps=doc.get('lineage',{}).get('closure',{}).get('gaps',[])
                 candidates=[{k:g[k] for k in fields if k in g} for g in gaps]
                 candidates.extend(v['need'] for v in doc.get('retrieval_unresolved',{}).values())
@@ -696,6 +734,10 @@ class Coordinator:
                 else:unresolved[key]={'need':{k:v for k,v in need.items() if k!='need_id'},
                     'request_id':request['request_id'],'reason':item['reason'],'status':item['status']}
             doc['retrieval_request']={**record,'status':'CONSUMED'}
+            if doc.get('accelerator_contract_version')==1:
+                from .retrieval import _source_generation
+                doc['retrieval_request'].update(manual_request_source_generation=request['source_generation'],
+                    manual_failure_source_generation=_source_generation(doc))
             doc['analysis']=None;doc['llm']={'status':'NOT_CONFIGURED','live_ready':False}
             doc['copilot_iteration']=doc.get('copilot_iteration',0)+1
             for key in ('lineage','lineage_artifact','lineage_scope','copilot_task_artifact','copilot_return_artifact','analysis_artifact'):doc.pop(key,None)
@@ -705,6 +747,52 @@ class Coordinator:
         # Partial/unsuccessful retrieval is a visible checkpoint, not an automatic prompt loop.
         if self.ledger.get(pid)['status']=='WAITING_DISCOVERY' and not self.ledger.get(pid).get('retrieval_unresolved') and result['complete'] and result['entries']:
             return self.request_retrieval(pid)
+        if self.ledger.get(pid)['status']=='WAITING_DISCOVERY' and self.ledger.get(pid).get('accelerator_contract_version')==1:
+            return self.continue_supplemental(pid)
+        return self.local_agent_view(pid)
+
+    def continue_supplemental(self,pid):
+        """Consume exact operator exports only after a frozen failed Zowe read."""
+        from .supplemental import find_entries
+        from .retrieval import _source_generation
+        with self.lock:
+            doc=self.ledger.get(pid);existing=self.sources(doc);record=doc.get('retrieval_request') or {}
+            require(not doc['packet_issued'] and pid not in self.active and doc['status']=='WAITING_DISCOVERY',
+                    'Check requested supplemental files only at a stable pre-review discovery checkpoint')
+            if doc.get('accelerator_contract_version')!=1 or record.get('status')!='CONSUMED' or not record.get('manual_failure_source_generation'):
+                return self.local_agent_view(pid)
+            request=decode(self.artifact(pid,record['artifact']).read_bytes())
+            accepted=decode(self.artifact(pid,record['response_artifact']).read_bytes())
+            result=find_entries(self.root,doc,accepted['missing_items'],request['needs'])
+            data=encode(result);relative='analysis/supplemental-'+sha(data)+'.json'
+            destination=output_path(self.root,pid,relative)
+            if destination.exists():require(destination.read_bytes()==data,'Supplemental evidence changed')
+            else:write_new(destination,data)
+            self.register(doc,relative);doc['supplemental_artifact']=relative
+            doc['supplemental_available']=bool(result['attempts'])
+            entries=result['entries']
+            if entries:
+                self._validate_discovered_sources(doc,entries,existing)
+                self.freeze_discovered_sources(doc,entries);doc=self.ledger.get(pid)
+                # Source receipts describe supplied exports, never fabricated remote reads.
+                by_id={need['need_id']:need for need in request['needs']}
+                for entry in entries:
+                    for need_id in entry['provenance']['retrieval_need_ids']:
+                        need=by_id[need_id];key=self._retrieval_need_key(need)
+                        doc['retrieval_unresolved'][key]={'need':{k:v for k,v in need.items() if k!='need_id'},
+                            'request_id':request['request_id'],'status':'RECEIVED','path':entry['path'],
+                            'source_hash':entry['source_hash'],'reason':'Operator export received; object identity and semantics still require local validation'}
+                doc['retrieval_request']['manual_failure_source_generation']=_source_generation(doc)
+                doc['analysis']=None;doc['llm']={'status':'NOT_CONFIGURED','live_ready':False}
+                doc['copilot_iteration']=doc.get('copilot_iteration',0)+1
+                for key in ('lineage','lineage_artifact','lineage_scope','copilot_task_artifact','copilot_return_artifact','analysis_artifact'):doc.pop(key,None)
+                doc.setdefault('stage_attempts',{})['QUEUED_ANALYSIS']=0
+                self.ledger.save_event(doc,'QUEUED_ANALYSIS','supplemental','Requested operator exports frozen; failed remote receipts preserved and local identity mapping must pass',{'accepted_files':len(entries)})
+            else:
+                doc['blockers']=[b for b in doc['blockers'] if not str(b.get('kind','')).startswith('manual_')]
+                doc['blockers'].extend({'kind':gap['kind'],'message':gap['reason'],'object':gap} for gap in result['gaps'])
+                self.ledger.save_event(doc,None,'supplemental','Exact requested supplemental categories checked; unresolved obligations remain visible',{'accepted_files':0,'attempts':len(result['attempts'])})
+        if entries:self.advance(pid)
         return self.local_agent_view(pid)
 
     def local_agent_action(self, pid, action, payload):
@@ -742,6 +830,7 @@ class Coordinator:
         if action=='continue':
             current=self.ledger.get(pid)
             if (current.get('retrieval_request') or {}).get('status') in ('WAITING','IMPORTING'):return self.continue_retrieval(pid)
+            if current['status']=='WAITING_DISCOVERY' and current.get('supplemental_available'):return self.continue_supplemental(pid)
             inbox=output_path(self.root,pid,'analysis/agent-return-inbox.json')
             if current['status']=='WAITING_COPILOT' and inbox.exists():
                 require(inbox.is_file() and inbox.stat().st_size<=128000,'Local analysis return exceeds bound')
@@ -811,19 +900,19 @@ class Coordinator:
             doc = self.ledger.get(pid); record = doc.get('development_handoff')
             empty = {'packet': None, 'result': None}
             if not record:
-                return {**empty, 'status': 'NOT_PREPARED', 'next_action': 'Copilot inspects source, then prepares standalone development when needed.'}
+                return {**empty, 'status': 'NOT_PREPARED', 'next_action': 'Claude inspects source, then prepares standalone development when needed.'}
             if doc['status'] != 'WAITING_COPILOT' or not doc.get('copilot_task_artifact'):
-                return {**empty, 'status': 'STALE', 'next_action': 'The previous handoff is preserved. Retrieve the current Copilot task after analysis.'}
+                return {**empty, 'status': 'STALE', 'next_action': 'The previous handoff is preserved. Retrieve the current Claude task after analysis.'}
             task = self.agent_task(pid)
             if not self._current_development(doc, task):
-                return {**empty, 'status': 'STALE', 'next_action': 'Previous handoff is stale. Copilot uses the refreshed task or prepares a new development handoff.'}
+                return {**empty, 'status': 'STALE', 'next_action': 'Previous handoff is stale. Claude uses the refreshed task or prepares a new development handoff.'}
             packet = decode(self.artifact(pid, record['artifact']).read_bytes())
             require(packet['handoff_id'] == record['id'] and
                     packet['handoff_id'] == sha(encode({k:v for k,v in packet.items() if k != 'handoff_id'})),
                     'Development handoff integrity differs')
             result = decode(self.artifact(pid, record['return_artifact']).read_bytes()) if record.get('return_artifact') else None
             return {'status': 'RETURNED_FOR_REVIEW' if result else 'READY', 'packet': packet, 'result': result,
-                    'next_action': 'Copilot reviews and integrates the returned patch, verifies it, restarts the existing service if code changed and refreshes analysis.' if result else 'Standalone Claude implements the source-free work items and returns evidence or unresolved obligations.'}
+                    'next_action': 'Claude reviews and integrates the returned patch, verifies it, restarts the existing service if code changed and refreshes analysis.' if result else 'Standalone Claude implements the source-free work items and returns evidence or unresolved obligations.'}
 
     def _development_by_id(self, handoff_id):
         from .development import valid_hash
@@ -841,14 +930,14 @@ class Coordinator:
                         'return_hash': view['result']['submission_hash'] if view['result'] else None}
             except (ValidationError, OSError, KeyError) as exc:
                 # Developer consumers must not receive operational integrity paths/names.
-                raise ValidationError('Development handoff is unavailable or stale; ask Copilot to check the operational workspace') from exc
+                raise ValidationError('Development handoff is unavailable or stale; ask Claude to check the operational workspace') from exc
 
     def submit_development(self, handoff_id, submitted):
         from .development import validate_return
         with self.lock:
             try: pid, view = self._development_by_id(handoff_id)
             except (ValidationError, OSError, KeyError) as exc:
-                raise ValidationError('Development handoff is unavailable or stale; ask Copilot to check the operational workspace') from exc
+                raise ValidationError('Development handoff is unavailable or stale; ask Claude to check the operational workspace') from exc
             result = validate_return(view['packet'], submitted)
             if view['result']:
                 require(view['result'] == result, 'Development return conflicts with the immutable recorded return')
@@ -859,7 +948,7 @@ class Coordinator:
             if destination.exists(): require(destination.read_bytes() == data, 'Development return evidence differs')
             else: write_new(destination, data)
             self.register(doc, relative); doc['development_handoff']['return_artifact'] = relative
-            self.ledger.save_event(doc, None, 'development', 'Standalone development return recorded as unverified; Copilot integration and refresh required',
+            self.ledger.save_event(doc, None, 'development', 'Standalone development return recorded as unverified; Claude integration and refresh required',
                                    {'handoff_id': handoff_id, 'return_hash': result['submission_hash']})
             return self.development_task(handoff_id)
 
@@ -1047,7 +1136,7 @@ class Coordinator:
         from .connectors import ReadOnlyLineageResolver
         strict=doc.get('assistant_mode')=='copilot_chat'
         if not doc.get('lineage') or (strict and not doc['lineage']['closure']['complete']):
-            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.from_environment(workspace=self.root) if strict and doc.get('agent_transport')!='local_files' else None)
+            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.deferred_from_environment(workspace=self.root) if strict else None)
             self.freeze_discovered_sources(doc,lineage.get('source_snapshots',[]))
             source_files=self.sources(doc)
             # Fetched text is retained in immutable source snapshots and journal,
@@ -1068,12 +1157,26 @@ class Coordinator:
             return
         if strict:doc['lineage_scope']=doc['lineage']['scope']['selected_files']
         if doc.get('guided_contract_version'):doc['source_intake_pending']=False
+        if doc.get('process_intake_version')==2 and (doc.get('analysis') is None or not doc.get('job_plan_artifact')):
+            # Resume reuses the plan. A real reassessment derives a fresh hash-bound
+            # generation; the previous registered evidence remains immutable.
+            from .lineage import derive_job_plan
+            plan=derive_job_plan(source_files,doc,doc['lineage'])
+            data=encode(plan);relative='analysis/job-plan-'+sha(data)+'.json'
+            destination=output_path(self.root,pid,relative)
+            if destination.exists():require(destination.read_bytes()==data,'Frozen job plan changed')
+            else:write_new(destination,data)
+            self.register(doc,relative);doc['job_plan_artifact']=relative
+            doc['jobs']=plan['jobs']
+            doc['job_plan_gaps']=[{'kind':'unsupported_jcl','message':gap['reason'],'object':gap,
+                                  'path':gap.get('path'),'line':gap.get('line')} for gap in plan['gaps']]
         self.ledger.event(pid,'analysis','Extracting atomic source logic within the discovered job scope; unsupported semantics remain explicit adapter obligations')
         analysis=doc.get('analysis')
         if analysis is None:
             # Reassess the current adapter catalog before applying saved selections.
             # Changed granularity needs a fresh operator Save, never silent defaults.
             analysis=analyze_sources(source_files,{k:v for k,v in doc.items() if k!='requirements'})
+            analysis['blockers'].extend(doc.get('job_plan_gaps',[]))
             if doc.get('requirements'):
                 from .requirements import catalog,project
                 model=catalog(analysis);saved=doc['requirements']

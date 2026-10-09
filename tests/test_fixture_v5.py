@@ -246,7 +246,7 @@ class OrderedJobV5Tests(unittest.TestCase):
             root = Path(temporary); program = analyze_program('ELIGIBLE.cbl', COBOL, {})
             program['target_contract_version'] = 2; code = emit_program(program); version = sha(code)
             path = root / 'shared' / 'target' / 'python' / (version + '.py')
-            path.parent.mkdir(parents=True); path.write_text(code)
+            path.parent.mkdir(parents=True); path.write_bytes(code.encode('utf-8'))
             doc = {'jobs': [{'name': 'JOBA', 'steps': [{'name': 'S1', 'program': 'ELIGIBLE', 'condition': ''},
                                                         {'name': 'S2', 'program': 'ELIGIBLE', 'condition': 'RC=0'}]}],
                    'analysis': {'programs': {'ELIGIBLE': program}}, 'program_versions': {'ELIGIBLE': version},

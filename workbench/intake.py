@@ -1,10 +1,11 @@
 """Small, explicit Markdown/Excel process intake. Missing facts stay unknown."""
 import re
 from io import BytesIO
-from .domain import ValidationError, identity, require, checked_zip
+from .domain import ValidationError, identity, require, checked_zip, encode, decode, sha, safe_path
 
 HEADERS = ['Job order', 'Job', 'Step order', 'Step', 'Program or utility', 'Input files/tables', 'Output files/tables', 'Condition or dependency']
 LINE_SEPARATORS = '\u0085\u2028\u2029'
+MAX_PROCESS_MARKDOWN_BYTES = 1024 * 1024
 
 
 def single_line(value):
@@ -53,7 +54,12 @@ def from_rows(pid, name, rows):
 
 
 def parse_manifest(text):
-    require(isinstance(text, str) and len(text) <= 128000, 'Markdown intake is too large')
+    require(isinstance(text, str), 'Provide a UTF-8 Process.md file')
+    try: size = len(text.encode('utf-8'))
+    except UnicodeError as exc: raise ValidationError('Process.md must be valid UTF-8 without unpaired surrogates') from exc
+    require(size <= MAX_PROCESS_MARKDOWN_BYTES, 'Process.md exceeds 1 MiB; keep source code in Endeavor and provide process instructions here')
+    require('\x00' not in text, 'Process.md must be text without NUL bytes')
+    text = text.removeprefix('\ufeff')
     # Rendered examples and comments are not operator-supplied process facts.
     visible=[]; fence=None; comment=False
     for line in text.splitlines(keepends=True):
@@ -75,6 +81,21 @@ def parse_manifest(text):
         else: visible.append(active if active.endswith('\n') else active+'\n')
     require(fence is None and not comment, 'Close Markdown example fences and comments before intake')
     text=''.join(visible)
+    # Editors commonly bold labels or use headings. Normalize only recognized
+    # identity/header syntax; prose remains data and never creates source facts.
+    normalized=[]
+    for line in text.splitlines():
+        match = re.fullmatch(r'[ \t]*[-*]?[ \t]*(?:\*\*|__)(Process ID|Process name)(:)?(?:\*\*|__)[ \t]*(:)?[ \t]*(.*)', line, re.I)
+        if match and bool(match[2]) != bool(match[3]):
+            line = match[1]+': '+match[4]
+        if line.strip().startswith('|'):
+            cells=[v.strip() for v in line.strip().strip('|').split('|')]
+            if [v.casefold() for v in cells] == [v.casefold() for v in HEADERS]:
+                line='| '+' | '.join(HEADERS)+' |'
+            elif [v.casefold() for v in cells] == ['transaction','program','mapset','map']:
+                line='| Transaction | Program | Mapset | Map |'
+        normalized.append(line)
+    text='\n'.join(normalized)
     def attr(label):
         # Horizontal whitespace only: an empty attribute must never absorb
         # the next line (for example the job-table header) as its value.
@@ -108,6 +129,13 @@ def parse_manifest(text):
             transactions.append({'id':tx,'program':program,'mapset':mapset or None,'map':screen or None})
         require(0<len(transactions)<=200, 'Supply 1–200 transactions')
         return {'id':pid,'name':name,'jobs':[],'transactions':transactions,'workload':'online'}
+    has_batch_header=any([v.strip() for v in line.strip().strip('|').split('|')]==HEADERS
+                         for line in text.splitlines() if line.strip().startswith('|'))
+    if not has_batch_header and _has_job_roots(text):
+        return _parse_job_roots(text, attr('Process ID'), attr('Process name'))
+    if not table_lines:
+        attr('Process ID');attr('Process name')
+        raise ValidationError('Add a Jobs heading and one entry job per line; use the downloadable Process.md template')
     rows = [];header=False
     for line in text.splitlines():
         if not line.strip().startswith('|'): continue
@@ -123,6 +151,107 @@ def parse_manifest(text):
         rows.append(cells)
     require(header, 'Provide the exact job/step table headers')
     return from_rows(attr('Process ID'), attr('Process name'), rows)
+
+
+def _has_job_roots(text):
+    return bool(re.search(r'^[ \t]*(?:#{1,6}[ \t]+)?(?:Entry jobs|Jobs)(?:[ \t]*\([^\n]*\))?[ \t]*:?[ \t]*$', text, re.M | re.I)
+                or re.search(r'^[ \t]*[-*]?[ \t]*(?:Job|Jobs|Entry jobs)[ \t]*:[ \t]*\S', text, re.M | re.I))
+
+
+def _root_name(value):
+    # A single named member may be followed by an attributed explanatory note.
+    # Never mine arbitrary prose or guess a member from a filename/path.
+    value=value.strip()
+    if value.startswith('`'):
+        match=re.fullmatch(r'`([^`]+)`(?:[ \t]*(?:[:\u2014\u2013]| - )[ \t]*.*)?',value)
+        require(match is not None, 'Use one job member name per Jobs line, for example 1. REFJOB')
+        value=match[1]
+    else:
+        value=re.split(r'[ \t]*(?:[:\u2014\u2013]| - )[ \t]*',value,maxsplit=1)[0].strip()
+    require(value.casefold() not in {'unknown','tbd','n/a','none','replacejob','replacejob2','your_job'}, 'Provide at least one known entry job member; missing names stay unresolved')
+    try:return identity(value)
+    except ValidationError as exc:raise ValidationError('Use one exact job member name per Jobs line; put explanations under Notes, for example 1. REFJOB') from exc
+
+
+def _parse_job_roots(text, pid, name):
+    identity(pid)
+    require(0 < len(name) <= 160 and single_line(name), 'Process name is required and limited to 160 characters')
+    roots=[]; active=False; mode=None; seen_section=False
+    for line in text.splitlines():
+        stripped=line.strip()
+        heading=re.fullmatch(r'(?:#{1,6}[ \t]+)?(?:Entry jobs|Jobs)(?:[ \t]*\([^\n]*\))?[ \t]*:?',stripped,re.I)
+        inline=re.fullmatch(r'[-*]?[ \t]*(?:Job|Jobs|Entry jobs)[ \t]*:[ \t]*(.+)',stripped,re.I)
+        if heading or inline:
+            require(not seen_section, 'Use one Jobs list; multiple lists are ambiguous')
+            active=True;seen_section=True
+            if inline:
+                values=re.split(r'[;,]',inline[1]);require(all(v.strip() for v in values), 'Remove an empty job name from the Jobs list')
+                roots.extend((i,_root_name(v)) for i,v in enumerate(values,1));active=False
+            continue
+        if not active or not stripped:continue
+        if stripped.startswith('#'):active=False;continue
+        numbered=re.fullmatch(r'([0-9]+)[.)][ \t]+(.+)',stripped)
+        bullet=re.fullmatch(r'[-*+][ \t]+(.+)',stripped)
+        # Plain single member lines also work in a Jobs section. All other
+        # prose belongs under Notes, rather than silently becoming an identity.
+        kind='numbered' if numbered else 'listed'
+        require(mode is None or mode==kind, 'Use all numbered jobs or all unnumbered jobs; mixed order is ambiguous')
+        mode=kind
+        order=int(numbered[1]) if numbered else len(roots)+1
+        value=numbered[2] if numbered else bullet[1] if bullet else stripped
+        require(0 < order <= 1000 and (not roots or order > roots[-1][0]), 'Jobs must have distinct ascending positive run orders, up to 1000')
+        roots.append((order,_root_name(value)))
+        require(len(roots)<=1000,'Supply at most 1000 entry jobs; source steps are discovered from their JCL')
+    require(roots, 'Add the entry job member under Jobs; the factory discovers its steps and dependencies')
+    seen=set();methods=set()
+    for _,job in roots:
+        method=job.casefold().replace('-','_')
+        require(job.casefold() not in seen and method not in methods,'Jobs list contains a duplicate or case-normalized member collision')
+        seen.add(job.casefold());methods.add(method)
+    return {'id':pid,'name':name,'jobs':[{'name':job,'order':order,'steps':[]} for order,job in roots],
+            'process_intake_version':2}
+
+
+def verify_job_plan(doc, base, reader=None):
+    """Validate the exact frozen derivation separately from immutable root intake.
+
+    Both Coordinator transitions and report coverage use this same contract.
+    It verifies a registered source-derived plan; it does not derive new jobs,
+    grant semantic support or turn source-derived checks into observed parity.
+    """
+    require(isinstance(doc,dict), 'Job plan requires a process document')
+    declared=doc.get('declared_jobs')
+    require(isinstance(declared,list), 'Declared jobs are missing from the frozen Process.md intake')
+    relative=doc.get('job_plan_artifact')
+    if not relative:
+        require(encode(doc.get('jobs'))==encode(declared), 'Jobs changed before source-derived planning')
+        require(not doc.get('job_plan_gaps'), 'Job plan gaps exist without their frozen plan')
+        return None
+    require(isinstance(doc.get('artifacts'),list) and relative in doc['artifacts']
+            and isinstance(doc.get('artifact_hashes'),dict), 'Job plan is not registered')
+    path=safe_path(base,relative)
+    if reader is None:
+        from .limits import MAX_JSON_DOCUMENT_BYTES
+        require(path.is_file() and path.stat().st_size<=MAX_JSON_DOCUMENT_BYTES, 'Frozen job plan exceeds the bounded reader limit')
+        with path.open('rb') as stream: raw=stream.read(MAX_JSON_DOCUMENT_BYTES+1)
+        require(len(raw)<=MAX_JSON_DOCUMENT_BYTES, 'Frozen job plan changed or exceeds the bounded reader limit')
+    else:raw=reader(path)
+    digest=sha(raw)
+    require(relative=='analysis/job-plan-'+digest+'.json' and digest==doc.get('artifact_hashes',{}).get(relative), 'Frozen job plan changed or has a noncanonical identity')
+    plan=decode(raw)
+    require(isinstance(plan,dict) and type(plan.get('schema_version')) is int and plan['schema_version']==1
+            and plan.get('applicable') is True and plan.get('basis')=='deterministic_source_jcl', 'Unsupported frozen source job plan')
+    require(plan.get('process_id')==doc.get('id') and encode(plan.get('jobs'))==encode(doc.get('jobs')), 'Derived jobs differ from the frozen source job plan')
+    sources=plan.get('source_files')
+    require(isinstance(doc.get('source_files'),dict), 'Process source baseline is missing from the job plan binding')
+    require(isinstance(sources,dict) and all(isinstance(path,str) and isinstance(digest,str) and re.fullmatch(r'[a-f0-9]{64}',digest)
+            and doc.get('source_files',{}).get(path)==digest for path,digest in sources.items()), 'Derived job plan references a different source version')
+    require(plan.get('source_binding_hash')==sha(encode({'declared_jobs':declared,'source_files':sources})), 'Job plan declared/source binding changed')
+    gaps=plan.get('gaps')
+    require(isinstance(gaps,list) and all(isinstance(gap,dict) and isinstance(gap.get('reason'),str) for gap in gaps), 'Frozen job plan gaps are malformed')
+    projection=[{'kind':'unsupported_jcl','message':gap['reason'],'object':gap,'path':gap.get('path'),'line':gap.get('line')} for gap in gaps]
+    require(encode(projection)==encode(doc.get('job_plan_gaps',[])), 'Job plan gaps differ from their frozen source obligations')
+    return plan
 
 
 def parse_intake_xlsx(data):

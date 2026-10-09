@@ -101,7 +101,7 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return {'processes':[display_process(p) for p in c.ledger.list(True)],'portfolio':portfolio(c.ledger),'token':token,
                 'inventory_baseline':load_inventory(c.root),
                 'provider_usage':c.provider.usage_summary() if c.provider else empty_usage_summary(),
-                'capability':'Local job-led discovery, Claude analysis and Copilot file retrieval; executable credit requires verified semantic adapters.',
+                'capability':'Local Endeavor discovery first, approved Claude retrieval for missing evidence, and tested modernization with visible gaps.',
                 'connections':{'zowe_profile_configured':bool(environment.get('WB_ZOWE_PROFILE')),'db2_endpoint_configured':bool(environment.get('WB_DB2_MCP_URL')),'llm_configured':bool(c.provider),'local_source_export':(c.root/'Endeavor').is_dir(),'saved_folder_available':bool(source_folder and Path(source_folder).is_dir())}}
     @app.get('/api/session-token')
     async def session_token():
@@ -132,6 +132,11 @@ def create_app(root, origin='http://127.0.0.1:8765'):
     async def template():
         path=Path(__file__).parent.parent/'examples/intake-template.xlsx'
         return Response(path.read_bytes(),media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',headers={'Content-Disposition':'attachment; filename="intake-template.xlsx"'})
+    @app.get('/api/process-template')
+    async def process_template():
+        path=Path(__file__).resolve().parents[1]/'examples/process-specific.md'
+        return Response(path.read_bytes(),media_type='text/markdown',
+                        headers={'Content-Disposition':'attachment; filename="Process.md"'})
     @app.get('/api/preflight')
     async def preflight():
         from .preflight import inspect_workspace
@@ -163,8 +168,8 @@ def create_app(root, origin='http://127.0.0.1:8765'):
             require(sum(len(v.encode('utf-8')) for v in sources.values())<=MAX_UI_SOURCE_BYTES,'Browser source upload exceeds 32 MiB; retain the complete repository in local Endeavor instead')
         from .setup import intake_defaults
         defaults=intake_defaults(c.root)
-        source_folder=b.get('source_folder',defaults['source_folder']) if sources is None else b.get('source_folder')
-        process_notes=b.get('process_notes',defaults['process_notes'])
+        source_folder=b.get('source_folder',None if request.url.path=='/api/intake/prepare' else defaults['source_folder']) if sources is None else b.get('source_folder')
+        process_notes=b.get('process_notes',None if request.url.path=='/api/intake/prepare' else defaults['process_notes'])
         if request.url.path=='/api/intake/prepare':
             require(b.get('assistant_mode','claude_files')=='claude_files','Prepared intake uses the local Claude workflow')
             return await asyncio.to_thread(c.prepare_process,b['manifest'],sources,b.get('prompt',''),source_folder,process_notes,b.get('demo',False))
@@ -361,7 +366,8 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         if action=='refresh-analysis':return c.refresh_analysis(pid)
         if action in ('pause','resume','cancel'):return c.control(pid,action)
         require(action=='answers','Unknown action')
-        b=await body(request)
+        from .review import MAX_HTML_REVIEW_BYTES
+        b=await body(request,MAX_HTML_REVIEW_BYTES*4//3+4096)
         field='html' if 'html' in b else 'xlsx'
         require(not ('html' in b and 'xlsx' in b) and isinstance(b.get(field),str),'Supply the returned checklist as base64 text in exactly one xlsx or html field')
         try:data=base64.b64decode(b[field],validate=True)

@@ -63,7 +63,7 @@ def _locked(path):
     return False
 
 
-def _read_sources(root, source_folder=None):
+def _read_sources(root, source_folder=None, *, allow_empty=False):
     folder = Path(source_folder).absolute() if source_folder is not None else safe_path(root, 'Endeavor')
     require(not path_is_link(folder) and not any(path_is_link(p) for p in folder.parents),'Source folder must not contain symlink parents')
     require(folder.is_dir(), 'Endeavor is missing; provide the complete UTF-8 text export')
@@ -109,16 +109,16 @@ def _read_sources(root, source_folder=None):
         require(lines <= MAX_SOURCE_LINES,
                 f'Source export exceeds the {MAX_SOURCE_LINES:,} combined physical-line limit; use a process-scoped export')
         files[relative] = text
-    require(files, 'Endeavor is empty; provide the complete UTF-8 text export')
+    require(files or allow_empty, 'Endeavor is empty; provide the complete UTF-8 text export')
     return files, size
 
 
 def _manifest(path):
-    from .intake import parse_manifest, parse_intake_xlsx
+    from .intake import parse_manifest, parse_intake_xlsx, MAX_PROCESS_MARKDOWN_BYTES
     path = Path(path).absolute()
     require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'Manifest must be a regular Markdown or XLSX file with no symlink parents')
-    limit = MAX_UPLOAD if path.suffix.lower() == '.xlsx' else 128000
+    limit = MAX_UPLOAD if path.suffix.lower() == '.xlsx' else MAX_PROCESS_MARKDOWN_BYTES
     require(path.stat().st_size <= limit, 'Intake file exceeds its size limit')
     with path.open('rb') as manifest: raw = manifest.read(limit + 1)
     require(len(raw) <= limit, 'Intake file changed or exceeds its size limit')

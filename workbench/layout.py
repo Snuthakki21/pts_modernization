@@ -11,7 +11,7 @@ from .limits import MAX_SOURCE_ENTRIES, MAX_WORKSPACE_ENTRIES
 ROOT_FILES = frozenset({
     '.env', '.env.example', '.gitignore', '.gitattributes', 'AGENTS.md', 'CLAUDE.md', 'README.md',
     'START_HERE.md', 'VALIDATION.md', 'requirements.lock', 'requirements.txt',
-    'pyproject.toml', 'process-input.md', 'intake-template.xlsx',
+    'pyproject.toml', 'Process.md', 'process-input.md', 'intake-template.xlsx',
     'mcp.json', '.mcp.json', 'zowe.config.json', 'zowe.config.user.json',
     'zowe.schema.json', 'zowe.config.schema.json', 'zowe.config.user.schema.json',
 })
@@ -20,7 +20,7 @@ ROOT_DIRS = frozenset({
     '.implementation', '.superpowers', 'release-private', '.git', '.venv',
     'node_modules', 'workbench', 'tests', 'tools', 'scripts', 'frontend',
     'docs', 'prompts', 'examples', '__pycache__', '.github',
-    '.vscode', '.claude', 'Visio', 'certificates',
+    '.vscode', '.claude', 'Visio', 'certificates', 'supplemental',
 })
 PROCESS_DIRS = frozenset({'input', 'analysis', 'review', 'synthetic', 'target', 'reports', 'tests'})
 PRIVATE_DIRS = frozenset({'.migration', '.implementation', '.superpowers', 'release-private', '.git', '.venv', 'node_modules', '__pycache__'})
@@ -82,7 +82,7 @@ def validate_workspace(root):
             issues.append(child.name + ': root directory is not allowlisted')
         elif not child.is_file() and not child.is_dir():
             issues.append(child.name + ': root entries must be regular files or directories')
-    for category in ('Endeavor', 'processes', 'shared', 'knowledge', '.vscode', '.claude', 'Visio', 'certificates'):
+    for category in ('Endeavor', 'processes', 'shared', 'knowledge', '.vscode', '.claude', 'Visio', 'certificates', 'supplemental'):
         folder = root / category
         if not folder.is_dir() or path_is_link(folder): continue
         identities={}

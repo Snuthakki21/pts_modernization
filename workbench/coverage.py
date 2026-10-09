@@ -183,8 +183,14 @@ def _manifest_integrity(doc,base):
     raw=_read(base/'input/process-input.md')
     require(sha(raw)==pinned,'Frozen manifest bytes changed from the pinned intake baseline')
     manifest=parse_manifest(raw.decode('utf-8'))
-    require(encode(manifest)==encode({key:doc.get(key) for key in manifest}),
-            'Frozen manifest identity/name/jobs differ from the pinned process document')
+    actual={key:doc.get(key) for key in manifest}
+    if manifest.get('process_intake_version')==2:
+        from .intake import verify_job_plan
+        actual['jobs']=doc.get('declared_jobs')
+        require(encode(manifest)==encode(actual), 'Frozen manifest identity/name/jobs differ from the pinned process document')
+        verify_job_plan(doc,base,reader=_read)
+    else:
+        require(encode(manifest)==encode(actual), 'Frozen manifest identity/name/jobs differ from the pinned process document')
     require(manifest.get('transactions')==doc.get('transactions') and manifest.get('workload')==doc.get('workload'),'Online metadata differs from frozen intake')
     if 'mainframe_knowledge' in doc or 'analysis/mainframe-knowledge.json' in doc.get('artifact_hashes',{}):
         from .mainframe import validate_snapshot

@@ -66,6 +66,12 @@ def main(argv=None):
             print(message)
         return 0 if environment['ready'] else 1
     root = Path(args.root).absolute()
+    try:
+        from .workspace_inputs import initialize_inputs
+        initialize_inputs(root)
+    except (ValidationError,OSError) as exc:
+        print(f'Input preparation stopped: {exc}',file=sys.stderr)
+        return 1
     result = inspect_workspace(root, port=args.port, workstation_defaults=False)
     if result['status'] != 'READY':
         for check in result['checks']:

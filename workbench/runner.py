@@ -10,7 +10,7 @@ import time
 import zipfile
 from .coordinator import Coordinator
 from .domain import decode, ValidationError, require, sha, write_new
-from .intake import parse_manifest
+from .intake import parse_manifest, MAX_PROCESS_MARKDOWN_BYTES
 from .layout import require_layout, output_path
 from .executive import accepted_executive, PRIMARY_REPORT
 
@@ -36,8 +36,9 @@ def start_process(coordinator, manifest_path, assistant_mode=None, source_folder
     path = Path(manifest_path)
     require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.absolute().parents),
             'Manifest must be a regular Markdown file with no symlink parents')
-    require(path.stat().st_size <= 128000, 'Markdown intake is too large')
-    raw = path.read_bytes()
+    require(path.stat().st_size <= MAX_PROCESS_MARKDOWN_BYTES, 'Process.md exceeds 1 MiB')
+    with path.open('rb') as stream:raw=stream.read(MAX_PROCESS_MARKDOWN_BYTES+1)
+    require(len(raw)<=MAX_PROCESS_MARKDOWN_BYTES,'Process.md changed or exceeds 1 MiB')
     try: text = raw.decode('utf-8')
     except UnicodeDecodeError as exc: raise ValidationError('Manifest must be UTF-8 Markdown') from exc
     manifest = parse_manifest(text)
@@ -57,7 +58,9 @@ def start_process(coordinator, manifest_path, assistant_mode=None, source_folder
     options={'assistant_mode':assistant_mode,'requirements_selection':requirements_selection}
     if source_folder is not None:options['source_folder']=source_folder
     if process_notes is not None:options['process_notes']=process_notes
-    doc = coordinator.create(text,**options)
+    if manifest.get('process_intake_version')==2 and assistant_mode in (None,'claude_files'):
+        doc=coordinator.prepare_process(text,source_folder=source_folder,process_notes=process_notes)
+    else:doc=coordinator.create(text,**options)
     return coordinator.start(doc['id'])
 
 
@@ -67,8 +70,13 @@ def import_return(coordinator, pid, path, reviewer):
     path = Path(path)
     require(path.is_file() and not path_is_link(path) and not any(path_is_link(p) for p in path.parents),
             'SME return must be a regular file with no symlink parents')
-    require(path.stat().st_size <= 8 * 1024 * 1024, 'SME review file exceeds upload bound')
-    data = path.read_bytes(); doc = coordinator.ledger.get(pid)
+    from .review import review_return_limit
+    with path.open('rb') as stream:
+        prefix=stream.read(256);limit=review_return_limit(prefix)
+        require(path.stat().st_size<=limit,'Review file exceeds its format-specific limit')
+        stream.seek(0);data=stream.read(limit+1)
+    require(len(data)<=limit,'Review file changed or exceeds its format-specific limit')
+    doc = coordinator.ledger.get(pid)
     if doc['packet_imported']:
         require(sha(data) == (doc.get('answers') or {}).get('return_hash'),
                 'The one SME return is already consumed; this review file differs from preserved evidence')

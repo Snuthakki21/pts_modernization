@@ -1,6 +1,11 @@
 # Start modernization with the existing workbench
 
 This is the single execution prompt for Claude Code and other repository agents.
+The operator path has four phases: Prepare once; Provide Process.md and Endeavor;
+Choose rules and build with one actual SME review; Compare. The UI groups its
+recorded checkpoints into Source & mapping, Choose rules, Build & test and
+Review & compare. Stage inspection and Back never mutate frozen input/approvals.
+
 Repository entrypoints: [AGENTS.md](../AGENTS.md) and
 [CLAUDE.md](../CLAUDE.md), with retained deprecated Copilot metadata in
 [.github/copilot-instructions.md](../.github/copilot-instructions.md). Folder contract:
@@ -21,18 +26,25 @@ process state, an approval or conversion evidence. Do not scan databases or the
 entire repository to answer a static guide question. For current task/return
 paths, use the existing runner workflow below. Report unknown state honestly.
 
-### First ask one nonsecret setup bundle
+### Start with the fixed workspace and one setup bundle
 
-Before launching a UI or services for a new operator, ask **once** for all needed
-approved nonsecret facts together: installed repository and evidence workspace;
-selected `dev`/`prod`; available dev/prod z/OSMF host/port pairs (protocol fixed
-HTTPS); TSO account code, code page and logon procedure; Db2 z/OS DDF location,
-host and service port; approved CA filenames and current local paths; approved
-registered IBM Db2 ODBC driver; and exact WEBELX/Tran Repository folders when
-supplied. An unused endpoint pair may be blank; a selected or partial pair must
-be resolved. Ask for read-only authorization and sanitized retrieval boundaries,
-not customer data. Preserve Unknown instead of inventing a value. Do not ask for
-passwords, credential usernames, tokens or private `.env` contents in chat.
+The installed repository/current working directory is the default workspace.
+Do not ask the operator to choose a source export folder or a different workspace.
+Use a different workspace only when explicitly provided. Prepare fixed inputs
+with `python -m workbench.workspace_inputs --workspace WORKSPACE`: it creates
+`Process.md`, `Endeavor/`, `certificates/` and empty supplemental folders while
+preserving existing inputs. The only normal process document is `Process.md`;
+provide the maintained [template](../examples/process-specific.md), let the owner
+fill identity, ordered job names and freeform knowledge, and parse it locally.
+
+Ask once for **missing approved nonsecret connection facts together**: selected
+`dev`/`prod`; available z/OSMF host/port pairs (HTTPS); TSO account/code page/logon
+procedure; Db2 DDF location/host/port; approved CA files; and registered IBM Db2
+ODBC driver. Ask for read-only authorization and approved sanitized boundaries,
+not raw source/customer data. Exact WEBELX/Tran folders are optional known input
+bindings, not a prerequisite source-folder question. Keep unknown facts Unknown.
+Credentials belong only in the private local `.env` or secure client prompts;
+never request passwords, credential usernames, tokens or `.env` contents in chat.
 
 Use [START_HERE.md](../START_HERE.md) for the exact 19-key contract and commands.
 Prepare nonsecret values/blank authentication from the repository's
@@ -93,8 +105,8 @@ Private `.env` and Python `.venv` are distinct.
 `scripts/Start.ps1` synchronously opens the repository workspace. `-NoBrowser`
 only suppresses browser opening; it does not background setup or the Workbench.
 For a distinct workspace use the documented locked-Python `workbench.launch --root
-WORKSPACE` command. Keep one Coordinator running. In the UI, Save source defaults
-and add/select the process; connector onboarding does not require the UI.
+WORKSPACE` command. Keep one Coordinator running. In the UI, click **New process**, select the completed Process.md and **Map this
+process**. A source-setting Save is not required; connector onboarding is text.
 
 ### Approved retrieval and local-file workflow
 
@@ -198,24 +210,34 @@ They install no runtime, MCP/proxy, hook or background service and grant no
 permissions. Their bounded adaptations cannot replace this workflow, expose
 private source/data, approve scope/SME answers or repair legacy behavior.
 
-1. Use the configured Python environment from `START_HERE.md`. Identify the
-   user-supplied manifest and workspace. The manifest names the stable process
-   ID and ordered jobs/steps, or online transaction/program/map bindings. For CLI
-   Start, provide the complete read-only local export in `WORKSPACE/Endeavor/`
-   or with `--source-folder`. The UI's **No exports yet**
-   creates a guided intake before source exists and stops at discovery; it does
-   not permit conversion of an empty snapshot. Claude uses approved read-only
-   Zowe CLI for missing source and typed Db2 MCP for schema/DDL metadata.
-   Conversion requires the complete local export snapshot. Do not execute legacy programs,
-   submit jobs, upload source, perform mainframe writes, or add unrestricted
-   connectors/tools to bypass the read-only boundary.
-   A supplied folder can be snapshotted with `--source-folder SOURCE_FOLDER`;
-   it is copied into immutable process input without altering the original.
-   Preserve supplied process Markdown with `--process-notes PROCESS_MD`.
-   Derive a manifest only from explicitly approved sanitized ordered facts and
-   the public format; an authorized owner verifies private bindings locally.
-   Original notes/JCL remain protected and are consumed programmatically. Missing,
-   conflicting or unqualified identities remain discovery prerequisites.
+1. Use the configured Python environment from `START_HERE.md`, the current
+   workspace and `WORKSPACE/Process.md` unless another path was explicitly given.
+   Normal Process.md intake names a stable ID, name and ordered entry jobs; steps,
+   programs and dependencies are discovered deterministically from validated JCL.
+   Freeform knowledge is preserved as unverified process context. Existing detailed
+   batch/CICS Markdown and Excel intake remain supported compatibility inputs.
+   Always examine the fixed `WORKSPACE/Endeavor/` export first through local
+   deterministic indexing. Follow job/PROC/program/COPY/control-card/CICS/Db2
+   references transitively. The existing lazy resolver uses configured read-only
+   Zowe CLI only for known exact missing mainframe references; complete local
+   closure does not open connection configuration. Remaining source gaps and Db2
+   evidence use the current Claude retrieval prompt and exact request inbox.
+   Approved typed Db2 MCP is only for missing database evidence; the local resolver
+   never activates the managed stdio Db2 server. Do not
+   query an already resolved object again, invent bindings or execute legacy work.
+   If those approved routes still cannot resolve an object, ask the operator for
+   the exact missing item. Empty supplemental/JCL, JCLPlus, PROCConverted,
+   Copybooks and ControlCards folders are available only for that explicit return;
+   they are not default source inputs. After an accepted read-only Zowe NOT_FOUND
+   for the exact member, tell the operator its named supplemental folder and to
+   click Continue. Preserve the original remote receipt and honest operator-export
+   provenance; never use this fallback for Db2, ambiguous or dynamic identities.
+   Other returns still follow the current request's exact inbox.
+   No conversion or SME questions begin before required dependency closure.
+   Original Process.md/source bytes are frozen. The separate hash-bound source
+   job plan derives validated steps; it never changes the declared entry roots or
+   treats unsupported JCL/utility semantics as implemented. Missing safe semantic
+   views remain qualification gaps even when original bytes are present locally.
    Run `python -m workbench.layout --workspace WORKSPACE`. Keep transient scratch
    under `.implementation/tmp/`, not a root directory beginning with `tmp`.
    Correct newly created
@@ -235,17 +257,21 @@ private source/data, approve scope/SME answers or repair legacy behavior.
    application catalog for custom facts, preserving unknowns and provenance.
    A catalog entry never authorizes an adapter or execution. Every new process
    freezes its exact knowledge; Resume must use that original snapshot.
-2. Execute:
+2. The UI owns Prepare/Start when running. Inspect its existing process with the
+   documented runner agent command; do not start another writer. With the UI
+   stopped and the approved complete local export available, execute:
 
    ```sh
    python -m workbench.runner run --manifest MANIFEST --workspace WORKSPACE --assistant claude_files --select-requirements
    ```
 
-   `start` is an alias of `run`. Intake reads `WORKSPACE/Endeavor/` by default;
-   append `--source-folder SOURCE_FOLDER --process-notes PROCESS_MD` for supplied
-   external files. The canonical manifest and prose notes are separate inputs.
-   Notes freeze in `analysis/process-context.json`; the manifest freezes as
-   `input/process-input.md`. Never create `input/process-specific.md`.
+   `start` is an alias of `run`. Set MANIFEST to WORKSPACE/Process.md. Intake reads
+   `WORKSPACE/Endeavor/` by default. The guided UI can create the current process
+   before required exports exist; empty input stays a discovery checkpoint.
+   Process.md freezes as `input/process-input.md`; its freeform knowledge becomes
+   `analysis/process-context.json`. A separate manifest/notes file is not required.
+   Explicit legacy inputs may still use `--source-folder SOURCE_FOLDER` and
+   `--process-notes PROCESS_MD`. Never create `input/process-specific.md`.
    An existing process ID is reused only with the recorded immutable manifest
    SHA-256 (both supplied bytes and pinned snapshot must match) and an
    intact source snapshot. Repeated Start preserves the original packet/hash.
@@ -254,7 +280,7 @@ private source/data, approve scope/SME answers or repair legacy behavior.
    Changed input requires an explicitly selected new process ID. Start does
    not resume a paused or failed process; inspect and use `resume` explicitly.
 3. First map job/PROC/program/COPY/include/dataset/Db2/CICS/scheduler/interface
-   dependencies. Retain and index the entire export; select conversion scope by
+   dependencies from the local Endeavor export. Retain and index it; select conversion scope by
    transitive evidence. Resolve locally first, then generate a specific Claude
    retrieval request for missing files or metadata. `WAITING_DISCOVERY` means a missing, ambiguous or
    dynamic binding must be resolved before conversion or questions. Never invent
@@ -293,9 +319,9 @@ private source/data, approve scope/SME answers or repair legacy behavior.
    Continue independent tasks through implementation/test/refresh. Do not repeat
    identical failed approaches; preserve attempts and exact missing prerequisites.
    The single packet is then issued at `WAITING_SME`. Deliver its paths, including
-   `sme-checklist.xlsx`, to the user. Explain any source blockers and the
+   the primary `sme-checklist.html`, to the user. Explain any source blockers and the
    source-derived evidence boundary. Preserve the packet's Context, IDs,
-   questions and fingerprint. Ask the human to complete that one workbook and
+   questions and fingerprint. Ask the human to complete that one file, save its answer-bearing return and
    provide the actual reviewer name. Then wait. Do not edit any answers yourself.
 4. The actual returned workbook goes in exactly:
 
@@ -318,10 +344,10 @@ private source/data, approve scope/SME answers or repair legacy behavior.
    python -m workbench.runner resume PROCESS_ID --workspace WORKSPACE --reviewer "ACTUAL REVIEWER"
    ```
 
-   Or import an explicitly supplied workbook:
+   Or, with the UI writer stopped, import an explicitly supplied HTML/workbook:
 
    ```sh
-   python -m workbench.runner import PROCESS_ID --workspace WORKSPACE --file RETURNED_WORKBOOK --reviewer "ACTUAL REVIEWER"
+   python -m workbench.runner import PROCESS_ID --workspace WORKSPACE --file RETURNED_FILE --reviewer "ACTUAL REVIEWER"
    ```
 
    For a local operator who already knows the reviewer, `run`/`resume` may use

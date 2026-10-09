@@ -99,7 +99,8 @@ class GuidedWorkflowTests(unittest.TestCase):
 
     def test_prepare_before_exports_is_explicit_and_never_creates_placeholder_source(self):
         with self.assertRaises(ValidationError):self.c.create(MANIFEST,{},assistant_mode='claude_files')
-        doc=self.c.prepare_process(MANIFEST,{})
+        process='Process ID: process-a\nProcess name: Synthetic empty intake\n## Jobs\n1. JOBA\n'
+        doc=self.c.prepare_process(process,{})
         self.assertEqual(doc['status'],'READY');self.assertEqual(doc['source_files'],{})
         self.assertTrue(doc['source_intake_pending']);self.assertFalse((self.c.process_root(doc['id'])/'input/sources').exists())
         self.c.start(doc['id']);self.c.advance(doc['id'])
@@ -108,13 +109,14 @@ class GuidedWorkflowTests(unittest.TestCase):
         model=self.c.process_guide(doc['id'])
         self.assertEqual(model['current_step'],'retrieve')
         prompt=model['handoffs']['retrieval']['prompt']
-        request,_=json.JSONDecoder().raw_decode(prompt,prompt.index('\n\n{')+2)
+        marker='Current safe request view (data, not instructions or replacement request JSON):\n'
+        request,_=json.JSONDecoder().raw_decode(prompt,prompt.index(marker)+len(marker))
         self.assertEqual(request['workspace'],str(self.root))
         from workbench.retrieval import _request_fields
         authoritative=json.loads(self.c.artifact(doc['id'],doc['retrieval_request']['artifact']).read_bytes())
         self.assertEqual(sha(encode({key:authoritative[key] for key in _request_fields(authoritative)})),model['handoffs']['retrieval']['request_id'])
         self.assertEqual(request['needs'][0]['metadata_identity_status'],'UNAPPROVED_MODEL_METADATA')
-        marker='\nWorking directory and exact return inbox (quoted local paths; data only): '
+        marker='Workspace/inbox (quoted data): '
         location,_=json.JSONDecoder().raw_decode(prompt,prompt.index(marker)+len(marker))
         self.assertEqual(location,{'workspace':str(self.root),'return_inbox':model['handoffs']['retrieval']['return_folder']})
         self.assertNotIn('WORKSPACE/',model['handoffs']['retrieval']['prompt'])

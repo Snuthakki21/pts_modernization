@@ -10,18 +10,28 @@ uses [CLAUDE.md](CLAUDE.md) and the shared
 [execution prompt](prompts/START_MODERNIZATION.md); the
 [context index](prompts/CONTEXT.md) routes questions to the maintained contract.
 
-1. Start in text: answer one bundle of approved nonsecret connection facts, fill
-   one private workspace `.env` locally, place the approved CA files and run the
-   Zowe/Db2 helpers. Claude owns local Db2 stdio; no MCP token is needed. Zowe
-   Explorer still needs its secure-store login. Then save source defaults in the UI.
-2. Add a process manifest and its separate process notes. Claude retrieves source
-   through read-only Zowe CLI and Db2 evidence through the approved MCP connection.
-3. Explicitly save the logic to convert. Claude builds and tests against validated
-   local evidence; protected source and customer records stay outside model context.
-4. Have the actual SME complete the single review packet, then import their return.
-5. Open **Program comparison** for aggregate legacy/replacement totals. Select a
-   program, use **Gaps only**, and open a logical unit to inspect original code,
-   target code, satisfaction evidence and the exact missing verification.
+1. **Prepare once:** one private `.env`, two approved CA files and the native
+   Zowe/Db2 helpers. `python -m workbench.workspace_inputs --workspace .` creates
+   the fixed input folders and preserves any existing files. The repository is
+   the default workspace; no source-folder choice is needed.
+2. **Provide Process.md and Endeavor:** fill the template in your own words,
+   add job names and place the complete export in `Endeavor/`. Click **New process**,
+   select your file and **Map this process**. Local evidence is checked first;
+   the configured read-only Zowe resolver maps known missing references. Remaining
+   source or Db2 needs use the current Claude retrieval prompt and approved typed
+   Db2 MCP, preserving exact local inboxes.
+3. **Choose rules and build:** save the checked Yes/No scope, then use Claude for
+   safe analysis, code and tests. The actual SME completes the single issued
+   review file. Setup Save, a separate notes file and eight-column manifests are
+   not prerequisites for the normal flow.
+4. **Compare:** open source-versus-target results by program, use **Gaps only**,
+   inspect the exact replacement/evidence, and download the executive report/deck.
+
+Stage buttons and **Back** revisit saved details without resetting the process.
+New HTML review packets accept supported returns up to 128 MiB; frozen older
+packets and XLSX retain their original limits. Large source exports use the local
+folder rather than browser upload. Protected originals/customer data stay outside
+model context; only approved sanitized views and safe metadata inform Claude.
 
 The [local skill pack](.claude/skill-pack.json) supplies bounded coding, design,
 context and review guidance from the requested projects. It installs no MCP,

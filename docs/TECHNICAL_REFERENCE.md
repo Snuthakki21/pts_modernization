@@ -7,8 +7,9 @@ operating, implementation and extension reference. Update it in place.
 
 ## Operating promise
 
-After initial setup: provide the process manifest and complete Endeavor export,
-click Start, save the selected requirements, return the one authentic SME checklist,
+After initial setup: fill one Process.md and place the complete export in the
+fixed Endeavor folder, click Map this process, save selected requirements,
+return the one authentic SME review file,
 then receive one primary executive report. Claude Code, including its approved
 VS Code extension, owns read-only retrieval, safe local analysis, development,
 tests and review. Source/dataset metadata uses Zowe CLI; Db2 metadata uses approved
@@ -121,12 +122,17 @@ and boundary tests establish only their stated scope, never all potential cases.
 ## Workspace setup and credentials
 
 Connector setup starts with text and the shared private .env (see below). The
-first UI visit opens one settings form for source folders/upload mode,
-process Markdown and optional exact WEBELX/Tran Repository locations. One Save
-can also prepare approved Claude Db2 MCP and selected project Zowe profiles. The existing Coordinator owns configuration writes under its lock;
-there is no additional engine, worker or ledger. Existing snapshots and accepted
-evidence remain immutable. New intake uses saved defaults after restart;
-explicit source uploads override the saved folder.
+installed repository/current directory is the default workspace; a different
+workspace is used only when explicitly supplied. `workbench.workspace_inputs`
+prepares Process.md, Endeavor, certificates and empty supplemental/JCL,
+JCLPlus, PROCConverted, Copybooks and ControlCards directories, preserving all
+existing inputs. Local Endeavor is the normal source route. Supplemental folders
+are explicit missing-object fallback destinations, not default scanned sources.
+The UI can start intake without saving source settings. Its optional Setup form
+retains legacy alternate export and connector choices; the existing Coordinator
+owns any configuration writes under its lock. Existing frozen evidence is never
+rewritten by a setting or navigation change. Authentication, approved certificate
+trust and actual read access are separate from configuration.
 
 `GET /api/setup/workstation` returns settings plus `connection_setup`: selected
 choices, local CLI availability, prepared file paths, commands and remaining
@@ -239,8 +245,8 @@ driving the active screen.
 | Input | Put it here / action | Why it is needed |
 |---|---|---|
 | Workstation | CPython 3.12, local writable disk, setup script; use the committed UI bundle | Installs locked dependencies and avoids a Node requirement for operators. Windows 11 desktop/approved-host execution still needs actual acceptance. |
-| Application export | Source folder chosen in Workspace setup, `WORKSPACE/Endeavor/`, or files uploaded at intake | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
-| Initial process | Markdown following `examples/process-input.md`, or the UI Excel template | Ordered jobs, steps, program/utility names, input/output groups and conditions. A new source version uses a new process ID. |
+| Application export | `WORKSPACE/Endeavor/` by default; alternate folder/uploads are advanced compatibility | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
+| Initial process | Fill `examples/process-specific.md` as `WORKSPACE/Process.md`, or download the same template in New process | Stable identity, actual job roots in run order and freeform knowledge. Validated JCL/PROC supplies steps, program names and dependencies. Detailed tables/XLSX remain optional compatibility. Changed inputs use a new process ID. |
 | Custom knowledge | `WORKSPACE/knowledge/application-knowledge.json`; start with `examples/application-knowledge.json` | Application/vendor utilities, aliases, semantics, evidence, record layouts, control-card behavior and known dependencies. The standard catalog is visible in `knowledge/mainframe-catalog.json`. |
 | Background articles | `WORKSPACE/knowledge/inbox/`, up to 20 Markdown documents, 1 MiB combined | Devin/application notes. Treated as unverified evidence, never executable instructions or approval. |
 | Zowe, when used | Private shared .env and clean secure CLI profiles | Account-visible read-only catalog/source operations. Profile presence is not successful authentication or complete discovery. |
@@ -248,8 +254,9 @@ driving the active screen.
 | Claude Code | Organization-approved native client/VS Code extension, selected private MCP config and safe local evidence | Approved Db2 metadata and read-only Zowe retrieval, analysis, development, tests/review. Initial trust/authentication is explicit; local runner preserves one Coordinator. |
 | Actual SME return | One issued checklist, completed by the real reviewer; import once with attribution | Confirms or corrects interpretations. Unanswered/No/corrected items remain unresolved; no second questionnaire is generated. |
 
-Nonsecret workstation defaults are saved through the UI. Authentication
-variables, when needed by approved tools, stay private in the launch shell.
+Optional nonsecret compatibility defaults can be saved through the UI. Normal
+intake uses the current workspace Endeavor folder without a source-choice form.
+Authentication stays in the private .env or approved secure client store.
 `.env.example` is an example, not an auto-loaded credential file. Do not paste credentials into
 source, knowledge, intake or review files. The `runner agent` command uses a
 local command inbox when the UI owns the workspace. Other direct-writer CLI
@@ -337,12 +344,27 @@ Folder validation: `python -m workbench.layout --workspace WORKSPACE`.
 The executable agent workflow and continuation commands are in
 [prompts/START_MODERNIZATION.md](../prompts/START_MODERNIZATION.md).
 
+The existing lazy read-only resolver also applies to local-file analysis mode.
+It indexes Endeavor first, then uses configured Zowe CLI for known exact missing
+static references with journaled command provenance. Complete local closure does
+not initialize connection configuration. Remaining missing objects and Db2 needs
+use the current Claude retrieval prompt and exact request inbox. The resolver
+does not activate the managed stdio Db2 server or expose Zowe MCP/workflow proxies.
+
+The manual source fallback is request-bound: after an accepted read-only Zowe
+`NOT_FOUND` for an exact member, Continue may inspect only its relevant fixed
+supplemental folder. A unique approved operator export is frozen with truthful
+`operator_export` provenance; the original remote receipt is retained. Missing,
+unsafe, conflicting or ambiguous exports stay gaps. It never uses supplemental
+files for Db2 or dynamic/ambiguous identities and never scans them by default.
+
 ### Explicit resource limits
 
 10,000 source files; 16 MiB UTF-8 bytes/file; 512 MiB and 2 million physical lines
 combined; 40,000 source traversal entries; 100,000 workspace entries. Browser
 source uploads are separately 32 MiB combined, HTTP/JSON documents 128 MiB,
-workbooks 8 MiB. These are protective ceilings, not memory/stress certification;
+process Markdown 1 MiB and workbooks 8 MiB. New version-2 HTML review returns
+support 128 MiB; older HTML packets retain their frozen 8 MiB contract. These are protective ceilings, not memory/stress certification;
 per-line analysis/model expansion can reach the state or memory bound earlier.
 The 822-file export and 700,570-byte source regression retain every input byte.
 No dependent file is removed to fit the old POC limit. Original source is a
@@ -442,14 +464,15 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 
 | Location | Contents and ownership |
 |---|---|
-| `Endeavor/` | Selected read-only local mainframe text export. Never execute or overwrite it. |
-| `process-input.md`, `intake-template.xlsx` | Optional root intake inputs. `--manifest` may explicitly select a Markdown manifest elsewhere. |
+| `Endeavor/` | Default read-only local mainframe text export; indexed first for every normal intake. Never execute or overwrite it. |
+| `Process.md`, `process-input.md`, `intake-template.xlsx` | Normal single Process.md template; the other inputs remain optional legacy formats. `--manifest` may explicitly select a Markdown manifest elsewhere. |
 | `processes/PROCESS_ID/input/process-input.md` | Immutable manifest snapshot; supplied and snapshot bytes must match the ledger's creation-time manifest SHA-256. |
 | `processes/PROCESS_ID/input/sources/` | Immutable source snapshot with recorded file hashes. Preserve original relative names. |
 | `processes/PROCESS_ID/input/sme-return-inbox.html` or `sme-return-inbox.xlsx` | Place exactly one chosen return format in the designated automatic inbox. Requires explicit actual `--reviewer` attribution; both inboxes present is rejected. |
 | `processes/PROCESS_ID/input/sme-return.html` or `sme-return.xlsx` | Service-preserved accepted return in its original format. Never place a return here manually. |
 | `processes/PROCESS_ID/analysis/` | Structured analysis and source accounting, including reasons for unknown/unsupported/omitted lines. |
-| `processes/PROCESS_ID/analysis/process-context.json` | Immutable indexed prose notes and knowledge inbox snapshot; notes are unverified context, not a manifest or executable instructions. |
+| `processes/PROCESS_ID/analysis/process-context.json` | Immutable indexed Process.md knowledge and optional notes/inbox snapshot; prose is unverified context, never executable instructions. |
+| `processes/PROCESS_ID/analysis/job-plan-SHA256.json` | Registered immutable source-derived JCL plan for version-2 root-only batch intake, with source hashes/bindings and exact unsupported-plan gaps. |
 | `processes/PROCESS_ID/analysis/process-guide.md` | Mutable convenience copy of the current guided instructions; never substitutes for immutable task/requirements evidence. |
 | `processes/PROCESS_ID/analysis/process-guide/SHA256.md` | One immutable process guide per distinct checkpoint or explicit Save, never per rule. |
 | `processes/PROCESS_ID/analysis/requirements.md` | Mutable UI convenience copy of the latest saved process scope; never used in place of pinned evidence. |
@@ -467,7 +490,9 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 | `knowledge/application-knowledge.json` | Editable private application/vendor utility knowledge, initialized from `examples/application-knowledge.json`; future intakes freeze edits. |
 | `knowledge/records.json`, `knowledge/INDEX.md` | Canonical provenance-bound SME-confirmed interpretations and one compact index; target verification is separate. |
 | `prompts/CONTEXT.md` | Compact repository orientation and ownership routes; no live state or separate execution workflow. |
-| `examples/process-specific.md` | Reusable external process-notes template; copy beside that process's manifest/export, never into frozen input. |
+| `examples/process-specific.md` | Maintained single Process.md template; copy to WORKSPACE/Process.md or download from the UI. |
+| `certificates/` | Private approved CA files; never under .migration or committed. |
+| `supplemental/JCL`, `supplemental/JCLPlus`, `supplemental/PROCConverted`, `supplemental/Copybooks`, `supplemental/ControlCards` | Empty scaffold for exact missing-object returns only after normal approved retrieval cannot resolve them; not default source roots. |
 | `prompts/OPERATOR_GUIDE.json` | Compact checked navigation/FAQ cache with source hashes and relevant spans; never process state, rules, approvals or a second workflow. |
 | `workbench/`, `frontend/`, `tests/`, `tools/`, `scripts/`, `docs/`, `prompts/`, `examples/`, `.github/` | Repository implementation, verification, entrypoints, instructions, synthetic examples and GitHub/Copilot metadata. |
 
@@ -487,8 +512,9 @@ manifest, source snapshot and two designated return paths. Use structured
 coverage records; never create a Markdown file per rule or per source line.
 Process Markdown is limited to the input manifest, original source exports under
 `input/sources`, and the explicitly requested process-guide/requirements copy and
-version paths above. Editable `process-specific.md` notes stay in the external
-authoring package; their indexed content is frozen as structured process context.
+version paths above. Editable Process.md stays at the approved workspace intake
+location; its original bytes freeze as the input snapshot and its knowledge is
+indexed as structured context. Separate notes are optional legacy inputs.
 Do not add another Markdown file in process input.
 
 
@@ -556,7 +582,7 @@ research remain in Git history at published commit
 
 ## Interface and accessibility contract
 
-One primary next action; an eight-step Coordinator-backed progress guide; one workstation settings form;
+One primary next action; four Coordinator-backed stage controls; native text setup and optional compatibility settings;
 plain-language statuses; evidence behind disclosure controls; one executive
 report link. Workbench actions are not fabricated modernization progress.
 Use semantic controls, persistent labels, keyboard focus, status/alert regions,
@@ -812,6 +838,10 @@ Folder imports reuse the bounded UTF-8 export reader and immutable process-sourc
 writer, preserving original bytes and relative names. They never overwrite the
 supplied folder. Existing process IDs must retain original manifest/source/notes.
 Source-origin metadata is private process evidence, not a connection credential.
+Version-2 single Process.md supplies both root identities and indexed knowledge.
+Its original UTF-8 bytes (up to 1 MiB) are immutable; parser normalization affects
+only interpretation, never source content. Ordered job roots have no guessed
+steps. Existing detailed batch/CICS tables and XLSX preserve their old contracts.
 Process notes and Markdown inbox documents are frozen in
 `analysis/process-context.json`, with hashes and heading/line indexes. The limit
 is 20 files / 1 MiB combined. The retained local/operator compatibility
@@ -1304,11 +1334,24 @@ selection, source and evidence load on demand.
 
 ## Guided preparation, handoffs and database observations
 
+Version-2 root-only Process.md intake preserves `declared_jobs` independently
+from the source-derived execution plan. After unique dependency closure,
+`lineage.derive_job_plan` reads validated source JCL deterministically and registers
+`analysis/job-plan-SHA256.json`; plan jobs/step references become the working
+projection while original roots and input bytes stay frozen. The plan carries
+source path/hash bindings, source line witnesses and explicit unsupported-JCL
+gaps. `intake.verify_job_plan` checks canonical identity, registration, source
+versions, declared-root binding and gap projection at transitions/report coverage.
+Unknown PROC, symbolic/dynamic bindings, native utility behavior or missing source
+cannot become an invented program or verified implementation. Discovery/plan
+structure is distinct from conversion support and observed mainframe parity.
+
 Explicit fictional intent uses the existing ledger `demo` flag, is pinned in the guide and must match on Prepare retry. Walkthroughs are excluded from production inventory and pilot forecasts; names never infer this flag.
 
 `POST /api/intake/prepare` explicitly creates a new `guided_contract_version=1`
 local-file process before exports exist. It freezes the actual canonical manifest,
-context, knowledge and original source membership, with `source_intake_pending=true`
+context, knowledge and original source membership. Normal Process.md intake
+uses the default Endeavor export when present, with `source_intake_pending=true`
 until compatible static closure and outstanding receipt identities are resolved.
 Empty input never creates a placeholder program, starts conversion or issues SME
 questions. Legacy `/api/intake` retains its one-or-more source requirement. Same
@@ -1318,8 +1361,18 @@ requests are rejected before process creation rather than silently truncated.
 Changed input needs a new stable ID. The existing Start/advance/Continue lifecycle,
 ledger and single writer own all transitions.
 
-`GET /api/process/ID/guide` is read-only. It presents eight steps and the actual
-next action, source closure, pinned requirements and registered outputs. Explicit
+`GET /api/process/ID/guide` is read-only. It presents the recorded checkpoints
+and actual next action, source closure, pinned requirements and outputs. Normal
+root-only intake omits the optional Setup checkpoint; detailed compatibility
+intakes and historical guides retain eight checkpoints. The
+UI groups these into four stages: Source & mapping, Choose rules, Build & test,
+Review & compare. Stage buttons and Back inspect recorded evidence without
+resetting input, saved requirements, approvals or the SME quota. Same-process
+content stays mounted but disabled during refresh/disconnection; identical poll
+payloads do not trigger another update. Inputs/action errors appear beside the
+responsible operation. Reconnect explicitly clears the workspace loss notice.
+`GET /api/process-template` downloads the one maintained template as Process.md;
+normal local intake omits source overrides and checks WORKSPACE/Endeavor first. Explicit
 `POST /guide/save {}` freezes a canonical process instruction Markdown and updates
 its convenience copy. Stable guided checkpoints pin the new guide automatically.
 A stale or modified pinned guide cannot supply a current copyable prompt. Setup
@@ -1341,12 +1394,13 @@ approved Db2 MCP directly; no workflow proxy or second writer is introduced.
 Historic request bytes and replay contracts remain unchanged. The current Claude
 prompt references actual process, context, source, task, requirements and guide
 paths/hashes and instructs local analysis, implementation, randomized tests,
-adversarial review, adapter refresh and fresh analysis return. The primary Claude retrieval
-prompt appends configured Zowe aliases and the Db2 endpoint from the registered
-frozen process setup context, when present, as configuration-only data with its
-path/hash. Later global settings do not substitute another environment. Original
-request bytes, identity and exact return inbox remain unchanged; unavailable or
-conflicting approved connections require an explicit retrieval gap. No code plan clears
+adversarial review, adapter refresh and fresh analysis return. The current Claude retrieval
+prompt contains the safe request view and exact workspace/inbox binding; the approved
+Zowe and Db2 clients use their separately configured local setup. It does not
+publish connector configuration as evidence of a successful read. Later global
+settings do not substitute another environment. Original request bytes, identity
+and exact return inbox remain unchanged; unavailable or conflicting approved
+connections require an explicit retrieval gap. No code plan clears
 a gap. Requirements Save and authentic review remain separate human gates.
 
 The Database view uses only registered, hash-checked process SQLite artifacts.
@@ -1380,6 +1434,18 @@ joining the executable allowlist. BigQuery requires workload/transaction redesig
 qualification, not automatic transactional Db2 substitution.
 
 The single issued SME packet also exports a self-contained local HTML review.
+New packets use `html_contract_version=2` with a 128 MiB HTML-return bound and a
+matching fixed large-return browser shell. Historical version-1 packets keep their
+8 MiB shell/bound; regeneration and import never silently upgrade frozen history.
+XLSX remains 8 MiB with independent archive/expansion limits. Transport can accept
+the larger HTML envelope, but parser acceptance still derives from its exact
+frozen packet version, canonical shell and identity. Browser encoding preserves
+raw bytes with joined bounded chunks and asynchronous yields, not per-byte string
+concatenation. The existing attributed local import/inbox route is available when
+a supported large return is inconvenient in the browser. Stop the UI writer before
+a direct runner import; using both formats or another packet does not bypass quota.
+These finite bounds do not certify all memory, encoding or estate scenarios.
+
 Explicit Yes/No/Not sure answers, bounded commentary and the actual reviewer are
 saved with **Save review file**, downloading `PROCESS_ID-sme-return.html`; browser files cannot silently
 overwrite the original. No network, extensions, Python or MCP are required for the
@@ -1398,8 +1464,9 @@ rather than deleting it to obtain a green result.
 
 [prompts/CONTEXT.md](../prompts/CONTEXT.md) is the shared repository orientation
 for people and agents. It routes to these existing owners and the reusable
-[process-notes template](../examples/process-specific.md). The template stays in
-the external authoring package; its content freezes as structured context.
+[single Process.md template](../examples/process-specific.md). Its original bytes
+freeze as process input; its prose becomes structured context. A separate notes
+file is optional compatibility, not a normal prerequisite.
 Both Markdown files have checked local links and source bindings in the compact
 operator reference. They contain no live process state or approval.
 
@@ -1412,7 +1479,11 @@ sources/ranges. After an owner changes, inspect its affected facts, revise the
 cache and rebind hashes; never merely rehash contradictory text. The separately
 offline HTML review draft is tracked at
 `examples/mainframe-modernization-job-aid.html`, with embedded fictional inputs
-and screenshots. Its portable path and hash are bound in the cache; it is the
+and screenshots. Four current local synthetic browser captures (Figures 34–37)
+show intake, source navigation, rules and build handoff; the 33 retained earlier
+captures are explicitly historical and unchanged. No capture establishes native
+Windows 11, live connectivity, accepted conversion or parity. Its portable path
+and hash are bound in the cache; it is the
 illustrated companion to `START_HERE.md`, not another workflow or process receipt.
 
 Read this cache first for static how-to questions, then only the relevant cited
@@ -1439,7 +1510,7 @@ Canonical UI Map:
 | --- | --- | --- | --- | --- |
 | Navigation and saved place | `frontend/src/main.tsx` | Existing Coordinator and selected process | Overview, Setup, Intake, Evidence; Setup drafts remain mounted across navigation | Frontend navigation regression and local Chrome keyboard walkthrough |
 | Setup fields, errors and commands | `frontend/src/WorkspaceSetup.tsx` | Validated workstation API settings | Existing/create/import Zowe and approved Db2 modes; app-owned Setup errors and first-invalid focus | Setup regressions, field/error associations and browser failure/recovery |
-| Next step and exact prompts | `frontend/src/GuidedProcess.tsx`, `workbench/guide.py` | Hash-bound process guide and current request | Eight workflow steps; stale or missing evidence blocks actions | Guided API/local-file regressions |
+| Next step and exact prompts | `frontend/src/GuidedProcess.tsx`, `workbench/guide.py` | Hash-bound process guide and current request | Seven normal Process.md checkpoints or eight historical checkpoints; stale or missing evidence blocks actions | Guided API/local-file regressions |
 | Source comparison and gaps | `frontend/src/ProgramComparison.tsx` | Accepted immutable report evidence | Per-program, gap and selected-No filters | Source/target report and frontend filter tests |
 | Database records | `frontend/src/DatabasePanel.tsx` | Registered SQLite artifacts and typed snapshot comparison | Paged read-only tables and exact key filters | Composite-key, identifier/decimal, delta/history and byte-limit checks |
 | Colors, focus and scrollbars | `frontend/src/style.css` | Shared application stylesheet | Native controls; visible scrollbar and forced-colors fallback | Frontend tests plus scoped contrast, keyboard, narrow-screen and zoom observations |
@@ -1551,7 +1622,8 @@ The existing `examples/** -text` rule preserves frozen example evidence exactly.
 These attributes apply to tracked repository files, not private process exports.
 
 When the operator says **start**, request one bundle of nonsecret configuration
-facts before connection setup: workspace, selected dev/prod environment, actual
+facts that remain missing before connection setup: the repository is the default
+workspace unless an explicitly different workspace was supplied; selected dev/prod environment, actual
 z/OSMF hosts/ports, TSO account/code page/logon procedure, Db2 DDF location/host/port,
 approved driver name and both approved CA files. Never request passwords, file
 contents or a transport token in model conversation. The operator fills the one
@@ -1571,7 +1643,10 @@ Zowe credential pair uses the secure store; .env alone does not sign Explorer in
 The fixed local structure is:
 
 ```text
-WORKSPACE/
+WORKSPACE/                     repository by default
+  Process.md                   single process template and freeform knowledge
+  Endeavor/                    approved original export, checked first
+  supplemental/                empty until an exact missing-object request
   .env                         private operator-edited values
   zowe.config.json             clean nonsecret project profiles
   zowe.schema.json             matching local profile schema
