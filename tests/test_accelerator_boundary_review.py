@@ -49,7 +49,7 @@ class AcceleratorBoundaryReviewTests(unittest.TestCase):
     def test_simple_process_cli_uses_fixed_export_instead_of_stale_preferences(self):
         export=self.put_export();stale=self.put_export(self.folder/'old-export',extra='//* different old source\n')
         self.c.configure_workstation({'source_mode':'folder','source_folder':str(stale)})
-        process=self.root/'Process.md';process.write_text(PROCESS)
+        process=self.root/'Process.md';process.write_bytes(PROCESS.encode('utf-8'))
         doc=start_process(self.c,process,assistant_mode='claude_files',requirements_selection=True)
         self.assertEqual(doc['source_files']['REFJOB.jcl'],sha((export/'REFJOB.jcl').read_bytes()))
         self.assertEqual(doc['source_origin']['location'],str(export.absolute()))
@@ -57,11 +57,15 @@ class AcceleratorBoundaryReviewTests(unittest.TestCase):
     def test_simple_process_does_not_inherit_unrelated_old_process_notes(self):
         self.put_export();old=self.folder/'old-notes.md';old.write_text('Old unrelated synthetic process context.')
         self.c.configure_workstation({'process_notes':str(old)})
-        process=self.root/'Process.md';process.write_text(PROCESS)
-        doc=start_process(self.c,process,assistant_mode='claude_files',requirements_selection=True)
-        documents=doc['process_context']['documents']
-        self.assertEqual(len(documents),1)
-        self.assertEqual(documents[0]['text'],PROCESS)
+        process=self.root/'Process.md'
+        for index,newline in enumerate(('\n','\r\n')):
+            with self.subTest(newline=newline):
+                text=PROCESS.replace('review-process','review-process-'+str(index)).replace('\n',newline)
+                process.write_bytes(text.encode('utf-8'))
+                doc=start_process(self.c,process,assistant_mode='claude_files',requirements_selection=True)
+                documents=doc['process_context']['documents']
+                self.assertEqual(len(documents),1)
+                self.assertEqual(documents[0]['text'],text)
 
     def test_ui_prepare_does_not_inherit_unrelated_saved_process_notes(self):
         from fastapi.testclient import TestClient
@@ -188,7 +192,7 @@ class AcceleratorBoundaryReviewTests(unittest.TestCase):
         current=self.c.ledger.get(doc['id']);guide=self.c.process_guide(doc['id'])
         self.assertNotIn('accelerator_contract_version',current)
         self.assertEqual(guide['steps'][0]['id'],'setup')
-        rendered=self.c.artifact(doc['id'],current['guide_artifact']).read_text()
+        rendered=self.c.artifact(doc['id'],current['guide_artifact']).read_text(encoding='utf-8')
         self.assertIn('8. Source-derived tests do not establish observed mainframe parity.',rendered)
         self.assertIn('7. Deliver one authentic human SME packet and wait.',rendered)
         self.assertFalse(current['packet_issued'])

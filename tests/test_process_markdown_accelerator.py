@@ -14,7 +14,7 @@ BASE='Process ID: sample-a\nProcess name: Synthetic referral processing\n## Jobs
 
 class ProcessMarkdownAcceleratorTests(unittest.TestCase):
     def test_template_requires_actual_known_entry_not_sample_placeholder(self):
-        template=(Path(__file__).resolve().parent.parent/'examples/process-specific.md').read_text()
+        template=(Path(__file__).resolve().parent.parent/'examples/process-specific.md').read_text(encoding='utf-8')
         with self.assertRaisesRegex(ValidationError,'known entry job'):
             parse_manifest(template)
         actual=template.replace('replace-with-a-stable-id','process-a').replace('Replace with the name people use for this process','Synthetic process').replace('REPLACEJOB','REFJOB')

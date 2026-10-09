@@ -25,12 +25,12 @@ class OperatorReferenceTests(unittest.TestCase):
         for name in authority.values():
             path = self.root/name
             path.parent.mkdir(parents=True,exist_ok=True)
-            path.write_text('Guide evidence.\n'*100)
+            path.write_text('Guide evidence.\n'*100,encoding='utf-8',newline='\n')
             self.data['sources'].append({'path':name, 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
         self.path = self.root/'prompts/OPERATOR_GUIDE.json'
 
     def check(self, data=None):
-        self.path.write_text(json.dumps(self.data if data is None else data))
+        self.path.write_text(json.dumps(self.data if data is None else data),encoding='utf-8',newline='\n')
         return check_operator_reference(self.root)
 
     def test_valid_cache_has_no_workspace_or_external_html_dependency(self):
@@ -38,18 +38,18 @@ class OperatorReferenceTests(unittest.TestCase):
         self.assertFalse((self.root/'processes').exists())
 
     def test_changed_source_invalidates_even_if_spans_still_fit(self):
-        (self.root/'START_HERE.md').write_text('Changed.\n'*100)
+        (self.root/'START_HERE.md').write_text('Changed.\n'*100,encoding='utf-8',newline='\n')
         self.assertIn('stale source binding', ' '.join(self.check()))
 
     def test_missing_reference_is_reported(self):
         self.assertIn('missing or unsafe', ' '.join(check_operator_reference(self.root)))
 
     def test_rejects_duplicate_json_keys(self):
-        self.path.write_text('{"schema_version":1,"schema_version":1}')
+        self.path.write_text('{"schema_version":1,"schema_version":1}',encoding='utf-8',newline='\n')
         self.assertIn('duplicate JSON key', ' '.join(check_operator_reference(self.root)))
 
     def test_oversized_reference_rejected_before_parse(self):
-        self.path.write_text(' '*32769)
+        self.path.write_text(' '*32769,encoding='utf-8',newline='\n')
         self.assertIn('32,768', ' '.join(check_operator_reference(self.root)))
 
     def test_rejects_escape_private_and_windows_paths(self):
@@ -132,8 +132,8 @@ class RepositoryOperatorGuideTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.reference=json.loads((cls.root/'prompts/OPERATOR_GUIDE.json').read_text())
-        cls.html=(cls.root/'examples/mainframe-modernization-job-aid.html').read_text()
+        cls.reference=json.loads((cls.root/'prompts/OPERATOR_GUIDE.json').read_text(encoding='utf-8'))
+        cls.html=(cls.root/'examples/mainframe-modernization-job-aid.html').read_text(encoding='utf-8')
         cls.parsed=IllustratedGuideParser();cls.parsed.feed(cls.html)
         cls.topics={t['id']:t for t in cls.reference['topics']}
 
@@ -143,7 +143,7 @@ class RepositoryOperatorGuideTests(unittest.TestCase):
     def test_real_job_aid_steps_and_titles_equal_navigation_cache(self):
         self.assertEqual(self.parsed.steps,self.reference['job_aid']['steps'])
         self.assertEqual([step['id'] for step in self.parsed.steps],list(range(1,47)))
-        self.assertEqual(hashlib.sha256(self.html.encode()).hexdigest(),self.reference['job_aid']['sha256'])
+        self.assertEqual(hashlib.sha256((self.root/'examples/mainframe-modernization-job-aid.html').read_bytes()).hexdigest(),self.reference['job_aid']['sha256'])
 
     def test_existing_offline_sample_and_33_images_remain_intact_and_historical(self):
         zip_match=re.search(r'id="sample-package"[^>]*href="data:application/zip;base64,([^"]+)"',self.html)
@@ -166,7 +166,7 @@ class RepositoryOperatorGuideTests(unittest.TestCase):
 
     def test_single_template_works_as_root_only_process_without_guessed_steps(self):
         from workbench.intake import parse_manifest
-        text=(self.root/'examples/process-specific.md').read_text().replace('replace-with-a-stable-id','documentation-check').replace('Replace with the name people use for this process','Documentation check').replace('REPLACEJOB','IZERO007')
+        text=(self.root/'examples/process-specific.md').read_text(encoding='utf-8').replace('replace-with-a-stable-id','documentation-check').replace('Replace with the name people use for this process','Documentation check').replace('REPLACEJOB','IZERO007')
         parsed=parse_manifest(text)
         self.assertEqual(parsed['id'],'documentation-check')
         self.assertEqual(parsed['process_intake_version'],2)
@@ -180,8 +180,8 @@ class RepositoryOperatorGuideTests(unittest.TestCase):
         for name in ('Process.md','Endeavor','certificates','workspace_inputs'):
             self.assertIn(name,self.topics['folder-contract']['answer'] if name!='workspace_inputs' else str(self.topics['folder-contract']['match']))
         for label in ('Source & mapping','Choose rules','Build & test','Review & compare'):
-            self.assertIn(label,(self.root/'START_HERE.md').read_text())
-            self.assertIn(label,(self.root/'frontend/src/GuidedProcess.tsx').read_text())
+            self.assertIn(label,(self.root/'START_HERE.md').read_text(encoding='utf-8'))
+            self.assertIn(label,(self.root/'frontend/src/GuidedProcess.tsx').read_text(encoding='utf-8'))
         self.assertIn('No Save setup',self.topics['setup-next']['answer'])
         self.assertIn('Reconnect to this workspace',self.topics['blocked-recovery']['answer'])
         self.assertIn('declared roots stay unchanged',self.topics['manifest']['answer'])
