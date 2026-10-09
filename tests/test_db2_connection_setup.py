@@ -20,12 +20,12 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         db2 = {'mode': mode, **inactive}
         if mode == 'gateway':
             db2.update(host='db2.example.invalid', port=5116, database='TESTDB', location='TESTLOC', driver='IBM DB2 ODBC DRIVER', mcp_port=8776, row_limit=250)
-        return {'copilot': True, 'zowe': {'mode': 'off', 'host': None, 'port': None, 'config_file': None, 'schema_file': None}, 'db2': db2}
+        return {'claude': True, 'db2_auth':'bearer_env', 'zowe': {'mode': 'off', 'host': None, 'port': None, 'config_file': None, 'schema_file': None}, 'db2': db2}
 
     async def configure(self, choices=None, **settings):
         return await self.request('/api/setup/workstation', 'POST', {'settings': {'source_mode': 'upload', **settings}, 'connections': choices or self.choices()})
 
-    async def test_single_save_prepares_gateway_and_only_copilot_mcp_binding(self):
+    async def test_single_save_prepares_gateway_and_only_claude_mcp_binding(self):
         source = self.export / 'approved CA.cer'
         source.write_text(CERTIFICATE, encoding='utf-8')
         choices = self.choices(); choices['db2']['certificate_file'] = str(source)
@@ -37,9 +37,11 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((config['host'], config['port'], config['database'], config['location'], config['max_rows']), ('db2.example.invalid', 5116, 'TESTDB', 'TESTLOC', 250))
         self.assertTrue(config['ssl']); self.assertEqual(config['credential_environment'], {'user': 'WB_DB2_USER', 'password': 'WB_DB2_PASSWORD'})
         self.assertEqual((self.root / 'certificates/DB2-CA.cert').read_bytes(), source.read_bytes())
-        mcp = json.loads((self.root / '.vscode/mcp.json').read_bytes())
-        self.assertEqual(mcp['servers']['workbench-db2']['url'], result['settings']['db2_metadata_url'])
-        self.assertTrue(next(item for item in mcp['inputs'] if item['id'] == 'workbenchDb2Token')['password'])
+        mcp = json.loads((self.root / '.mcp.json').read_bytes())
+        self.assertEqual(mcp['mcpServers']['workbench-db2']['url'], result['settings']['db2_metadata_url'])
+        self.assertEqual(mcp['mcpServers']['workbench-db2']['headers']['Authorization'],'Bearer ${WB_DB2_MCP_TOKEN}')
+        self.assertEqual(set(mcp['mcpServers']),{'workbench-db2'})
+        self.assertNotIn('inputs',mcp)
         self.assertFalse((self.root / '.claude/mcp.json').exists())
         command = next(item['command'] for item in result['connection_setup']['commands'] if item['id'] == 'db2_start')
         self.assertIn('--interactive', command); self.assertIn('--config', command); self.assertIn('--transport', command); self.assertIn('http', command)
@@ -61,7 +63,7 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
                 status, response = await self.configure(choices)
                 self.assertEqual(status, 400); self.assertNotIn('fictional private sentinel', json.dumps(response))
                 self.assertFalse((self.root / '.migration/db2-config.json').exists())
-                self.assertFalse((self.root / '.vscode/mcp.json').exists())
+                self.assertFalse((self.root / '.mcp.json').exists())
 
     async def test_existing_server_never_prepares_driver_configuration(self):
         status, result = await self.configure(self.choices('existing'), db2_metadata_url='https://approved.example.invalid/mcp')
@@ -74,7 +76,7 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         status, result = await self.configure(self.choices('off'), db2_metadata_url='https://discard.example.invalid/mcp')
         self.assertEqual(status, 200); self.assertIsNone(result['settings']['db2_metadata_url'])
         self.assertEqual(path.read_bytes(), original)
-        self.assertNotIn('workbench-db2', json.loads((self.root / '.vscode/mcp.json').read_bytes())['servers'])
+        self.assertNotIn('workbench-db2', json.loads((self.root / '.mcp.json').read_bytes())['mcpServers'])
 
 
     async def test_numeric_limits_empty_fields_and_port_collision_are_rejected(self):
@@ -93,7 +95,7 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         choices = self.choices('off'); choices['db2']['host'] = 'unexpected.invalid'
         status, _ = await self.configure(choices)
         self.assertEqual(status, 400)
-        choices = self.choices(); choices['copilot'] = False
+        choices = self.choices(); choices['claude'] = False
         status, _ = await self.configure(choices)
         self.assertEqual(status, 400)
 
@@ -108,21 +110,21 @@ class Db2ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         with patch('workbench.connection_setup.atomic_bytes', side_effect=fail):
             status, _ = await self.configure()
         self.assertEqual(status, 500)
-        for name in ('certificates/DB2-CA.cert', '.migration/db2-config.json', '.vscode/mcp.json', '.migration/workstation.json', '.migration/connections.json'):
+        for name in ('certificates/DB2-CA.cert', '.migration/db2-config.json', '.mcp.json', '.migration/workstation.json', '.migration/connections.json'):
             self.assertFalse((self.root / name).exists(), name)
 
     async def test_concurrent_config_edit_is_preserved_and_blocks_other_writes(self):
-        from workbench.connection_setup import _copilot_plan
+        from workbench.connection_setup import _claude_plan
         path = self.root / '.migration/db2-config.json'
         concurrent = b'{"concurrent":"fictional operator change"}'
         def change(*args):
-            plan = _copilot_plan(*args)
+            plan = _claude_plan(*args)
             path.parent.mkdir(exist_ok=True); path.write_bytes(concurrent)
             return plan
-        with patch('workbench.connection_setup._copilot_plan', side_effect=change):
+        with patch('workbench.connection_setup._claude_plan', side_effect=change):
             status, _ = await self.configure()
         self.assertEqual(status, 400); self.assertEqual(path.read_bytes(), concurrent)
-        self.assertFalse((self.root / '.vscode/mcp.json').exists())
+        self.assertFalse((self.root / '.mcp.json').exists())
         self.assertFalse((self.root / 'certificates/DB2-CA.cert').exists())
 
     async def test_changed_certificate_source_blocks_save_without_partial_writes(self):
@@ -211,7 +213,7 @@ class Db2InteractiveServerTests(unittest.TestCase):
                  patch.object(gateway, 'create_server', return_value=server) as create, patch.object(gateway, 'connect', side_effect=AssertionError('No mainframe startup read')):
                 gateway.main()
                 self.assertEqual(dict(os.environ), {})
-            create.assert_called_once_with(search_root=config.parent / 'db2-search')
+            create.assert_called_once_with(search_root=config.parent / 'db2-search', workspace=config.parent.parent)
             self.assertEqual(observed['host'], '127.0.0.1'); self.assertEqual(observed['port'], 8776)
             self.assertEqual(observed['path'], '/mcp'); self.assertTrue(observed['host_origin_protection'])
             self.assertTrue(observed['json_response']); self.assertTrue(observed['stateless_http'])

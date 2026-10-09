@@ -6,10 +6,18 @@ description: Verify modernization evidence and deliver reconciled business-rule 
 Apply [the shared workflow's host roles](../../../prompts/START_MODERNIZATION.md).
 Claude Code runs unit tests, randomized synthetic scenarios, actual target
 comparisons and independent adversarial review using approved frozen local
-source. It owns integration and report verification. Copilot only retrieves
-requested missing files or metadata; it does not test, review or submit analysis.
-Claude uses the local-file Coordinator workflow with no MCP servers. A model's
+sanitized source/metadata. It owns approved read-only retrieval, integration and
+report verification through the local-file Coordinator. Copilot is not required.
+A model's
 assertion is never source parity, an authenticated test receipt or SME approval.
+
+Model-visible work uses metadata and explicitly approved sanitized source views.
+Raw source/customer rows and SSNs stay protected locally; never put them in LLM
+reads, MCP responses, prompts, screenshots/uploads, model APIs or diagnostics.
+Code/comments are not inherently safe. Deterministic local tools may compare
+protected files and return counts/hashes/gaps; use synthetic or approved masked
+examples for tests. Missing safe semantic context stays a qualification gap.
+
 
 Use [the technical contract](../../../docs/TECHNICAL_REFERENCE.md), existing
 coverage/reports and Coordinator ledger. Independently review changed semantics
@@ -45,15 +53,24 @@ Run tools/check_factory.py after changes. Check UI/CLI/API/MCP contracts and eve
 report format against the same frozen metric model. For online targets test map
 fields, AID/navigation, expiry, session isolation, stale revisions, duplicate keys,
 lost responses, rollback, partial failures, restart, authorization and downstream
-outages as applicable. Test native Windows/Linux before asserting platform support.
+outages as applicable. Test Windows 11 and the approved Claude host before asserting acceptance.
+Historical other-platform receipts remain scoped history.
 Unimplemented semantics remain named obligations; a green generic API test cannot
 clear native transaction or screen coverage.
 
-For new fixture contract 4 processes, require at least 20 distinct randomized
-valid states per applicable supported logic, layout/terminal unit and executed
-job step. Count source state at execution, preserve the runtime seed and frozen
+For new fixture-v5 processes, require 64 distinct randomized valid source states
+per applicable logic, layout/terminal unit and executed job step; 128 applies
+only to recorded source-risk logic. Positive, negative, boundary, linked-file and
+adversarial/mutation obligations are mandatory separately from count. Count source state at execution, preserve the runtime seed and frozen
 expectations, and run generated unit tests against the actual target. Verify
 module/receipt hashes and full type-strict comparisons; duplicate inputs,
 small domains, overwritten states and unreachable logic never earn false credit.
 Historical fixture contracts remain frozen and replayable. Oracle architecture
 advice is qualification evidence, not an implemented or verified backend.
+
+Review from operator/executive, data analyst and staff-engineer perspectives.
+Reconcile original/selected/excluded/verified totals and exact blockers; inspect
+question grouping, data grain/keys/nulls/quality, reliability and source attribution.
+Verify allowed metadata/protected exports and rejected row/sample/search outputs,
+real-key requests, writes and stale/ambiguous returns. Never use actual raw records
+in model/tool/browser screenshots during review.

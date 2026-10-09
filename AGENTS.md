@@ -1,11 +1,13 @@
 # Workbench agent entrypoint
 
-GitHub Copilot, Codex and other repository agents must read and execute
+Claude Code, Codex and other repository agents must read and execute
 [prompts/START_MODERNIZATION.md](prompts/START_MODERNIZATION.md). Claude Code uses
-[CLAUDE.md](CLAUDE.md), which references the same prompt. Copilot repository-wide
-discovery uses [.github/copilot-instructions.md](.github/copilot-instructions.md).
+[CLAUDE.md](CLAUDE.md), which references the same prompt. The retained
+[Copilot metadata](.github/copilot-instructions.md) points here; Copilot is not a workflow dependency.
 These files are entrypoint
-metadata, not separate workflow implementations.
+metadata, not separate workflow implementations. Use [prompts/CONTEXT.md](prompts/CONTEXT.md)
+for compact repository orientation and context-file ownership; the shared Start
+prompt remains the execution workflow.
 
 Use the existing `workbench.coordinator.Coordinator` through
 `python -m workbench.runner`. Do not build another engine or bypass its ledger,
@@ -21,6 +23,19 @@ output at the repository root. Source exports and issued evidence are immutable.
 Credentials, local state, source exports and private diagnostics remain ignored.
 Keep transient repository scratch under `.implementation/tmp/`; root directories
 are explicitly allowlisted and a `tmp` prefix does not grant an exception.
+
+Raw customer/dataset records, including SSNs, must stay in protected local storage
+inside the approved network. Never read them into an LLM, MCP tool response,
+prompt, model API, screenshot/upload or diagnostic output. Use synthetic data or
+explicitly approved masked examples for model-visible work. Source comments and
+control cards can also contain private values: use approved sanitized views, not
+an assumption that code is safe. Original source is protected by default;
+LLM access requires an approved sanitized view and absent safe semantic context
+remains a qualification gap. Local deterministic comparison may read protected
+files and return counts, hashes and exact gaps without row values. The operator-only
+localhost database inspector is distinct from model-visible content. A masking
+regex is not comprehensive privacy assurance; enterprise approval and least-privilege
+server enforcement remain required.
 
 Mainframe access is always read-only. Never submit jobs, execute legacy programs,
 write source/Db2 datasets or turn off safety gates. Source-derived expectations
@@ -58,21 +73,27 @@ Use deterministic parsing/checks first; retrieve only relevant evidence spans.
 Keep optional model suggestions bounded and record actual usage. Never claim
 finite tests prove every scenario or that a configuration proves connectivity.
 
-GitHub Copilot in VS Code only discovers and retrieves source/metadata through
-already approved MCP connections into exact request-bound local inboxes. Claude
-Code, including the approved VS Code extension, has no MCP servers and owns local
-analysis, development, tests and review using approved exports. Never tunnel MCP
-through a shell/HTTP wrapper or proxy Claude through Copilot. Use
+Claude Code is the primary retrieval, analysis, development, testing and review
+host, including its organization-approved VS Code extension. Use approved
+read-only Db2 MCP tools for Db2 evidence and Zowe CLI for mainframe source and
+dataset metadata. Copilot is not required. Keep retrieval request-bound and
+validate its exact local inbox before using returned evidence. Never expose a
+workflow-proxy MCP, arbitrary SQL or unrestricted mainframe tools. Use
 `python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE` and its
 local request/continue/refresh/analysis-file actions. With the UI running, its
 Coordinator consumes the local command inbox; never start another writer.
+Windows 11 is the required operator and target workstation. Preserve historical
+other-platform receipts without treating them as Windows 11 acceptance.
 Perform job-led transitive discovery first; missing, ambiguous or dynamic objects
 stop before conversion/SME questions. Preserve full exports and dispositions.
 After implementing/testing semantic adapters, refresh and submit a fresh
 hash-bound analysis. Never rewrite content-addressed evidence or clear a gap
-with a plan/flag. New fixtures require at least 20 distinct randomized valid source logic states, linked-file witnesses,
-actual target comparisons and adversarial checks. Unsupported logic stays a
-named unverified obligation. Use exact WEDLX/Tran Repository folder bindings and
+with a plan/flag. New fixture-v5 processes require 64 distinct randomized valid source states per
+applicable logic/layout/step; only source-risk logic requires 128, plus
+positive, negative, boundary, linked-file and adversarial/mutation obligations.
+Historical fixture floors stay frozen. Actual target comparisons are required;
+a count alone cannot satisfy a missing obligation. Unsupported logic stays a
+named unverified obligation. Use exact WEBELX/Tran Repository folder bindings and
 supplied Zowe config/schema; TPX session names are not physical/API locations.
 
 Documentation stays compact: START_HERE.md is the operator guide,

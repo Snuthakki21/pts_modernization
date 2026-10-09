@@ -359,6 +359,9 @@ def zowe_command(command, env):
     bins = declaration.get('bin')
     entry = bins.get('zowe') if isinstance(bins, dict) else None
     require(isinstance(entry, str), 'Zowe package must declare its zowe entry point')
+    # npm bin declarations commonly use one leading './'. This is package
+    # syntax, not a ledger identity; further aliases remain rejected below.
+    entry = entry[2:] if entry.startswith('./') else entry
     script = safe_path(package, entry)
     require(script.is_file() and script.suffix.lower() == '.js', 'Zowe package entry point is missing or invalid')
     node = prefix / 'node.exe'
@@ -370,9 +373,10 @@ def zowe_command(command, env):
     return [str(node), str(script), *command[1:]]
 
 
-def bounded_command(command,env,timeout=20,limit=1024*1024):
+def bounded_command(command,env,timeout=20,limit=1024*1024,*,cwd=None):
     if command and command[0] == 'zowe': command = zowe_command(command, env)
-    process=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env=env,shell=False)
+    location = {} if cwd is None else {'cwd':cwd}
+    process=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env=env,shell=False,**location)
     chunks=[];size=[0];overflow=[False]
     def drain():
         while True:
@@ -390,8 +394,10 @@ def bounded_command(command,env,timeout=20,limit=1024*1024):
 
 
 class ZoweReader:
-    def __init__(self,profile,zosmf_profile=None):
+    def __init__(self,profile,zosmf_profile=None,*,workspace=None,environ=None):
         self.profile=profile;self.zosmf_profile=zosmf_profile;self.timeout=20
+        self.workspace=None if workspace is None else Path(workspace).absolute()
+        self.environ=None if environ is None else dict(environ)
         for name in (profile,) if zosmf_profile is None else (profile,zosmf_profile):
             require(isinstance(name,str) and len(name)<=80 and re.fullmatch(r'[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*',name) and not set(name.split('.')) & {'__proto__','constructor','prototype'},'Unsafe Zowe profile alias')
     def operation(self,op,value,*,pattern=None,max_items=100):
@@ -411,11 +417,20 @@ class ZoweReader:
         if pattern is not None:command+=['--pattern',pattern]
         command+=['--response-format-json']
         allowed=['PATH','PATHEXT','HOME','USERPROFILE','APPDATA','LOCALAPPDATA','TEMP','TMP','SystemRoot','ZOWE_CLI_HOME','NODE_EXTRA_CA_CERTS']
-        env={k:os.environ[k] for k in allowed if k in os.environ}
+        parent=os.environ if self.environ is None else self.environ
+        env={k:parent[k] for k in allowed if k in parent}
+        location={}
+        if self.workspace is not None:
+            from .zowe_setup import environment_profiles, zowe_environment
+            require((self.profile,self.zosmf_profile)==environment_profiles(self.workspace),
+                    'Selected Zowe aliases must match the prepared private workspace environment')
+            env=zowe_environment(self.workspace,parent)
+            command+=['--reject-unauthorized','true']
+            location={'cwd':self.workspace}
         try:
             source_read=op in ('read_member','read_dataset')
             response=bounded_command(command,env,timeout=self.timeout,
-                                     limit=MAX_ZOWE_SOURCE_RESPONSE_BYTES if source_read else MAX_RESPONSE_BYTES)
+                                     limit=MAX_ZOWE_SOURCE_RESPONSE_BYTES if source_read else MAX_RESPONSE_BYTES,**location)
             require(isinstance(response,dict) and response.get('success',True) is True,
                     'Zowe read failed; check the selected local profile, secure credentials and read access')
             if source_read:
@@ -513,9 +528,24 @@ class ReadOnlyLineageResolver:
         self.allow_dataset_content=allow_dataset_content;self._deadline=None
 
     @classmethod
-    def from_environment(cls,env=None,**budgets):
+    def from_environment(cls,env=None,*,workspace=None,**budgets):
         env=os.environ if env is None else env
-        zowe=ZoweReader(env['WB_ZOWE_PROFILE'],env.get('WB_ZOWE_ZOSMF_PROFILE')) if env.get('WB_ZOWE_PROFILE') else None
+        private_values={}
+        if workspace is not None:
+            path=safe_path(Path(workspace).absolute(),'.env')
+            if path.exists():
+                from .db2_env import read_workspace_env
+                private_values=read_workspace_env(path)
+        if private_values.get('ZOWE_ENVIRONMENT'):
+            from .zowe_setup import environment_profiles
+            base, service=environment_profiles(workspace)
+            require(not env.get('WB_ZOWE_PROFILE') or env['WB_ZOWE_PROFILE']==base,
+                    'Existing selected Zowe base alias conflicts with the private workspace environment')
+            require(not env.get('WB_ZOWE_ZOSMF_PROFILE') or env['WB_ZOWE_ZOSMF_PROFILE']==service,
+                    'Existing selected Zowe service alias conflicts with the private workspace environment')
+            zowe=ZoweReader(base,service,workspace=workspace,environ=env)
+        else:
+            zowe=ZoweReader(env['WB_ZOWE_PROFILE'],env.get('WB_ZOWE_ZOSMF_PROFILE')) if env.get('WB_ZOWE_PROFILE') else None
         db2=Db2MCP(env['WB_DB2_MCP_URL'],env.get('WB_DB2_MCP_TOKEN','')) if env.get('WB_DB2_MCP_URL') else None
         hints=[env['WB_DATASET_HINT']] if env.get('WB_DATASET_HINT') else []
         return cls(zowe=zowe,db2=db2,dataset_hints=hints,**budgets)

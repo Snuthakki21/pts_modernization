@@ -89,7 +89,11 @@ class CicsRequirementsWorkflowTests(unittest.TestCase):
         self.assertEqual({unit['id'] for unit in continued['analysis']['requirements']['excluded_units']},set(exclusions))
         self.assertTrue(any(gap['kind']=='cics_controller_gap' for gap in continued['blockers']))
         self.assertFalse(any(gap['kind']=='requirements_dependency' for gap in continued['blockers']))
-        local=self.c.local_agent_view('cics-ui');self.assertEqual(Path(local['requirements_file']).read_bytes(),frozen);self.assertEqual(local['host_roles']['analysis'],'Claude Code, local files only; no MCP')
+        local=self.c.local_agent_view('cics-ui');self.assertIsNone(local['requirements_file'])
+        self.assertEqual(local['requirements']['sha256'],sha(frozen))
+        self.assertEqual(local['requirements']['excluded_count'],len(exclusions))
+        self.assertFalse(local['requirements']['private_contents_allowed'])
+        self.assertEqual(local['host_roles']['analysis'],'Claude Code, accepted local evidence, development, testing and review')
 
     def test_required_action_no_retains_exact_source_dependency_in_existing_coordinator(self):
         view=self.client.get('/api/process/cics-ui/requirements',params={'kind':'screen_action'}).json()

@@ -12,7 +12,7 @@ from workbench.database import schema_candidate,create_application_database,sqli
 from workbench.database_workflow import database_view,prepare_database,database_snapshot,database_comparison
 from workbench.domain import ValidationError,encode,sha,write_new
 from workbench.layout import output_path
-from workbench.retrieval import build_request,write_request,inspect_response,unresolved_after_mapping
+from workbench.retrieval import build_request,write_request,inspect_response,unresolved_after_mapping,private_snapshot_path
 from test_database import CONTEXT,receipt,raw
 from test_source import COBOL
 from test_workflow import MANIFEST
@@ -25,7 +25,7 @@ def snapshot_need(snapshot):
 
 
 def export(snapshot):
-    body=raw(snapshot);body['consistency']={'status':'unverified','evidence':[]}
+    body=raw(snapshot);body['consistency']={'status':'unverified','evidence':[]};body['provenance']['tool']='db2_export_snapshot_to_inbox'
     return encode(body).decode()
 
 
@@ -38,19 +38,33 @@ class SnapshotRetrievalTests(unittest.TestCase):
     def response(self,request,snapshots):
         write_request(self.root,request);folder=self.root/request['return_folder'];items=[]
         for need,snapshot in zip(request['needs'],snapshots):
-            text=export(snapshot);path='db2/'+snapshot['phase']+'.json';f=folder/'files'/path;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(text.encode('utf-8'))
-            items.append({'need_id':need['need_id'],'status':'FOUND','path':path,'sha256':sha(text),'provenance':raw(snapshot)['provenance']})
+            text=export(snapshot);path=private_snapshot_path(need['need_id']);f=folder/'files'/path;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(text.encode('utf-8'))
+            items.append({'need_id':need['need_id'],'status':'FOUND','path':path,'sha256':sha(text),'provenance':json.loads(text)['provenance']})
         (folder/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':items}));return folder,items
 
     def test_opt_in_exact_before_after_receipts_are_immutable_and_remain_unverified(self):
         request=build_request(self.doc,[snapshot_need(self.before),snapshot_need(self.after)]);self.response(request,[self.before,self.after])
         result=inspect_response(self.root,request);self.assertTrue(result['complete']);self.assertEqual(len(result['entries']),2)
-        self.assertIn('only named db2_snapshot needs authorize',request['copilot_prompt']);self.assertIn('never submit/execute',request['copilot_prompt'])
+        self.assertIn('only named db2_snapshot needs authorize',request['agent_prompt']);self.assertIn('Never submit/execute',request['agent_prompt'])
         for entry in result['entries']:
             self.assertEqual(entry['provenance']['content_kind'],'DB2_RECORD_SNAPSHOT')
             self.assertEqual(json.loads(entry['text'])['consistency'],{'status':'unverified','evidence':[]})
             self.assertEqual(entry['source_hash'],sha(entry['text']))
         self.assertEqual(result,inspect_response(self.root,request))
+
+    def test_private_input_filename_is_hashed_only_in_model_view_and_original_binding_is_preserved(self):
+        from workbench.retrieval import model_request,request_prompt
+        marker='123-45-6789';snapshot=deepcopy(self.before)
+        snapshot['input_hashes']={'input/'+marker+'.dat':sha('fictional input')}
+        request=build_request(self.doc,[snapshot_need(snapshot)]);original=encode(request)
+        self.assertIn(marker,request['needs'][0]['reason'])
+        self.assertNotIn(marker,json.dumps(model_request(request)))
+        self.assertNotIn(marker,request_prompt(request))
+        self.assertIn('INPUT_BINDING_SHA256_',request_prompt(request))
+        self.assertEqual(encode(request),original)
+        self.response(request,[snapshot])
+        result=inspect_response(self.root,request)
+        self.assertEqual(json.loads(result['entries'][0]['text'])['input_hashes'],snapshot['input_hashes'])
 
     def test_twenty_runtime_randomized_receipts_preserve_leading_zeros_and_typed_values(self):
         seed=secrets.randbits(63);rng=random.Random(seed)
@@ -72,7 +86,7 @@ class SnapshotRetrievalTests(unittest.TestCase):
                 snapshot=receipt([{'ID':str(index).zfill(8),'VALUE':'escaped-'+str(rng.randrange(10**15))}],'before')
                 spelling=''.join((r'\u%04x'%ord(character)) if mask&(1<<offset) else character for offset,character in enumerate(kind))
                 for request,allow in ((explicit,True),(ordinary,False)):
-                    folder,items=self.response(request,[snapshot]);path=folder/'files/db2/before.json'
+                    folder,items=self.response(request,[snapshot]);path=folder/'files'/items[0]['path']
                     text=path.read_text().replace('"kind"',r'"\u006bind"').replace(kind,spelling)
                     self.assertEqual(json.loads(text)['kind'],kind);path.write_bytes(text.encode('utf-8'))
                     items[0]['sha256']=sha(text)
@@ -99,7 +113,7 @@ class SnapshotRetrievalTests(unittest.TestCase):
                 snapshot=receipt([{'ID':str(index).zfill(8),'VALUE':'bom-'+str(rng.randrange(10**15))}],'before')
                 spelling=''.join((r'\u%04x'%ord(character)) if mask&(1<<offset) else character for offset,character in enumerate(kind))
                 for request in (explicit,*unrelated):
-                    folder,items=self.response(request,[snapshot]);path=folder/'files/db2/before.json'
+                    folder,items=self.response(request,[snapshot]);path=folder/'files'/items[0]['path']
                     text='\ufeff'+path.read_bytes().decode('utf-8').replace('"kind"',r'"\u006bind"').replace(kind,spelling)
                     path.write_bytes(text.encode('utf-8'));items[0]['sha256']=sha(text)
                     if request is not explicit:items[0]['provenance']['tool']='db2_describe_table'
@@ -119,7 +133,7 @@ class SnapshotRetrievalTests(unittest.TestCase):
 
     def test_bom_unrelated_json_is_retained_without_snapshot_identity(self):
         request=build_request(self.doc,[{'kind':'db2_table','name':'APP.SALE','reason':'Schema only'}])
-        folder,items=self.response(request,[self.before]);path=folder/'files/db2/before.json'
+        folder,items=self.response(request,[self.before]);path=folder/'files'/items[0]['path']
         text='\ufeff'+encode({'kind':'OTHER','note':'DB2_RECORD_SNAPSHOT DB2_TABLE_DESCRIPTION'}).decode()
         path.write_bytes(text.encode('utf-8'));items[0]['sha256']=sha(text);items[0]['provenance']['tool']='db2_describe_table'
         (folder/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':items}))
@@ -131,13 +145,13 @@ class SnapshotRetrievalTests(unittest.TestCase):
         explicit=build_request(self.doc,[snapshot_need(self.before)])
         ordinary=build_request(self.doc,[{'kind':'db2_table','name':'APP.SALE','reason':'Schema only'}])
         for request in (explicit,ordinary):
-            folder,items=self.response(request,[self.before]);path=folder/'files/db2/before.json'
+            folder,items=self.response(request,[self.before]);path=folder/'files'/items[0]['path']
             text='\ufeff'+export(self.before)[:-2];path.write_bytes(text.encode('utf-8'));items[0]['sha256']=sha(text)
             if request is ordinary:items[0]['provenance']['tool']='db2_describe_table'
             (folder/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':items}))
             with self.subTest(kind=request['needs'][0]['kind']),self.assertRaises(ValidationError):inspect_response(self.root,request)
         for alteration in ('hash','transport','phase'):
-            folder,items=self.response(explicit,[self.before]);path=folder/'files/db2/before.json';snapshot=self.before
+            folder,items=self.response(explicit,[self.before]);path=folder/'files'/items[0]['path'];snapshot=self.before
             if alteration=='phase':snapshot=self.after
             text='\ufeff'+export(snapshot);path.write_bytes(text.encode('utf-8'));items[0]['sha256']=sha(text)
             if alteration=='hash':items[0]['sha256']=sha(text[1:])
@@ -147,13 +161,13 @@ class SnapshotRetrievalTests(unittest.TestCase):
 
     def test_wrong_phase_run_input_environment_scope_key_transport_or_consistency_is_denied(self):
         request=build_request(self.doc,[snapshot_need(self.before)]);folder,items=self.response(request,[self.before])
-        original=json.loads((folder/'files/db2/before.json').read_text())
+        original=json.loads((folder/'files'/items[0]['path']).read_text())
         alterations=[('phase','after'),('run_id','different'),('input_hashes',{'input/sale.txt':sha('wrong')}),('environment','I_NONPROD'),
             ('key_columns',['VALUE']),('scope',{'kind':'explicit_keys','keys':[['00000001']],'complete':True}),
             ('consistency',{'status':'consistent','evidence':[{'path':'fake.json','sha256':sha('fake')}]}),
             ('rows',[{'ID':1.0,'VALUE':'old'}])]
         for field,value in alterations:
-            body={**deepcopy(original),field:value};text=encode(body).decode();(folder/'files/db2/before.json').write_bytes(text.encode('utf-8'))
+            body={**deepcopy(original),field:value};text=encode(body).decode();(folder/'files'/items[0]['path']).write_bytes(text.encode('utf-8'))
             item={**items[0],'sha256':sha(text)};(folder/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[item]}))
             with self.subTest(field=field),self.assertRaises(ValidationError):inspect_response(self.root,request)
         self.response(request,[self.before]);items[0]['provenance']['tool']='db2_describe_table'
@@ -178,6 +192,20 @@ class SnapshotRetrievalTests(unittest.TestCase):
         folder,items=self.response(ordinary,[self.before]);items[0]['provenance']['tool']='db2_describe_table'
         (folder/'response.json').write_bytes(encode({'request_id':ordinary['request_id'],'items':items}))
         with self.assertRaisesRegex(ValidationError,'explicit guided snapshot'):inspect_response(self.root,ordinary)
+
+    def test_claude_record_requests_require_protected_filename_tool_and_no_private_key_values(self):
+        private=deepcopy(self.before);private['scope']={'kind':'explicit_keys','keys':[['00000001']],'complete':True}
+        with self.assertRaisesRegex(ValidationError,'private record key values'):
+            build_request(self.doc,[snapshot_need(private)])
+        request=build_request(self.doc,[snapshot_need(self.before)]);folder,items=self.response(request,[self.before])
+        for change in ({'path':'db2/before.json'},{'staged_path':'public-before.json'},
+                       {'provenance':{**items[0]['provenance'],'tool':'db2_read_table_rows'}}):
+            (folder/'response.json').write_bytes(encode({'request_id':request['request_id'],'items':[{**items[0],**change}]}))
+            with self.subTest(change=change),self.assertRaises(ValidationError):inspect_response(self.root,request)
+        self.assertIn('response_ready must be true before Continue',request['agent_prompt'])
+        self.assertIn('Never copy it into response.json',request['agent_prompt'])
+        self.assertIn('NEEDS_LOCAL_PROTECTED_RECEIPT_BINDING',request['agent_prompt'])
+        self.assertIn('Never call raw row/sample/content-search tools',request['agent_prompt'])
 
 
 class SnapshotCoordinatorTests(unittest.TestCase):
@@ -204,16 +232,17 @@ class SnapshotCoordinatorTests(unittest.TestCase):
         old=[{'ID':str(i).zfill(8),'VALUE':'old'} for i in range(20)];new=[{'ID':str(i).zfill(8),'VALUE':'new'} for i in range(20,25)]
         before=receipt(old,'before');after=receipt(old+new,'after')
         request=self.c.request_retrieval('process-a',[snapshot_need(before),snapshot_need(after)])['retrieval']
-        self.stage(request,[(need,'db2/'+snap['phase']+'.json',export(snap),snap['provenance']) for need,snap in zip(request['needs'],(before,after))])
+        before_path='input/sources/'+private_snapshot_path(request['needs'][0]['need_id']);after_path='input/sources/'+private_snapshot_path(request['needs'][1]['need_id'])
+        self.stage(request,[(need,private_snapshot_path(need['need_id']),export(snap),json.loads(export(snap))['provenance']) for need,snap in zip(request['needs'],(before,after))])
         doc=self.c.ledger.get('process-a');self.assertFalse(doc.get('retrieval_unresolved'));self.assertEqual(doc['status'],'WAITING_REQUIREMENTS')
         model=self.c.requirements_view('process-a');self.c.save_requirements('process-a',{'catalog_hash':model['catalog_hash'],'revision':model['revision'],'excluded_ids':[],'saved_by':'Fictional snapshot scope operator'})
         self.c.advance('process-a');view=prepare_database(self.c,'process-a');database=view['databases'][0]
         self.assertEqual({snap['phase'] for snap in view['snapshots']},{'before','after'})
-        local_before=database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':'input/sources/db2/before.json','context':CONTEXT,'phase':'before'})
-        local_after=database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':'input/sources/db2/after.json','context':CONTEXT,'phase':'after'})
+        local_before=database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':before_path,'context':CONTEXT,'phase':'before'})
+        local_after=database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':after_path,'context':CONTEXT,'phase':'after'})
         self.assertEqual(local_before['rows'],0);self.assertEqual(local_after['rows'],0)
-        self.assertEqual(database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':'input/sources/db2/before.json','context':CONTEXT,'phase':'before'}),local_before)
-        body={'db2_before':'input/sources/db2/before.json','db2_after':'input/sources/db2/after.json',
+        self.assertEqual(database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':before_path,'context':CONTEXT,'phase':'before'}),local_before)
+        body={'db2_before':before_path,'db2_after':after_path,
               'sqlite_before':local_before['artifact'],'sqlite_after':local_after['artifact'],'context':CONTEXT}
         result=database_comparison(self.c,'process-a',body)
         self.assertEqual(result['summary']['db2_after_rows'],25);self.assertEqual(result['summary']['historical_records'],20)
@@ -226,6 +255,6 @@ class SnapshotCoordinatorTests(unittest.TestCase):
         doc=self.c.ledger.get('process-a');self.assertEqual(doc['status'],'WAITING_COPILOT');self.assertFalse(doc['packet_issued'])
         self.assertTrue(any(b['kind']=='unsupported_source' for b in doc['blockers']))
         self.assertIn(result['artifact'],doc['artifacts']);self.assertEqual(sha(self.c.artifact('process-a',result['artifact']).read_bytes()),result['sha256'])
-        with self.assertRaises(ValidationError):database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':'input/sources/db2/before.json','context':CONTEXT,'phase':'after'})
+        with self.assertRaises(ValidationError):database_snapshot(self.c,'process-a',{'database_id':database['id'],'source_snapshot':before_path,'context':CONTEXT,'phase':'after'})
 
 if __name__=='__main__':unittest.main()

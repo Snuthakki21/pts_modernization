@@ -21,7 +21,7 @@ class LocalClaudeSetupTests(unittest.TestCase):
         self.assertEqual(question['status'], 'UNANSWERED')
         self.assertEqual(question['options'][0]['value'], 'copilot_chat')
         self.assertIn('Claude Code', question['options'][0]['label'])
-        self.assertIn('retrieval', question['options'][0]['label'])
+        self.assertIn('end-to-end', question['options'][0]['label'])
 
     def test_saved_v1_copilot_choice_routes_to_local_claude_without_rewriting_state(self):
         choices = {'source': 'upload', 'manifest': 'ready', 'zowe': 'not_needed',
@@ -37,8 +37,8 @@ class LocalClaudeSetupTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), original)
         action = next(q['action'] for q in result['questions'] if q['id'] == 'llm')
         self.assertIn('Claude Code', action)
-        self.assertIn('no MCP', action)
-        self.assertIn('Copilot', action)
+        self.assertIn('approved MCP', action)
+        self.assertNotIn('Copilot', action)
         self.assertIn('retriev', action)
         self.assertIn('testing', action)
         self.assertNotIn('submit source-grounded suggestions', action)

@@ -511,12 +511,17 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
     require(isinstance(location_context, dict), 'Application input locations require a mapping')
     location_facts = []
     input_bindings = {}
-    for name in APPLICATION_LOCATIONS:
+    require(not ('WEBELX' in location_context and 'WEDLX' in location_context),
+            'Use one canonical WEBELX or preserved historical location binding')
+    current_input=any(any(isinstance(value,str) and value.casefold()=='webelx' for value in step.get('inputs',[])) for job in manifest.get('jobs',[]) for step in job.get('steps',[]))
+    primary='WEBELX' if 'WEBELX' in location_context else 'WEDLX' if 'WEDLX' in location_context else 'WEBELX' if current_input else 'WEDLX'
+    location_names=(primary,'Tran Repository')
+    for name in location_names:
         fact = location_context.get(name, location_context.get(name.replace(' ', ''), {}))
         require(isinstance(fact, dict), 'Application input location evidence requires an object')
         evidence = fact.get('evidence', [])
         # A configured path is a location identity, not an observation that a file is ready.
-        location = {'name': name, 'location_type': fact.get('location_type', 'local_or_mounted_file_share' if name == 'WEDLX' else 'application_staging_location'),
+        location = {'name': name, 'location_type': fact.get('location_type', 'local_or_mounted_file_share' if name in ('WEBELX','WEDLX') else 'application_staging_location'),
                     'physical_path': fact.get('path') or 'Unknown', 'dataset_name': 'Unknown',
                     'availability': fact.get('availability', 'Unknown') if evidence else 'Unknown',
                     'readiness': 'Unknown',
@@ -590,8 +595,11 @@ def map_lineage(files, manifest, knowledge=None, resolver=None):
             reference(root, kind, step['program'], 'manifest_step', step_ev)
             for field, relation in [('inputs', 'input_context'), ('outputs', 'output_context')]:
                 for value in step.get(field, []):
-                    if value.casefold().replace(' ', '') in {location.casefold().replace(' ', '') for location in APPLICATION_LOCATIONS}:
-                        location = next(x for x in APPLICATION_LOCATIONS if x.casefold().replace(' ', '') == value.casefold().replace(' ', ''))
+                    location_key=value.casefold().replace(' ', '')
+                    if location_key in {'webelx','wedlx','tranrepository'}:
+                        # Display spelling is a supported location alias, never a dataset rename.
+                        # Prefer exact stored context identity so its evidence is not discarded.
+                        location=location_names[1] if location_key=='tranrepository' else primary
                         edge(root, 'input_location:' + location.upper(), relation, step_ev)
                     else:
                         ident = node('input_data' if field == 'inputs' else 'output_data', value,

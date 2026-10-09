@@ -1,3 +1,11 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "workbench-db2": {
+      "type": "http",
+      "url": "${WB_DB2_MCP_URL}",
+      "headers": {
+        "Authorization": "Bearer ${WB_DB2_MCP_TOKEN}"
+      }
+    }
+  }
 }

@@ -1,0 +1,45 @@
+{
+  "$schema": "./zowe.schema.example.json",
+  "profiles": {
+    "project_base": {
+      "type": "base",
+      "properties": {},
+      "secure": [
+        "user",
+        "password"
+      ]
+    },
+    "DevPlex": {
+      "type": "zosmf",
+      "properties": {
+        "host": "dev.example.invalid",
+        "port": 443,
+        "protocol": "https",
+        "rejectUnauthorized": true
+      }
+    },
+    "ProdPlex": {
+      "type": "zosmf",
+      "properties": {
+        "host": "prod.example.invalid",
+        "port": 443,
+        "protocol": "https",
+        "rejectUnauthorized": true
+      }
+    },
+    "tso": {
+      "type": "tso",
+      "properties": {
+        "account": "YOUR_TSO_ACCOUNT",
+        "codePage": "1047",
+        "logonProcedure": "YOURPROC"
+      }
+    }
+  },
+  "defaults": {
+    "base": "project_base",
+    "zosmf": "DevPlex",
+    "tso": "tso"
+  },
+  "autoStore": true
+}

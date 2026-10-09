@@ -12,7 +12,7 @@ import socket
 import sys
 import unicodedata
 
-from .domain import MAX_UPLOAD, ValidationError, require, safe_path, path_is_link
+from .domain import MAX_UPLOAD, ValidationError, require, safe_path, path_is_link,sha,encode
 from .limits import (MAX_SOURCE_BYTES, MAX_SOURCE_ENTRIES, MAX_SOURCE_FILE_BYTES,
                      MAX_SOURCE_FILES, MAX_SOURCE_LINES, source_line_count)
 from .layout import validate_workspace
@@ -382,6 +382,71 @@ def inspect_workspace(workspace, manifest=None, *, port=None, environ=None, coor
     return result
 
 
+_CLI_CHECK_HELP={
+    'python':'Install the release CPython 3.12 interpreter.',
+    'dependencies':'Run scripts/Setup.ps1 using the verified release requirements.lock.',
+    'frontend':'Restore the committed UI bundle or rebuild frontend from the release lock.',
+    'workspace':'Use the direct path to a dedicated existing local workspace.',
+    'layout':'Inspect local layout details and correct misplaced inputs; preserve frozen evidence.',
+    'workspace_access':'Check local read, traversal and write permissions.',
+    'disk_space':'Allow capacity for exports, synthetic cases, reports and backups.',
+    'workspace_lock':'Use the existing Coordinator writer; do not start a second writer.',
+    'workspace_io':'Check local permissions, locking and filesystem availability.',
+    'filesystem':'Qualify local disk, locking and backup recovery on the target machine.',
+    'platform':'Run the native Windows 11 and browser acceptance checks.',
+    'ui_port':'Use an available approved loopback port.',
+    'mainframe_knowledge':'Correct the standard/application catalog locally; preserve frozen process knowledge.',
+    'application_knowledge':'Initialize the editable application catalog once and validate it locally.',
+    'background_context':'Validate supplied Markdown locally; private text needs an approved sanitized model view.',
+    'manifest':'Validate process Markdown structure and ordered jobs locally.',
+    'existing_process':'Resume the preserved process or use a new ID for changed intake.',
+    'source_export':'Validate the complete export locally; never print private source or discard unknown files.',
+    'conversion_scope':'Use the local operator coverage view for exact blockers; unsupported behavior remains unverified.',
+    'db2':'Configure the approved typed read-only Db2 MCP connection in the setup UI.',
+    'zowe':'Configure the approved read-only Zowe CLI profiles in the setup UI.',
+    'llm':'Use approved metadata and sanitized context; configuration does not establish safe source transfer.',
+    'db2_gateway':'Provision and qualify the protected Db2 gateway and driver locally.',
+    'environment_file':'Load private configuration locally without printing secret values.',
+    'preflight':'Inspect private local diagnostics and correct the setup cause before retrying.'}
+
+
+def _diagnostic_hash(value):
+    try:return sha(encode(value))
+    except (ValidationError,UnicodeError):
+        # Filesystem/driver exceptions can carry surrogate characters. Hash an
+        # escaped representation rather than letting a diagnostic traceback leak.
+        return sha(json.dumps(value,ensure_ascii=True,sort_keys=True).encode('ascii'))
+
+
+def cli_projection(result):
+    """The Start prompt consumes stdout; private diagnostics remain in inspect."""
+    statuses={'READY','BLOCKED','UNVERIFIED','NOT_CONFIGURED'}
+    checks=[]
+    for entry in result.get('checks',[]):
+        category=entry.get('id') if entry.get('id') in _CLI_CHECK_HELP else 'preflight'
+        checks.append({'id':category,'status':entry.get('status') if entry.get('status') in statuses else 'UNVERIFIED',
+                       'message':'Local '+category+' diagnostic; private details are withheld.',
+                       'action':_CLI_CHECK_HELP[category], 'evidence_sha256':_diagnostic_hash(entry)})
+    blockers=[]
+    for entry in result.get('conversion_blockers',[]):
+        item={'kind':'UNVERIFIED_SOURCE_OBLIGATION','message':'Source behavior remains unverified; inspect its exact private local evidence.',
+              'evidence_sha256':_diagnostic_hash(entry)}
+        if isinstance(entry.get('path'),str):item['source_reference_sha256']=_diagnostic_hash(entry['path'])
+        if isinstance(entry.get('source_hash'),str) and re.fullmatch('[0-9a-f]{64}',entry['source_hash']):item['source_hash']=entry['source_hash']
+        lines=entry.get('lines',[])
+        if isinstance(lines,list) and lines and all(type(line) is int and line>0 for line in lines):
+            item.update(start_line=min(lines),end_line=max(lines),line_count=len(lines))
+        blockers.append(item)
+    out={'status':result.get('status') if result.get('status') in statuses else 'BLOCKED',
+         'conversion_status':result.get('conversion_status') if result.get('conversion_status') in statuses else 'UNVERIFIED',
+         'network_requests':0,'checks':checks,'check_count':len(checks),
+         'conversion_blockers':blockers,'conversion_blocker_count':len(blockers),
+         'scope':'Offline local diagnostics only; no conversion, connectivity, native parity or privacy approval is certified.'}
+    if isinstance(result.get('input'),dict):
+        out['input']={key:value for key,value in result['input'].items() if key in {'files','bytes'} and type(value) is int and value>=0}
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', '--root', default=str(Path.cwd()))
@@ -398,6 +463,7 @@ def main(argv=None):
     except (ValidationError, OSError, UnicodeError) as exc:
         result = {'status':'BLOCKED', 'conversion_status':'UNVERIFIED', 'checks':[{'id':'preflight', 'status':'BLOCKED',
                   'message':str(exc), 'action':'Correct the reported local setup error and rerun preflight.'}], 'conversion_blockers':[]}
+    result=cli_projection(result)
     if args.json: print(json.dumps(result, indent=2))
     else:
         print('Setup: ' + result['status'] + '; conversion: ' + result['conversion_status'])

@@ -572,7 +572,7 @@ def screen_target_mappings(code, screen):
     return result
 
 
-def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None):
+def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None, fixture_contract_version=4):
     """Freeze source expectations before actual target comparison.
 
     Distinctness per input field uses that field's executed value. The layout
@@ -581,20 +581,32 @@ def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None):
     """
     if checkpoint: checkpoint()
     validate_screen(screen)
+    require(type(fixture_contract_version) is int and fixture_contract_version in (4,5), 'Unsupported screen fixture contract version')
+    if fixture_contract_version == 5:
+        require(type(minimum) is int and minimum == 64, 'V5 screen fixtures require a base floor of 64')
+        require(type(budget) is int and minimum <= budget <= 4096, 'V5 screen case budget must be 64..4096')
     require(type(seed) is int and 0 <= seed < 2 ** 63, 'Screen seed must be an unsigned 63-bit integer')
     require(type(minimum) is int and minimum >= 20 and type(budget) is int and minimum <= budget <= 10000, 'Screen fixtures require at least 20 distinct valid states within the case budget')
     inputs = [field for field in screen['fields'] if field['editable']]
-    rng = random.Random(seed); records = []; seen = set(); alphabet = ''.join(chr(i) for i in range(32, 127))
+    rng = random.Random(seed); records = []; seen = set(); required_boundaries = set(); alphabet = ''.join(chr(i) for i in range(32, 127))
     def add(values, randomized, label):
         if checkpoint: checkpoint()
         key = sha(encode(values))
+        if fixture_contract_version == 5 and label in ('source_defaults', 'character_boundary', 'source_field_boundary'):
+            required_boundaries.add(key)
         if key in seen: return
+        if fixture_contract_version == 5 and len(records) >= budget: return
         seen.add(key); records.append({'id': 'SCREEN_CASE_' + str(len(records) + 1).zfill(4), 'values': values,
                                       'randomized': randomized, 'kind': label, 'expected': screen_reference(screen, values)})
     defaults = {field['id']: field['initial'] for field in inputs}
     add(defaults, False, 'source_defaults')
     for boundary in (' ', '0', '9', 'A', '~'):
         add({field['id']: boundary * field['width'] for field in inputs}, False, 'character_boundary')
+    if fixture_contract_version == 5:
+        for field in inputs:
+            for value in (' ' * field['width'], '0' * field['width'], '9' * field['width'],
+                          'A'.ljust(field['width']), 'A'.rjust(field['width']), '~' * field['width']):
+                add({**defaults, field['id']: value}, False, 'source_field_boundary')
     for _ in range(minimum * 8 if inputs else 0):
         if len(records) >= budget: break
         add({field['id']: ''.join(rng.choice(alphabet) for _ in range(field['width'])) for field in inputs}, True, 'runtime_randomized')
@@ -604,6 +616,14 @@ def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None):
     for field in inputs:
         for value in (None, 1, True, '', 'A' * (field['width'] + 1), '\n' * field['width'], 'é' * field['width']):
             values = dict(defaults); values[field['id']] = value; negatives.append(values)
+    if fixture_contract_version == 5:
+        for field in inputs:
+            negatives.append({name: value for name, value in defaults.items() if name != field['id']})
+            for value in (0.0, [], {}):
+                negatives.append({**defaults, field['id']: value})
+        for field in screen['fields']:
+            if not field['editable']: negatives.append({**defaults, field['id']: field['initial']})
+        negatives = list({sha(encode(values)): values for values in negatives}.values())
     for values in negatives:
         if checkpoint: checkpoint()
         if len(records) >= budget: break
@@ -614,18 +634,22 @@ def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None):
     constant_fields = {field['id']: {'distinct_source_display_values': 1,
                        'randomized_input_context_witnesses': layout_count,
                        'source_value_hash': sha(field['initial']),
-                       'basis': 'One constant INITIAL display value compared across distinct valid input contexts; this is not twenty distinct display values.'}
+                       'basis': f'One constant INITIAL display value compared across distinct valid input contexts; this is not {minimum} distinct display values.' if fixture_contract_version==5 else 'One constant INITIAL display value compared across distinct valid input contexts; this is not twenty distinct display values.'}
                        for field in screen['fields'] if not field['editable']}
     gaps = [{'kind': 'screen_state_deficit', 'field': name, 'required': minimum, 'observed': count,
              'reason': 'Distinct randomized source-valid states are below the required minimum; duplicates and unrelated-field padding do not count.'}
             for name, count in counts.items() if count < minimum]
+    if fixture_contract_version == 5 and required_boundaries - seen:
+        gaps.append({'kind': 'screen_boundary_budget_deficit', 'required': len(required_boundaries),
+                     'observed': len(required_boundaries & seen), 'record_hashes': sorted(required_boundaries - seen),
+                     'reason': 'The budget omitted mandatory source-valid field boundary states; no layout verification credit.'})
     if len(records)-len(valid)<len(negatives):
         gaps.append({'kind':'screen_negative_budget_deficit','required':len(negatives),'observed':len(records)-len(valid),
                      'reason':'The case budget omitted mandatory malformed target requests; each supported field input guard needs its own negative witnesses.'})
     if layout_count < minimum:
         gaps.append({'kind': 'screen_layout_state_deficit', 'required': minimum, 'observed': layout_count,
-                     'reason': 'Static-only layouts have one valid input state; they do not receive fabricated twenty-state validation credit.' if not inputs else 'Randomized complete layout records are below the required minimum.'})
-    return {'schema_version': 1, 'profile': PROFILE, 'screen_id': screen['id'], 'source_hash': screen['source_hash'],
+                     'reason': (f'Static-only layouts have one valid input state; they do not receive fabricated {minimum}-state validation credit.' if fixture_contract_version==5 else 'Static-only layouts have one valid input state; they do not receive fabricated twenty-state validation credit.') if not inputs else 'Randomized complete layout records are below the required minimum.'})
+    result = {'schema_version': 1, 'profile': PROFILE, 'screen_id': screen['id'], 'source_hash': screen['source_hash'],
             'target_hash': sha(emit_screen(screen)), 'contract_hash': sha(encode(screen)), 'seed': seed,
             'minimum': minimum, 'budget': budget, 'cases': records,
             'coverage': {'complete': not gaps, 'fields': counts, 'constant_fields': constant_fields,
@@ -634,10 +658,14 @@ def plan_screen_cases(screen, seed, minimum=20, budget=4096, checkpoint=None):
                          'distinctness_basis': 'SOURCE_FIELD_VALUE_AT_EXECUTION_AND_COMPLETE_LAYOUT_RECORDS',
                          'linked_map_witness': {'mapset': screen['mapset'], 'map': screen['map'], 'source_path': screen['source_path'], 'source_hash': screen['source_hash']}},
             'evidence_basis': 'SOURCE_DERIVED_EXPECTED', 'observed_mainframe_parity': False}
+    if fixture_contract_version == 5:
+        result['fixture_contract_version'] = 5
+        result['coverage']['qualification'] = '64_SOURCE_VALID_FIELD_AND_LAYOUT_STATES_PLUS_SOURCE_BOUNDARIES_AND_DISTINCT_INVALID_REQUESTS'
+    return result
 
 
 def verify_screen(screen, code, suite, checkpoint=None):
-    require(encode(suite) == encode(plan_screen_cases(screen, suite['seed'], suite['minimum'], suite['budget'], checkpoint=checkpoint)), 'Frozen screen source expectations differ from their contract')
+    require(encode(suite) == encode(plan_screen_cases(screen, suite['seed'], suite['minimum'], suite['budget'], checkpoint=checkpoint, fixture_contract_version=suite.get('fixture_contract_version',4))), 'Frozen screen source expectations differ from their contract')
     require(code == emit_screen(screen) and sha(code) == suite['target_hash'], 'Screen target differs from its frozen generated version')
     run = prepare_screen(code); actual = []; differences = []
     for case in suite['cases']:
@@ -661,7 +689,7 @@ def adversarial_screen(screen, code, suite, checkpoint=None):
     """
     if checkpoint: checkpoint()
     require(code == emit_screen(screen), 'Screen adversarial review requires its frozen target')
-    require(encode(suite) == encode(plan_screen_cases(screen, suite['seed'], suite['minimum'], suite['budget'], checkpoint=checkpoint)), 'Screen adversarial expectations differ from source')
+    require(encode(suite) == encode(plan_screen_cases(screen, suite['seed'], suite['minimum'], suite['budget'], checkpoint=checkpoint, fixture_contract_version=suite.get('fixture_contract_version',4))), 'Screen adversarial expectations differ from source')
     lines = code.splitlines(); field_lines = {}
     for line in lines:
         if 'fields.append(' in line:

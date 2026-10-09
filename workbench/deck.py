@@ -21,10 +21,10 @@ def component_slide(prs,process_id):
     slide.background.fill.solid();slide.background.fill.fore_color.rgb=RGBColor(255,255,255)
     label(slide,'One process · one evidence trail',.6,.35,12.1,.7,27,True)
     label(slide,'Process '+process_id+' · source access remains read-only',.6,1.1,12.1,.5,15)
-    nodes=[('Mainframe + Db2','COBOL · JCL · BMS\nDDL · exported records'),
-           ('Copilot retrieves','Zowe CLI source\nApproved Db2 MCP'),
+    nodes=[('Mainframe + Db2','COBOL · JCL · BMS\nDDL · private records'),
+           ('Claude retrieves','Zowe CLI source\nApproved Db2 MCP'),
            ('Process folder','Frozen source + lineage\nSaved requirements Markdown'),
-           ('Claude develops','Local analysis + code\nTests + independent review'),
+           ('Claude develops','Approved safe context\nLocal tests + review'),
            ('Coordinator verifies','One SME return\nImmutable tests + report gates'),
            ('Target + report','Python / SQLite candidate\nSource comparison + specific gaps')]
     positions=[(.6,2),(4.6,2),(8.6,2),(8.6,4.1),(4.6,4.1),(.6,4.1)]
@@ -68,15 +68,15 @@ def framework_deck(path):
     page('The analyst job aid',[
         ('1 · Save setup','Enter nonsecret MCP and Zowe choices. Save creates the workspace instructions and shows Add process.'),
         ('2 · Define process','Provide the ordered process Markdown. No exports yet starts a specific retrieval checkpoint.'),
-        ('3 · Copilot retrieves','Copy the exact prompt; Copilot writes source and Db2 observations into that request inbox. Continue validates it.'),
-        ('4 · Scope + Claude','Save default Yes or explicit No selections. Copy the local analysis, development and test prompt to Claude.'),
+        ('3 · Claude retrieves','Use approved Zowe and Db2 MCP; evidence goes into the exact private inbox. Raw records stay local; Continue validates returns.'),
+        ('4 · Scope + Claude','Save Yes/No requirements locally. Claude uses opaque scope references and approved safe context to build and test.'),
         ('5 · SME + results','SME opens one local review file, answers and Saves a returned file. Import with their name; inspect gaps and PPT.')],
         'Missing identities and unsupported semantics stop at named gates. The single human review cannot be supplied by an agent.')
     page('Why the factory matters',[
         ('Explain the process','One process folder preserves jobs, programs, screens, dependencies, source and current requirements.'),
         ('Simplify with evidence','Consolidate implementations only when each original rule maps to verified target behavior.'),
         ('Report honest progress','Original, selected No, verified and unverified rules remain separate. LOC reduction is a size metric.'),
-        ('Plan remaining work','Measure development, validation, waiting and actual Copilot credits; forecast only from comparable completed pilots.'),
+        ('Plan remaining work','Measure development, validation, waiting and actual provider credits; forecast only from comparable completed pilots.'),
         ('Support decisions','Executives get a one-slide component view, legacy/target metrics, precise gaps and the next action.')],
         'Real application conversion, live access and observed mainframe parity are not certified by this framework briefing.')
     page('A stable source boundary, replaceable target',[

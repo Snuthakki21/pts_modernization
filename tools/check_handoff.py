@@ -11,7 +11,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = {'TECHNICAL_REFERENCE.md', 'executive-report.html', 'evidence.json'}
-ENTRYPOINTS = ('START_HERE.md', 'AGENTS.md', 'CLAUDE.md', '.github/copilot-instructions.md', 'prompts/START_MODERNIZATION.md', 'knowledge/README.md')
+ENTRYPOINTS = ('START_HERE.md', 'AGENTS.md', 'CLAUDE.md', '.github/copilot-instructions.md', 'prompts/START_MODERNIZATION.md', 'prompts/CONTEXT.md', 'examples/process-specific.md', 'knowledge/README.md')
 
 
 def check_operator_reference(root=ROOT):
@@ -129,7 +129,8 @@ def check(root=ROOT):
             if tag == 'a':
                 self.links.extend(value for key, value in attrs if key == 'href' and value)
     skills=tuple(p.relative_to(root).as_posix() for p in (root/'.claude/skills').glob('*/SKILL.md'))
-    for name in (*skills,*ENTRYPOINTS, 'docs/TECHNICAL_REFERENCE.md', 'docs/executive-report.html'):
+    agents=tuple(p.relative_to(root).as_posix() for p in (root/'.claude/agents').glob('*.md'))
+    for name in (*agents,*skills,*ENTRYPOINTS, 'docs/TECHNICAL_REFERENCE.md', 'docs/executive-report.html'):
         path = root / name
         if not path.is_file() or path_is_link(path):
             issues.append(name + ': required handoff file is missing or unsafe'); continue

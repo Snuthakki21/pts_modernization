@@ -9,11 +9,11 @@ operating, implementation and extension reference. Update it in place.
 
 After initial setup: provide the process manifest and complete Endeavor export,
 click Start, save the selected requirements, return the one authentic SME checklist,
-then receive one primary executive report. GitHub Copilot in VS Code only
-retrieves source and metadata through already approved MCP connections. Claude
-Code, including its approved VS Code extension, reads approved local files and
-owns analysis, development, tests and review with no MCP servers. No model
-endpoint/token is required by the workbench. Local analysis, supported Python
+then receive one primary executive report. Claude Code, including its approved
+VS Code extension, owns read-only retrieval, safe local analysis, development,
+tests and review. Source/dataset metadata uses Zowe CLI; Db2 metadata uses approved
+typed MCP. Copilot is not required. The Workbench does not call a model API to
+perform this agent workflow. Local analysis, supported Python
 conversion, runtime-randomized synthetic generation with frozen replay seeds,
 comparison, adversarial mutation checks, knowledge updates
 and the six-slide management PowerPoint run automatically. Blockers stay visible.
@@ -24,9 +24,9 @@ Local-file agent intake maps job-led transitive object lineage first. Missing,
 ambiguous, dynamic or unsupported bindings stop at `WAITING_DISCOVERY`, before
 conversion or SME questions. The retained export is indexed in full; unrelated
 members remain explicitly outside the selected closure. Missing objects become
-request-bound Copilot retrievals; the local Coordinator validates returned files
-and preserves immutable accepted evidence before conversion. Claude does not
-call Zowe, Db2 or other remote/MCP connectors. Closure COMPLETE describes
+request-bound Claude retrievals; the local Coordinator validates returned files
+and preserves immutable accepted evidence before conversion. Approved read-only
+Zowe/Db2 access is distinct from local conversion and never permits source writes. Closure COMPLETE describes
 the bounded static graph, not all runtime paths or the entire estate.
 `WAITING_COPILOT` remains the historical ledger key for frozen agent analysis
 and is presented as waiting for Claude analysis in the active workflow. Claude
@@ -40,6 +40,50 @@ Read-only Zowe/Db2 discovery does not require prelisting schemas or tables.
 No source-system writes, mainframe execution or synthetic uploads are permitted.
 Do not use an agent's answer as SME approval. Source-derived comparisons are
 not observed mainframe results. No claim of perfect software is supported.
+
+### Privacy and model-visible evidence
+
+Raw customer/dataset records, including SSNs, stay in protected local storage
+inside the approved network. They must never enter LLM prompts, tool responses,
+model APIs, screenshots/uploads or diagnostics. Actual source is protected by
+default because comments, literals and control cards can contain private values.
+Claude reads metadata and explicitly approved sanitized source views; missing
+safe semantic context remains a named qualification gate. Synthetic data or
+explicitly approved masked examples are the only model-visible row examples.
+A simple identifier regex is not comprehensive privacy assurance.
+
+New Claude tasks declare `source_identity_mode=OPAQUE_HASH_REFERENCES`.
+`SOURCE_<hash>`, `PROGRAM_<hash>` and `RULE_<hash>` identify task-bound evidence;
+they are not original filenames, program names or rule IDs. Return the exact
+references from the current task. The Coordinator resolves them privately against
+frozen source analysis; never guess a name or inspect protected artifacts to
+reverse a reference. Older tasks require the current safe-task refresh and retain
+their immutable bytes. Approved semantic views remain a separate prerequisite.
+
+Approved Db2 MCP exposes schema/table/DDL metadata without remarks/default values
+that may contain customer literals. `db2_export_snapshot_to_inbox(process_id,
+request_id, need_id)` validates the exact pending request and writes
+`inbox/files/db2-snapshots/NEED_ID.private-rows.json` using server-owned workspace
+paths; its response contains path/hash/count/scope facts, never row values.
+The model receives only a provenance hash reference. Once every snapshot exists
+in a snapshot-only request, the server writes its private `response.json` and
+returns `response_ready: true`; use Continue without opening the private manifest.
+Mixed source/snapshot requests retain `NEEDS_LOCAL_PROTECTED_RECEIPT_BINDING`;
+never invent protected provenance or manually expose private bindings to the model.
+Explicit real key values are forbidden in Claude requests; supported full-table
+requests use empty keys. The deterministic local Coordinator consumes protected
+exports for comparisons without reading them through the LLM. Failed/capped,
+ambiguous or inconsistent snapshots stay precise gaps, not parity credit.
+
+Authorized operators may inspect registered local records in the localhost
+Database view inside the approved network. That does not authorize model access,
+external uploads or screenshots of real records. Project permission denies are
+additional controls, not an OS sandbox: native Windows has no Claude OS sandbox,
+and a shell/interpreter can perform indirect I/O. Enforce read-only accounts,
+server-side typed methods, network policy and organization-approved model channels.
+No local config certifies enterprise approval. See
+[official permissions](https://code.claude.com/docs/en/permissions) and
+[Windows setup](https://code.claude.com/docs/en/setup).
 
 ### Legacy behavior fidelity
 
@@ -76,10 +120,10 @@ and boundary tests establish only their stated scope, never all potential cases.
 
 ## Workspace setup and credentials
 
-The first UI visit opens one settings form for source folders/upload mode,
-process Markdown and optional exact WEDLX/Tran Repository locations. One Save
-can also prepare the approved Copilot MCP bridge and selected project Zowe
-profiles. The existing Coordinator owns configuration writes under its lock;
+Connector setup starts with text and the shared private .env (see below). The
+first UI visit opens one settings form for source folders/upload mode,
+process Markdown and optional exact WEBELX/Tran Repository locations. One Save
+can also prepare approved Claude Db2 MCP and selected project Zowe profiles. The existing Coordinator owns configuration writes under its lock;
 there is no additional engine, worker or ledger. Existing snapshots and accepted
 evidence remain immutable. New intake uses saved defaults after restart;
 explicit source uploads override the saved folder.
@@ -87,8 +131,9 @@ explicit source uploads override the saved folder.
 `GET /api/setup/workstation` returns settings plus `connection_setup`: selected
 choices, local CLI availability, prepared file paths, commands and remaining
 client actions. CSRF-protected `POST` accepts `settings` and optional
-`connections={copilot:boolean,zowe:{mode,host,port,config_file,schema_file},db2?:{mode,host,port,database,location,driver,certificate_file,mcp_port,row_limit}}`.
-Legacy requests/stored choices without `db2` remain accepted. Zowe modes are
+`connections={claude:boolean,db2_auth:"bearer_env"|"oauth",zowe:{mode,host,port,config_file,schema_file},db2:{mode,host,port,database,location,driver,certificate_file,mcp_port,row_limit}}`.
+Saved connection state is version 2. Version-1 choices are migrated only by an
+explicit Save; reading settings never rewrites historical config. Zowe modes are
 `off`, `existing`, `create` and `import`. Inactive options are null;
 create requires actual host/port and existing settings' two profile aliases.
 Import accepts exact local supplied config/schema paths and preserves bytes;
@@ -110,27 +155,42 @@ connector files beside earlier preferences; Save reconciles those local files
 without altering process evidence. This is configuration preparation, not an
 atomic transaction spanning external clients or their secure stores.
 
-Copilot preparation merges ignored `.vscode/mcp.json`, accepting VS Code JSONC
-comments/trailing commas while preserving other server/input values. Managed
-keys are `workbench-retrieval`, optional `workbench-db2` and
-`workbenchDb2Token`. Existing different bindings are preserved and rejected;
-only unchanged previously managed hashes authorize updates/removal. Shared
-credential-input references are retained. The stdio retrieval server uses the
-current Python executable, repository server path, running loopback origin and
-`--role retrieval`; VS Code starts it without another dependency install.
-Db2 uses the approved endpoint and VS Code password input, never a saved token.
+Optional UI HTTP preparation writes ignored `WORKSPACE/.mcp.json` with one managed
+Db2 server key, `workbench-db2`, when Db2 is selected, an explicit `type:"http"` and actual saved URL.
+Bearer authentication uses `Authorization:"Bearer ${WB_DB2_MCP_TOKEN}"`;
+OAuth for an existing approved remote endpoint omits that header. Tokens never
+enter config. Existing different managed bindings fail closed; only unchanged managed
+hashes authorize updates. Unrelated preexisting server entries are preserved
+in the saved file. The launcher excludes them from its temporary active config;
+using another host/config still requires explicit organization approval. Strict
+config selection alone is not a tool whitelist. The older `.vscode/mcp.json` is historical and untouched.
+No Workbench workflow/retrieval proxy server is configured for Claude.
+The public `examples/claude-mcp.json` is a nonsecret environment-variable template.
+See [official MCP configuration](https://code.claude.com/docs/en/mcp).
 
-Live mainframe source/dataset metadata access uses the typed read-only Zowe CLI;
-Db2 catalog/data retrieval uses negotiated MCP tools. Driver access is confined
-to the approved MCP server, not an alternate Workbench Db2 client. Copilot owns
-approved retrieval; Claude remains local with zero MCP servers.
+`scripts/Start-Claude.ps1 -Workspace WORKSPACE` launches the approved installed
+native client from the repository. It reads the saved workspace `.mcp.json` and
+passes a bounded temporary config containing only managed `workbench-db2` (or none)
+to `--mcp-config` with `--strict-mcp-config`; other saved bindings are not activated.
+The saved file is preserved. A distinct workspace is granted with `--add-dir`.
+Bearer mode securely prompts only for the process environment and restores it on
+exit; OAuth uses the approved remote authentication flow. The launcher does not
+bypass managed policy or project trust. One-time actual `/mcp` approval/login and
+an approved metadata read are separate from preparing a file. The VS Code extension
+shares Claude settings/config, but an external workspace config must actually load
+in that host. See [CLI flags](https://code.claude.com/docs/en/cli-reference) and
+[VS Code configuration](https://code.claude.com/docs/en/vs-code).
+
+Live source/dataset metadata uses typed read-only Zowe CLI; Db2 access uses
+negotiated approved MCP. Driver access is confined to the approved server, never
+an alternate direct Workbench client. Raw data follows the privacy contract above.
 
 Db2 modes are `off`, `existing` and `gateway`. Off clears the selected endpoint;
 existing requires the approved HTTP(S) MCP endpoint and creates no driver config.
 Gateway requires actual host, Db2 service port, database, DDF location, registered
 ODBC driver, loopback MCP port and row limit (1..500000); an optional local CA
 file supplies exact validated PEM/DER bytes. Save derives
-`http://127.0.0.1:MCP_PORT/mcp`, requires Copilot preparation and refuses the
+`http://127.0.0.1:MCP_PORT/mcp`, requires Claude preparation and refuses the
 Workbench's current port. The Db2 service port and MCP port are independent.
 The pure `db2_setup.prepare_db2` helper is shared with existing CLI setup.
 Config, CA and imported CA-source bytes join the same pre-planning baselines,
@@ -146,12 +206,13 @@ with `--transport http --config CONFIG --port MCP_PORT --interactive`. Interacti
 startup requires a real local terminal, validates nonsecret fields, CA bytes and
 registered driver before credentials, and restores temporary environment changes
 when it exits. Password/token prompts do not echo or enter the UI/ledger. The
-same FastMCP server retains typed SELECT-only tools, loopback binding, bearer
-authentication and host/origin protections. Its search journal uses the selected
-config's directory. No Db2 connection/query occurs during preparation or server
+FastMCP server retains fixed SELECT-only internals, loopback binding, bearer
+authentication and host/origin protections. Only approved metadata/protected-export
+tools are model-visible; raw row/sample/search results are not. Its private journal
+uses the selected config's directory. No Db2 connection/query occurs during preparation or server
 startup. Canonical fixed `.env` and existing `WB_DB2_CONFIG` modes remain supported.
 Python-module presence is distinct from installed native-driver readiness; live
-TLS/auth/read access still needs an approved read through Copilot.
+TLS/auth/read access still needs an approved metadata read through Claude.
 Changed loopback ports or managed bindings require fresh Save.
 
 Zowe preparation reuses `zowe_setup.prepare_profile`/`prepare_import` and the
@@ -161,31 +222,30 @@ Windows uses the native Node argv for an installed npm Zowe package and
 `npm.cmd` for the optional installation command. The published v3 LTS channel
 is a convenience command for an organization-approved installation, not an
 automatic package download or permission to bypass enterprise deployment.
-Missing CLI/runtime, secure credential entry, VS Code review/start and Db2
+Missing CLI/runtime, secure credential entry, Claude trust/start and Db2
 authentication remain explicit actions. No configuration implies successful
 host access; setup makes no network, model or mainframe call.
 
-The default workflow remains Claude local files and Copilot approved retrieval.
-No model token, manifest declaration or reviewer answer is needed for local
-intake readiness. Claude gets zero MCP servers. Copilot receives saved retrieval
-context beside its immutable request; changes never rewrite request hashes or
-frozen prompts. Source validation, connectivity, supported conversion and the
-actual human return remain separate gates. Historical `/api/setup` enum clients
-and `.migration/setup.json` remain supported without driving the active screen.
+The default workflow uses Claude approved retrieval and safe local implementation.
+No Workbench model token, manifest declaration or reviewer answer is needed for
+local intake readiness. Saved retrieval context is appended beside immutable
+requests without changing request hashes. Source privacy, validation, connectivity,
+conversion support and the actual human return remain separate gates. Historical
+`/api/setup` enum clients and `.migration/setup.json` remain supported without
+driving the active screen.
 
 ## What you provide once
 
 | Input | Put it here / action | Why it is needed |
 |---|---|---|
-| Workstation | CPython 3.12, local writable disk, setup script; use the committed UI bundle | Installs locked dependencies and avoids a Node requirement for operators. Native Windows execution still needs a workstation smoke test. |
+| Workstation | CPython 3.12, local writable disk, setup script; use the committed UI bundle | Installs locked dependencies and avoids a Node requirement for operators. Windows 11 desktop/approved-host execution still needs actual acceptance. |
 | Application export | Source folder chosen in Workspace setup, `WORKSPACE/Endeavor/`, or files uploaded at intake | Complete, readable UTF-8 source export with original relative member names. Include called programs, COPY dependencies, JCL, PROCs, INCLUDEs, control cards, BMS and SQL/DDL where applicable. A manifest alone cannot replace missing source. |
 | Initial process | Markdown following `examples/process-input.md`, or the UI Excel template | Ordered jobs, steps, program/utility names, input/output groups and conditions. A new source version uses a new process ID. |
 | Custom knowledge | `WORKSPACE/knowledge/application-knowledge.json`; start with `examples/application-knowledge.json` | Application/vendor utilities, aliases, semantics, evidence, record layouts, control-card behavior and known dependencies. The standard catalog is visible in `knowledge/mainframe-catalog.json`. |
 | Background articles | `WORKSPACE/knowledge/inbox/`, up to 20 Markdown documents, 1 MiB combined | Devin/application notes. Treated as unverified evidence, never executable instructions or approval. |
-| Zowe, when used | Authenticated CLI profile; `WB_ZOWE_PROFILE` | Account-visible read-only catalog/source operations. Profile presence is not successful authentication or complete discovery. |
-| Db2, when used | Authenticated typed MCP URL/token; IBM ODBC driver and `pyodbc` for the bundled gateway | Schema/table descriptions without a prior schema allowlist. Discovery and sample access are distinct; no arbitrary SQL or automatic row sampling. |
-| GitHub Copilot | Normal VS Code access and already approved MCP connections; optional `examples/mcp.json` selects `--role retrieval` | Read-only discovery and file/metadata retrieval into exact request-bound local inboxes. No coding, analysis, tests, review or conversion submission. Credits Unknown without a receipt. |
-| Claude Code | Organization-approved VS Code extension or other approved host; local framework and approved exports | Local analysis, rules, development, testing and review. No MCP servers. `examples/claude-mcp.json` is empty; no setup or connection required. Local runner commands preserve the single Coordinator. |
+| Zowe, when used | Private shared .env and clean secure CLI profiles | Account-visible read-only catalog/source operations. Profile presence is not successful authentication or complete discovery. |
+| Db2, when used | Local stdio MCP from private .env; approved IBM driver and `pyodbc` | Schema/table/DDL metadata without a prior schema allowlist. Protected snapshots use local deterministic comparison; no arbitrary SQL or model-visible rows. |
+| Claude Code | Organization-approved native client/VS Code extension, selected private MCP config and safe local evidence | Approved Db2 metadata and read-only Zowe retrieval, analysis, development, tests/review. Initial trust/authentication is explicit; local runner preserves one Coordinator. |
 | Actual SME return | One issued checklist, completed by the real reviewer; import once with attribution | Confirms or corrects interpretations. Unanswered/No/corrected items remain unresolved; no second questionnaire is generated. |
 
 Nonsecret workstation defaults are saved through the UI. Authentication
@@ -197,73 +257,48 @@ commands require stopping the UI first.
 
 ### Connection configuration
 
-Save optional nonsecret retrieval values in Workspace setup. Private credentials
-remain in approved secure tools or the launch shell. Root `.env.example` is not
-auto-loaded; the Db2 server reads only its fixed `tools/dq3g_mcp/.env`.
+Use the text-first .env preparation described below. The optional UI can still
+prepare nonsecret compatibility choices. Credentials remain in the private file
+or approved secure tools. Root `.env.example` is not loaded; helpers select the
+operator’s WORKSPACE/.env explicitly.
 The UI never asks you to paste credentials into a form or source file.
 
 | Connection | Variables / prerequisite | Actual implemented behavior |
 |---|---|---|
-| Zowe | `WB_ZOWE_PROFILE`, optional paired `WB_ZOWE_ZOSMF_PROFILE`; actual service access | `tools/setup_zowe.py --interactive` prepares secure declarations; exact config/schema import is supported. Typed bounded lists/reads resolve missing sources. TPX aliases cannot substitute for z/OSMF/API host/profile mappings. |
-| Db2 MCP | `WB_DB2_MCP_URL`, `WB_DB2_MCP_TOKEN` | Schema/table/describe tools, bounded sampling, explicit `db2_read_table_rows`, and resumable literal content-search tools. Supported revisions 2025-06-18 / 2025-03-26. Every account-visible schema/table is eligible; no allowlist or caller-supplied SQL. Automatic lineage does not export business rows. |
-| Local Db2 FastMCP | Fixed `tools/dq3g_mcp/.env`, IBM ODBC driver and `pyodbc`; HTTP additionally needs `WB_DB2_MCP_TOKEN` | Python FastMCP provides stdio or authenticated loopback HTTP. TLS and approved PEM/DER certificate required. Query cap defaults to 500,000 and cannot exceed it; pages remain bounded. Private credentials never enter tool output. Existing JSON/ODBC modes remain explicit compatibility options. |
-| GitHub Copilot | Already approved workspace MCP connections; optional `examples/mcp.json`, `--role retrieval`, existing local UI origin | The workbench retrieval profile exposes only `workbench_retrieval_task(process_id)`. Copilot writes requested files/response using approved file tools. No code, tests, analysis submission or second Coordinator. |
-| Claude Code | Approved local files, configured Python; empty `examples/claude-mcp.json` | No MCP or remote connector connection. Local `runner agent` commands use the existing Coordinator or its filesystem command queue; this is not an MCP/HTTP proxy. |
+| Zowe | Shared .env and clean secure profiles; legacy WB profile aliases remain optional | `tools/setup_zowe.py --interactive` prepares secure declarations; exact config/schema import is supported. Typed bounded lists/reads resolve missing sources. TPX aliases cannot substitute for z/OSMF/API host/profile mappings. |
+| Db2 MCP | Recommended managed local stdio binding needs no token; existing HTTP/OAuth are compatibility choices | Metadata list/describe tools and request-bound protected snapshot export; no model-visible row read/sample/content-search or caller SQL. Revisions 2025-06-18 / 2025-03-26 are supported. |
+| Local Db2 FastMCP | Explicit `WORKSPACE/.env`, IBM ODBC driver and `pyodbc`; HTTP additionally needs `WB_DB2_MCP_TOKEN` | Python FastMCP provides stdio or authenticated loopback HTTP. TLS and approved PEM/DER certificate required. Query cap defaults to 500,000 and cannot exceed it; pages remain bounded. Private credentials never enter tool output. Existing JSON/ODBC modes remain explicit compatibility options. |
+| Claude Code | Approved MCP config, read-only Zowe profile, safe local views and configured Python | Retrieval returns use exact inboxes; local `runner agent` uses the existing Coordinator or its filesystem command queue. No workflow-proxy MCP or second writer. |
 
 
-Db2 `.env` recognizes exactly `DB2_LOCATION_NAME`, `DB2_HOSTNAME`, `DB2_PORT`,
-`DB2_DATABASE`, `DB2_USERNAME`, `DB2_PASSWORD`, `DB2_SSL_CONNECTION`,
-`DB2_SSL_CERT_LOCATION`, and `DB2_QUERY_ROW_LIMIT`. The matching launch-shell
-values override file fields even when empty. Parsing never executes or expands
-values. Keep the username commented in the file and supply it privately in the
-shell. Certificate paths stay below the `.env` directory; symlinks/traversal and
-SSL false are rejected. Blank row limit means 500,000; permitted values are
-1–500,000. Settings status is separate from successful authentication.
-Explicit legacy `WB_DB2_CONFIG` takes precedence, then an explicit
-`WB_DB2_ODBC_CONNECTION`, otherwise the fixed `.env`. The JSON mode retains
-`WB_DB2_USER`/`WB_DB2_PASSWORD` and `certificates/DB2-CA.cert`; external ODBC mode
-retains externally managed TLS responsibility. No environment-file selector is
-required. All modes enforce the query budget and read-only ODBC access mode.
+The shared nineteen-field `.env` and text-first connection contract are documented
+under **Text-first workspace connections and Windows launch** below and in START_HERE. Credentials belong
+only in that private local file or secure prompts; setup exposes path/status only.
+The optional `DB2_QUERY_ROW_LIMIT` is blank/default 500,000 or 1–500,000.
+`DB2_SSL_CERT_LOCATION` is a compatibility alias; differing values alongside
+`DB2_SSL_SERVER_CERTIFICATE` are rejected. Matching launch-shell `DB2_*` fields
+override file fields even when empty; no contents are executed or expanded.
 
-A search begins with `db2_search_start(query)` and advances via
-`db2_search_continue(search_id, row_budget=1000)`. It follows `SYSIBM.LOCATIONS`
-recursively through configured three-part DDF names, deduplicates location/object
-identities, enumerates `SYSIBM.SYSTABLES` without schema/type allowlists, then
-attempts a fixed SELECT against every discovered object. Table descriptions,
-including empty-table column names, and all supported cell contents are searched
-as literal case-insensitive substrings. Numeric/date values use driver text
-representations and binary values use hex; unsupported types are explicit gaps.
-No procedures, jobs, bind operations, arbitrary SQL, network scans or source
-writes are exposed. A configured read-only Db2 account remains required.
+An explicit `--env-file` controls connection fields ahead of stale legacy
+`WB_DB2_CONFIG`/`WB_DB2_ODBC_CONNECTION`. With explicit `--config` it retains that
+selected driver and stricter row ceiling. Without `--env-file`, historical routes
+keep their original order: `WB_DB2_CONFIG`, external ODBC, then fixed
+`tools/dq3g_mcp/.env`. Those are compatibility modes, not instructions for new
+workspace setup. All modes retain bounded budgets and read-only ODBC access.
 
-`db2_search_status` returns counts and `db2_search_results` pages matches or
-per-object outcomes (`kind="matches"` or `"objects"`; at most 100 records,
-`after=next_after`). Match excerpts are bounded and include location/schema/
-table/column and cursor row ordinal. An ordinal is not a stable business key.
-`db2_search_cancel` closes live cursors and retains results. Calls process at
-most 1,000 fetched rows or roughly two seconds of work between driver calls;
-ODBC login/query timeouts are 10/15 seconds. A row may be materialized by the
-driver before its 1 MiB application byte check; this does not certify native
-memory use at every database type/size. Query caps apply across continuations;
-even an exact cap remains PARTIAL without proof of cursor exhaustion.
+Legacy content-search internals (`db2_search_*`, row sampling and direct row reads)
+can expose customer values and are not Claude-visible tools. Do not call them
+through another wrapper or configure an alternate server to evade the privacy
+boundary. Existing private journals remain compatibility data; they do not replace
+frozen process evidence. New model-facing discovery uses schema/table/DDL metadata
+only. Protected snapshots use the exact request-bound export described above.
 
-Private search state/results live under `.migration/db2-search/`, with one
-server writer, eight active searches, a 256 MiB SQLite page cap and reserve.
-Storage exhaustion records partial coverage and closes remaining search cursors.
-SQLite transaction journals may temporarily require additional disk. Live
-cursors expire after five idle minutes. Server restart/expiry cannot restore an
-unordered table cursor: that object stays partial, while continuation visits
-remaining objects. Use a new search to retry interrupted objects. These local
-search records never replace frozen process evidence. The UI and CLI keep the
-existing Coordinator/ledger and one-packet gates.
-
-Coverage is account-visible and uses uncommitted reads, not a consistent
-snapshot. Denied objects, unreachable/unadvertised locations, malformed catalogs,
-row/storage/byte limits, and unsupported driver values cannot establish absence.
-COMPLETE describes only an exhausted traversal of available catalogs/selectable
-objects; it is not complete enterprise inventory or observed mainframe parity.
-`discover_catalog(..., continuation=...)` also accepts the previous catalog
-cursor so callers can continue beyond a single metadata page budget.
+Database coverage is account-visible and its uncommitted reads are not consistent
+snapshots. Denied objects, unreachable/unadvertised locations, malformed catalogs,
+row/storage/byte limits and unsupported driver values stay exact gaps. COMPLETE
+means only the bounded available metadata/export traversal finished; it does not
+prove whole-estate inventory, absence of data or observed native parity.
+`discover_catalog(..., continuation=...)` supports bounded metadata continuation.
 
 Zowe's “no secure properties found” means the selected configuration has no
 secure declarations. The guided helper adds field names `user`/`password` to
@@ -277,7 +312,7 @@ hint, `SCHEDD` is the development CA7 hint, CICS is in UAT with the exact locati
 unconfirmed, and `SYSPL` is a JCL search hint. These facts do not establish an
 API endpoint, dataset library, permission, CICS map or CA7 export facility.
 Provide actual Zowe-visible libraries/services or original exported definitions.
-WEDLX receives available files from Tran Repository/source systems; configure
+WEBELX receives available files from Tran Repository/source systems; configure
 exact local/mounted folder bindings in `knowledge/input-locations.json` using
 `examples/input-locations.json`. Only an observed exact file binding resolves
 availability. Layout, cutoff/completeness and business readiness remain unknown.
@@ -310,15 +345,29 @@ source uploads are separately 32 MiB combined, HTTP/JSON documents 128 MiB,
 workbooks 8 MiB. These are protective ceilings, not memory/stress certification;
 per-line analysis/model expansion can reach the state or memory bound earlier.
 The 822-file export and 700,570-byte source regression retain every input byte.
-No dependent file is removed to fit the old POC limit.
+No dependent file is removed to fit the old POC limit. Original source is a
+protected deterministic-local input; model access requires an approved sanitized
+view and never includes source literals/comments assumed safe by suffix.
 SME v2 compacts technical blockers by program/type while preserving all raw gaps
 in Context/coverage; business rules remain individual. At most 2,000 mandatory
 review items; no silent truncation. Historical packet v1 is replayed unchanged.
-New processes use fixture contract 4: a 4,096-case budget/program (up to 10,000),
-at least 20 distinct randomized valid source-predicate input states per supported
-logic item, and a runtime-generated unsigned 63-bit seed pinned at Start. Resume
+New processes use fixture contract 5: 64 distinct randomized valid source states
+per applicable logic/layout/step; source-risk logic requires 128,
+within the pinned 4,096-case maximum per program/screen/job. Positive, negative, boundary, linked-file
+and adversarial/mutation obligations are required separately from counts. A
+runtime-generated unsigned 63-bit seed is pinned at Start. Resume
 replays that seed. Historical fixture contracts and minima remain unchanged. There are 192 atomic condition
 comparisons and JSON depth 256. Coverage XLSX splits sheets at Excel's row limit.
+V5 risk triggers are `compound_predicate`, `cross_layout_compared_key` and
+`prior_effect_changes_predicate_input`; these source IR facts set the affected
+rule's minimum to 128. Count predicate states at execution after prior effects,
+not arbitrary input padding. Positive/negative means every reachable source decision
+outcome has a witness, not 64 True plus 64 False states. Malformed requests and
+mutation witnesses are distinct obligations. Layout/terminal units, BMS editable
+input contexts and ordered job steps require 64. Protected BMS constants retain
+one display value across contexts. Native Db2/dataset/scheduler/CICS controller
+parity remains unverified without its own qualified adapter/evidence.
+
 Limits reject excess rather than silently truncating it. Required witnesses
 that cannot fit the fixture budget remain coverage gaps. Do not omit dependent
 files to fit a budget. The separate 200,000/600,000-scenario engineering campaigns do
@@ -331,9 +380,9 @@ not change these process limits.
 | Source | Complete original line-order accounting, hashes, supported copybook field layouts, program inventory | Flat IF/ELSE/END-IF; comparisons and AND/OR; literal MOVE, CONTINUE, GOBACK/STOP RUN. No nested IF, PERFORM, READ/WRITE, arithmetic, SQL, CICS, REDEFINES, OCCURS, signed/packed decimals or continuation. |
 | Layouts | Unsigned PIC 9 and fixed-width PIC X, simple named 01/05 declarations, LINKAGE groups named once each in PROCEDURE USING, group-correlated fixtures | JSON record transport; not EBCDIC, packed binary, COMP-3, VSAM or native datasets. Standalone level-77 items, FILLER, WORKING-STORAGE/FILE lifetime and initialization require adapters and remain blocked. |
 | Conversion | Audited generated Python for fully supported programs, immutable shared versions | Source-order rule behavior is preserved; syntactic line-for-line Python correspondence is not claimed. Unsupported programs receive no full executable translation. No code is silently retired as mainframe-only. |
-| Jobs | Named method per job, ordered steps and RC comparisons; actual record-adapter job comparison | Same field-name sets required between programs. New runs require at least 20 distinct randomized executed states per step, with full source/target comparisons. Never-executed steps and budget/state deficits remain gaps; historical single baselines remain replayable. DSN reads/writes, external scheduler, procedure expansion and restart semantics require adapters. |
-| Agent handoff | Copilot retrieves requested source/metadata; Claude analyzes approved local files, implements and tests through the existing Coordinator | Missing/ambiguous returns remain gates. Retrieval is not validation, model claims are not test receipts, and no Claude MCP connection is allowed. Legacy source-free development evidence remains historical. |
-| Synthetic data | Source-derived boundaries, invalid layouts, sequential effects, distinct logic states and linked-group match/mismatch witnesses | New contracts require at least 20 distinct valid states per supported logic item, with explicit budget/domain/reachability gaps. Native missing/duplicate/empty file/table behavior needs its own adapter. No exhaustive or observed legacy claim. |
+| Jobs | Named method per job, ordered steps and RC comparisons; actual record-adapter job comparison | Same field-name sets required between programs. New v5 runs require 64 distinct valid source states per executed step, plus positive/negative/boundary obligations and full source/target comparisons. Never-executed steps and budget/state deficits remain gaps; historical single baselines remain replayable. DSN reads/writes, external scheduler, procedure expansion and restart semantics require adapters. |
+| Agent workflow | Claude uses approved read-only Db2 MCP/Zowe retrieval and safe local analysis/tests through the existing Coordinator | Raw source/customer data remain protected; missing safe views/ambiguous returns stay gates. Retrieval is not verification; model claims are not test receipts. Legacy evidence remains historical. |
+| Synthetic data | Source-derived boundaries, invalid layouts, sequential effects, distinct logic states and linked-group match/mismatch witnesses | New v5 contracts require the pinned 64/128 valid-state floor and separate positive/negative/boundary/mutation witnesses, with explicit budget/domain/reachability gaps. Native missing/duplicate/empty file/table behavior needs its own adapter. No exhaustive or observed legacy claim. |
 | Source oracle | Independent source IR interpreter freezes expected results before generated Python execution | Both depend on the parser; parser errors remain a shared risk. No observed mainframe oracle or mainframe execution. |
 | Verification | Full output/trace/RC comparisons, independent source-order job interpretation, per-rule decision/boundary/effect mutation, denied capability checks; new target contracts include directly tested input guards | Historical targets used the separate JSON adapter. No native mainframe malformed-record semantics are claimed. Unit suite and mutation checks do not substitute for actual legacy execution evidence. |
 | SME | One frozen packet / one valid return per process, immutable question identity/Context/Metadata, Yes/No/Not sure, corrections retained | Corrections requiring new semantics remain blockers. A Yes on an unsupported-item description does not make its conversion supported. |
@@ -383,7 +432,7 @@ Coverage has one source-order row per original exported physical line: file/kind
 
 Applicable-line verification includes blocked/unverified in-scope lines in its denominator. Non-executable and out-of-scope lines are separate. Semantic-unit verification deduplicates rule spans. Known-rule verification covers extracted known rules, not all modernization. Empty denominators are unknown, not 100%. Intact frozen intake/source/analysis, human return, reproducible synthetic evidence, target artifacts and adversarial checks gate credit. Source accounting completeness alone is not equivalence.
 
-The UI/CLI use one Coordinator with durable controls, at most three transient stage attempts, one review quota, replay-safe artifacts and atomic final report acceptance. `prompts/START_MODERNIZATION.md` assigns Copilot retrieval and Claude local implementation roles in one workflow. This reference and core placement guards enforce seven process folders, content-addressed shared targets and one structured knowledge index. Watch requires actual reviewer attribution and has a bounded timeout; it never fabricates an answer.
+The UI/CLI use one Coordinator with durable controls, at most three transient stage attempts, one review quota, replay-safe artifacts and atomic final report acceptance. `prompts/START_MODERNIZATION.md` assigns Claude approved retrieval and safe local implementation in one workflow. This reference and core placement guards enforce seven process folders, content-addressed shared targets and one structured knowledge index. Watch requires actual reviewer attribution and has a bounded timeout; it never fabricates an answer.
 
 ## Folder ownership
 
@@ -417,13 +466,22 @@ The public `docs/` directory contains only `TECHNICAL_REFERENCE.md`,
 | `knowledge/mainframe-catalog.json`, `knowledge/README.md` | Versioned standard classifications, utilities, native-semantic checklist and official references. |
 | `knowledge/application-knowledge.json` | Editable private application/vendor utility knowledge, initialized from `examples/application-knowledge.json`; future intakes freeze edits. |
 | `knowledge/records.json`, `knowledge/INDEX.md` | Canonical provenance-bound SME-confirmed interpretations and one compact index; target verification is separate. |
+| `prompts/CONTEXT.md` | Compact repository orientation and ownership routes; no live state or separate execution workflow. |
+| `examples/process-specific.md` | Reusable external process-notes template; copy beside that process's manifest/export, never into frozen input. |
 | `prompts/OPERATOR_GUIDE.json` | Compact checked navigation/FAQ cache with source hashes and relevant spans; never process state, rules, approvals or a second workflow. |
 | `workbench/`, `frontend/`, `tests/`, `tools/`, `scripts/`, `docs/`, `prompts/`, `examples/`, `.github/` | Repository implementation, verification, entrypoints, instructions, synthetic examples and GitHub/Copilot metadata. |
 
 Process IDs are stable, validated identifiers beginning with a letter. Process
 roots may contain only `input`, `analysis`, `review`, `synthetic`, `target`,
 `reports`, `tests`. Root-level process files, miscellaneous process folders,
-path traversal and symlinks are refused. Generated Python/database artifacts
+path traversal and symlinks are refused. Artifact references require one canonical
+slash-separated relative spelling: repeated separators, dot segments and trailing
+slashes cannot create ledger aliases. Windows device-name aliases, including
+superscript COM/LPT numbers and console-device basenames, are rejected before
+source/artifact writes; preserve the named intake blocker rather than silently
+renaming source. See [Microsoft filename rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+for platform naming constraints; cross-platform guard tests are not native Windows 11 execution. Existing noncanonical ledger references remain explicit blockers;
+do not rewrite frozen keys, content or hashes to normalize history. Generated Python/database artifacts
 belong in `target` or `tests`, not analysis/review/input. Input allows only the
 manifest, source snapshot and two designated return paths. Use structured
 coverage records; never create a Markdown file per rule or per source line.
@@ -460,7 +518,7 @@ Do not add another Markdown file in process input.
 | Discovery pagination ends at a limit or data changes mid-scan | Cursors, counts and partial/complete account-visible evidence | Preserve the cursor and timestamps. Current discovery is not a transactional estate snapshot or automatic dependency fetcher. |
 | Source/target/catalog/SME/report bytes changed | Recorded immutable hashes, source/analysis replay, return identity and artifact checks | Restore an intact backup or start a separately identified process from the original evidence. Never recalculate hashes to certify modified history. |
 | Stale knowledge or hostile instructions in source/notes | Data-only bounded catalog; frozen provenance; no executable catalog fields or automatic approval | Review evidence for this source/version. Prior confirmations are interpretations, not permission to execute commands or approve changed rules. |
-| Too few or unrealistic synthetic records | Source-derived mandatory branches/boundaries/matches, deterministic interactions and witness counts | Record missing obligations explicitly. Four sample rows cannot certify 85 rules. New processes use a 4,096-case budget and requires at least 20 distinct valid states per supported logic; unreachable or unsupported obligations stay gaps. A budget is not exhaustive coverage. |
+| Too few or unrealistic synthetic records | Source-derived mandatory branches/boundaries/matches, deterministic interactions and witness counts | Record missing obligations explicitly. Four sample rows cannot certify 85 rules. New v5 processes use the pinned bounded budget and 64/128 logic floor and 64 layout/step floor; unreachable or unsupported obligations stay gaps. A budget is not exhaustive coverage. |
 | Expected results copied from target | Expectations frozen from independent source IR before target execution | Shared parser remains a common-mode risk; SME/source review and mutation checks help but cannot establish observed legacy parity. |
 | Invalid data accepted by exported Python | New target contract embeds input validation; direct target rejection is tested | Distinguish malformed input rejection from business-rule failure. JSON validation is not proof of native malformed EBCDIC-record behavior. |
 | Good tests miss a rule, overwritten effect or incorrect boundary | Per-rule mutation checks and explicit surviving/missing witness gaps | Treat masked or surviving mutations as unresolved; do not invent passing evidence. |
@@ -486,7 +544,7 @@ workbench has its own UI/API. Extend the existing engine incrementally:
 | CICS / BMS to business React / REST | Before/after maps, AID keys, navigation, validation, transaction/session/security behavior, API contracts and executable tests. Count real replacements only. |
 | Broader synthetic generation / diagnosis | Source-derived independent expectations; boundary, invalid, missing-match, sequence and interaction cases; label data-contract, parser/oracle, code and environment faults with evidence. Do not tune data to make the target pass. |
 | Automatic source closure | Read-only cross-library dependency search with provenance, duplicate resolution and complete/partial discovery evidence; no invented search order. |
-| Independent model review | Approved provider, bounded excerpts/budget, structured findings, no authority to change answers or bypass gates; deterministic checks first. |
+| Independent model review | Approved optional provider, bounded metadata hashes/sizes only; raw source and operator prose are never sent. Structured generic suggestions cannot infer semantics, change answers or bypass gates; deterministic checks first. |
 
 Keep one method per job and ordered step calls, content-addressed shared program
 versions, before/after scope/history metrics, genuine single-round SME review,
@@ -542,9 +600,10 @@ python -m workbench.layout --workspace .
 python tools/check_handoff.py
 ```
 
-The standalone `tools/synthetic_cases.py` generator uses the same V4 fixture
-contract and current record adapter: a fresh runtime seed, 20 distinct randomized
-states per supported logic, and frozen source/copybook byte hashes. Supply
+The standalone `tools/synthetic_cases.py` generator uses the current v5 fixture
+contract and record adapter: a fresh runtime seed, pinned 64/128 valid-state floor,
+mandatory positive/negative/boundary/mutation witnesses and frozen source/copybook
+byte hashes. Supply
 `--seed` with an unsigned 63-bit integer for exact replay. Insufficient budgets
 and finite domains remain coverage gaps; generation alone grants no conversion
 credit. Historical suites retain their original contract.
@@ -595,37 +654,50 @@ File/utility-specific primary IBM references remain in the visible
 `--assistant claude_files` is the active local-file entrypoint over the existing
 Coordinator states and packet-v4 analysis contract. `--assistant agent` and older
 modes remain compatibility interfaces; immutable v1–v3 evidence retains its
-fingerprints. Both hosts use `.claude/skills/`; the single Start prompt assigns
-roles. Copilot retrieves files through approved MCP; Claude interprets local
-source and performs all implementation, tests and review without MCP.
+fingerprints. Claude uses relevant `.claude/skills/`; the single Start prompt owns execution.
+Claude retrieves through approved Db2 MCP/read-only Zowe, then performs safe local
+analysis, implementation, tests and review.
 
 ### Retrieval and local analysis handoff
 
 `python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE` reads the
 current task and pinned local evidence paths. Missing source/metadata is described
 in a bounded `--request-file REQUEST_JSON`, not an SME question. The Coordinator
-creates a stable, immutable request and a copyable Copilot prompt. Requests bind
+creates a stable, immutable request and a copyable Claude retrieval prompt. Requests bind
 the process and current evidence; missing, ambiguous, denied or partial responses
 cannot imply source closure or conversion support. Continue uses the exact recorded
 inbox, never a broad filesystem search or guessed latest folder.
 
 | Local interface | Contract |
 |---|---|
-| `agent PROCESS_ID --workspace WORKSPACE` | Read the current analysis task, required local artifacts and continuation state. |
-| `agent ... --request-file REQUEST_JSON` | Validate a bounded retrieval request and preserve its immutable packet plus generated Copilot prompt. |
+| `agent PROCESS_ID --workspace WORKSPACE` | Inspect the current metadata/hash task, opaque references and continuation state; no protected raw contents. |
+| `agent ... --request-file REQUEST_JSON` | Validate a bounded retrieval request and preserve its immutable packet plus generated Claude retrieval prompt. |
 | `agent ... --continue` | Inspect the recorded request inbox, validate response identities/paths/hashes, preserve accepted evidence and resume eligible work. Absent or invalid responses retain named gaps. |
 | `agent ... --refresh` | Recompute analysis after actual tested semantic changes; preserve earlier artifacts and require a fresh task-bound result. Changed loaded adapters require restarting the existing service first. |
 | `agent ... --analysis-file ANALYSIS_JSON` | Submit bounded structured Claude analysis against current task/lineage hashes. No test, parity or SME credit is granted by accepting a model assertion. |
 | `agent ... --measurement-file RECEIPT_JSON` | Import an actual attributed usage/effort receipt through the existing ledger; unknown charges remain Unknown. |
-| Copilot `workbench_retrieval_task(process_id)` | Read the pending retrieval packet only. Copilot's approved source/file tools perform the pull and write its exact local return folder. |
+| Approved Claude retrieval tools | Follow the local pending packet using typed Db2 metadata/protected export and read-only Zowe. Write the exact request inbox; never expose raw source/customer rows to the model. |
 
 Per-request placement below `processes/PROCESS_ID/analysis/retrieval/REQUEST_ID/`:
 
-- `request.json`: immutable requested identities, bounds, return schema and prompt.
-- `inbox/files/`: original files and requested metadata written by Copilot.
+- `request.json`: immutable requested identities, bounds, return schema and prompt. The private packet is not model context; use the current safe projection.
+- `inbox/files/`: original files and requested metadata written by approved Claude retrieval.
 - `inbox/response.json`: the completed response manifest, written after its files.
 - Accepted returns: frozen and registered by the existing Coordinator; later
   responses never rewrite previously accepted snapshots or source evidence.
+
+New schema-3 retrieval packets pin `privacy_contract_version: 1`. The current
+Claude prompt presents a metadata-only projection; it is not replacement request
+JSON. Older schema-3 packets retain their original bytes/hash/identity while a
+fresh safe prompt is projected from validated bindings. Never edit or replay a
+stored historical private prompt. Private request/response and input filenames
+remain local; dynamic identities without approved technical bindings remain gaps.
+Unqualified operational names use `IDENTITY_SHA256_<hash>` and expose
+`metadata_identity_gate: UNAPPROVED_MODEL_METADATA`; syntax is not privacy approval.
+Never reverse a hash, guess a lookup name or open private request/source files.
+Require an approved sanitized lookup identity or approved local deterministic
+export capability. The protected Db2 export takes exact process/request/need IDs
+and resolves its binding server-side; other unqualified lookups remain gated.
 
 Default discovery requests batch at most 128 needs without truncating the frozen
 lineage. The local view's `retrieval_state.total_need_count` and
@@ -690,7 +762,7 @@ Coordinator lock. Commands/results are published atomically on a local filesyste
 supporting hard links (for example NTFS and usual Linux/macOS local filesystems);
 unsupported filesystems fail closed. Full queued-agent execution is verified on
 macOS; native offline path guards also pass on Windows Server and Linux.
-Windows 11/Linux end-to-end queued-agent acceptance remains separate.
+Windows 11 end-to-end queued-agent acceptance remains separate.
 
 Before an action, the queue durably writes
 `.migration/agent-results/COMMAND_ID.started.json`. A prior start without a final
@@ -703,20 +775,37 @@ Malformed/conflicting queued input is retained privately under
 `.migration/agent-rejected/`. These filesystem controls preserve workflow state;
 they provide no MCP connection, remote access or enterprise-policy exemption.
 
-Claude has zero configured MCP servers. `examples/claude-mcp.json` contains exactly
-`{"mcpServers": {}}`. Claude may use its organization-approved VS Code extension;
-no standalone terminal or IDE-disabling flags are required by this solution.
-Copilot's optional `--role retrieval` bridge exposes only the retrieval task and
-rejects calls outside that role. It does not turn Copilot into a coding agent or
-proxy Claude to remote services. Host consent, approved servers and local data
-access remain controlled by the organization.
+Claude's only active Db2 binding is the approved `workbench-db2` server in the
+private selected workspace config. Project settings and scoped subagents narrow
+work; they do not certify server trust, enterprise approval or a native Windows
+sandbox. Skill `allowed-tools` grants are not an available-tool whitelist.
+Read-only evidence reviewers receive bounded safe artifacts and no MCP/shell;
+staff reviewers inspect implementation and local test receipts without shell/MCP.
+Both `.claude/agents/mainframe-evidence-reviewer.md` and
+`.claude/agents/mainframe-staff-reviewer.md` use `model: inherit`,
+`permissionMode: plan` and `tools: Read, Glob, Grep`; their bounds are 30 and
+40 turns respectively. Evidence review loads only semantics/assurance skills;
+staff review only assurance/target skills. The main host executes local tests and
+owns integration; reviewers never write scope, fill SME answers or execute tools
+through another agent. `.claude/settings.json` uses the official schema, default
+permissions, denies protected source, raw request/response/inbox, private rows,
+databases, SME/review/requirements/discovery and accepted-retrieval/copilot-return
+artifacts, reports/database-comparison and process target/synthetic/tests
+and secrets, plus named Db2 row/search tools and Zowe submit/upload/delete routes.
+Derived artifacts are not automatically approved sanitized views. These are
+defense in depth, not comprehensive DLP or Windows OS isolation. No blanket
+auto-approval or bypass setting is provided.
 
-Legacy `workbench.development` packets/returns and compatibility HTTP methods
-remain replayable historical evidence. Their source-free capabilities and old
-MCP profiles are not the active Claude workflow and do not authorize a Claude
-connection. A prior developer return remains self-reported, unverified evidence;
-no legacy handoff can manufacture parity or human approval. New work uses the
-local analysis/retrieval route and keeps the same single SME quota.
+Do not preload unrelated skills or copy raw exports into reviewer context. See
+[official settings](https://code.claude.com/docs/en/settings),
+[skills](https://code.claude.com/docs/en/skills) and
+[subagents](https://code.claude.com/docs/en/sub-agents).
+
+Legacy `workbench.development` packets/returns, compatibility HTTP methods and
+Copilot `--role retrieval` profiles remain historical interfaces. They are not an
+active dependency, cannot tunnel Claude access or manufacture parity/human approval,
+and never replace immutable process evidence. New work uses approved retrieval,
+local runner analysis and the same single SME quota.
 
 CLI/API/MCP intake accepts `source_folder` and `process_notes` (CLI hyphenated).
 Folder imports reuse the bounded UTF-8 export reader and immutable process-source
@@ -725,16 +814,20 @@ supplied folder. Existing process IDs must retain original manifest/source/notes
 Source-origin metadata is private process evidence, not a connection credential.
 Process notes and Markdown inbox documents are frozen in
 `analysis/process-context.json`, with hashes and heading/line indexes. The limit
-is 20 files / 1 MiB combined. `workbench_context_excerpt` returns at most 200 lines
-and 16,000 characters. Notes are unverified evidence, not source overrides or
+is 20 files / 1 MiB combined. The retained local/operator compatibility
+`workbench_context_excerpt` returns at most 200 lines and 16,000 characters; it is
+not an approved Claude MCP route or permission to read private notes. Current
+Claude tasks carry opaque document hashes/counts; semantic content requires an
+explicitly approved sanitized view. Notes are unverified evidence, not source overrides or
 executable instructions. Polling excludes full note bodies. Before local task
 handoff, continuation or refresh, the Coordinator checks frozen context against
 its ledger snapshot and registered hash. Missing, changed or unregistered context
 blocks progression without repinning it. Editing the live inbox affects only new
 intakes; existing processes retain their original context.
 
-`workbench_obligations` pages the complete frozen blocker list, 50 per call, with
-`after`, `next_after`, `has_more` and the task hash. Prefix-based I*/Z* candidates
+The retained local/operator `workbench_obligations` pages the private frozen
+blocker list, 50 per call, with `after`, `next_after`, `has_more` and the task hash.
+Do not expose it as Claude MCP or treat private descriptions as safe context. Prefix-based I*/Z* candidates
 are retained on unresolved discovery records for v4, never silently bound.
 Missing evidence stays a discovery gate. The host agent drives continuation;
 the service does not launch an agent, bypass host permissions or continue a
@@ -745,10 +838,12 @@ an unchanged failed approach. Existing bounded stage retries and immutable refre
 remain authoritative. Adapter support still requires source-specific engineering.
 
 New structured agent returns can include `rule_classifications`, mapping frozen
-rule IDs to `category` (business_rule, technical_logic, unclassified) and `reason`.
-For large inventories, `workbench_rules` pages the full rule list; the initial
-task contains 50 rule descriptions. `rule_classification_defaults` supplies an
-explicit category/reason per frozen program, with individual classifications as
+task-bound opaque rule references to `category` (business_rule, technical_logic,
+unclassified) and `reason`. The retained local/operator `workbench_rules` pages
+the private rule list. New safe tasks include up to 50 metadata-only rule entries
+with private literals withheld; they do not contain the complete private prose.
+`rule_classification_defaults` uses opaque program references for an explicit
+category/reason, with individual classifications as
 exceptions. This avoids repeating a reason thousands of times without assuming
 that all IF statements are business rules. Validation checks task identity and
 structure, not the correctness of the claim.
@@ -830,9 +925,9 @@ assessment; filenames and generic utility names cannot. The backend registry
 continues to reject unimplemented targets. Service extraction requires independent
 business responsibility, data ownership and a verified transaction boundary.
 
-V4 synthetic coverage counts source predicate values **after** preceding source
-writes, not irrelevant input padding. Input layout and terminal units separately
-require 20 distinct randomized valid records. Finite domains, overwritten values,
+Synthetic coverage counts source predicate values **after** preceding source
+writes, not irrelevant input padding. V5 applies 64 to logic/layout/terminal units and job steps, with 128 only for
+recorded source-risk logic; frozen V4 retains its 20-state floor. Finite domains, overwritten values,
 unreachable outcomes, mandatory boundaries and exhausted budgets remain explicit
 gaps; repeated runs cannot manufacture distinct states. Jobs compare complete
 ordered traces, skip decisions, records and return codes across randomized and
@@ -857,8 +952,8 @@ or credential access. `--normalize` only deduplicates secure declarations when
 structural/schema checks pass, preserving a hash-named private backup. External
 schema references are not fetched. No profile roles/defaults are deleted and
 credentials/connectivity remain UNVERIFIED until a permitted live read succeeds.
-Native Windows/Linux and both agent-host smoke evidence are required separately
-from local Python and frontend checks.
+Windows 11 and the approved Claude host require actual acceptance separately
+from local Python/frontend checks. Other-platform receipts remain historical.
 
 Windows 11 is the workstation target with CPython 3.12 and a writable local,
 hard-link-capable disk. The shipping Windows PowerShell launcher prepares the
@@ -879,7 +974,7 @@ the local launch configuration without asserting authentication or connectivity.
 
 The native platform smoke workflow executes shipping setup and offline
 intake/ledger/report/CLI, junction, encoding, adapter and launcher tests on Windows
-and Ubuntu using the locked dependencies. Current execution receipts are indexed
+using the locked dependencies. Other-platform receipts are historical. Current execution receipts are indexed
 in `docs/evidence.json`; a configured workflow alone is not evidence. Windows
 Server CI is separate from Windows 11 desktop, Excel/PowerPoint, enterprise
 agent-host and live read-only connector acceptance.
@@ -957,10 +1052,11 @@ bindings must agree with the manifest; source commands or supplied map bindings
 require actual transaction resource evidence before closure. Resource definitions
 are evidence of identity, not executable behavior or permission to access systems.
 
-Typed Db2 descriptions are non-executable `DB2_TABLE_DESCRIPTION` JSON assets
+Typed Db2 descriptions are non-executable, allowlisted `DB2_TABLE_DESCRIPTION` JSON assets
 with schema/table, columns, observation provenance (canonical locator must equal
 exact `SCHEMA.TABLE`) and nullable DDL/constraints/
-indexes/triggers. Missing metadata and native SQL/type/transaction/auth semantics
+indexes/triggers. Private remarks/default values are suppressed in model-visible
+metadata; missing metadata and native SQL/type/transaction/auth semantics
 remain explicit obligations; a column description does not prove full DDL.
 New CICS retrieval requests use schema 2 and require Zowe CLI for mainframe exports
 and typed read-only Db2 MCP for catalog/DDL. The exact inbox and immutable source
@@ -985,10 +1081,9 @@ editable/named fields and controller actions cannot be silently waived.
 The same Coordinator verification issues `synthetic/RUN/SCREEN_ID/` source
 expectations/comparisons, `tests/RUN/SCREEN_ID/` executable unit module and receipt,
 `target/RUN/SCREEN_ID.py`, shared content-hash Python code and the online package.
-At least 20 distinct runtime-randomized valid states per input/layout are required;
-finite domains never receive duplicate padding. Constant display fields have one
-source value and are compared across distinct randomized input contexts, without
-claiming 20 distinct display values. Mutation candidates stream and stop at the
+The pinned v5 64-state floor applies to input/layout contexts; frozen historical contracts retain their minima. Finite domains never
+receive duplicate padding. Constant display fields have one source value and are
+compared across distinct input contexts, without claiming distinct display values. Mutation candidates stream and stop at the
 first actual differing witness; receipts record the checked cases, and cancellation
 is checked throughout source planning, target/unit/HTTP execution and review.
 Independent source interpretation,
@@ -1031,7 +1126,7 @@ findings and stop advancement. Existing source/hash, review and report replay
 checks remain authoritative. `python tools/check_factory.py` verifies shared
 MCP/HTTP exposure, skill presence and documentation bounds. Run it after changes,
 with focused regressions, then the full suite and required review/campaign checks
-at release gates. CI runs native Windows/Ubuntu smoke checks on pushes and pull
+at release gates. CI runs native Windows smoke checks on pushes and pull
 requests; configured CI is not evidence of an executed native run. No periodic
 background audit or independent agent launcher is installed.
 
@@ -1071,7 +1166,7 @@ POST `/api/economics/forecast` previews a plan. Mutation routes retain the
 same-origin/token guards; preview is read-only but uses the same authenticated
 POST transport. With the UI stopped,
 `python -m workbench.runner measure --workspace WORKSPACE --file RECEIPT`
-uses the existing exclusive writer. Do not launch it beside the UI. Copilot's
+uses the existing exclusive writer. Do not launch it beside the UI. Historical Copilot's
 retrieval-only MCP surface does not expose development or economics operations.
 
 Every receipt requires `id`, `kind`, `process_id` (nullable), `evidence` (a bounded
@@ -1135,8 +1230,12 @@ before `WAITING_REQUIREMENTS`. The shared Start command opts in with
 `--select-requirements`. Existing SDK callers and historical processes keep their
 original workflow unless explicitly opted in. Nothing is converted or issued for
 SME review until an operator Save. Default Yes selects scope; it never supplies
-SME approval. The pinned local requirements artifact is readable by Claude; the
-legacy MCP requirements endpoint is read-only, not a scope-answer tool.
+SME approval. The Coordinator reads the pinned requirements Markdown locally;
+Claude must use its hash-bound safe task projection and explicitly approved
+sanitized scope/semantic views. Original identities or private source-derived
+values in the Markdown remain protected. Absent safe semantics is a qualification
+gap, not permission to read the protected artifact. The legacy MCP requirements
+endpoint is read-only, not a scope-answer tool.
 
 GET `/api/process/ID/requirements?after=0&path=FILE` pages 50 stable source units
 and returns the retained file inventory. Unit IDs bind path, source hash, physical
@@ -1174,8 +1273,9 @@ behavior-preserving replacement;
 unknown semantics are never cleared by a No flag. Generated supported modules
 retain record validation, ordered effects, rule trace and source/requirements
 hashes. Real source-derived comparisons and adversarial mutation evidence remain
-mandatory; new selected-mode fixtures require at least 20 distinct valid randomized states
-per applicable logic item plus the existing dependency/invalid/boundary witnesses.
+mandatory; new selected-mode v5 fixtures require the pinned 64/128 valid-state
+floor for logic and the 64-state floor for layout/step, plus positive, negative, dependency,
+invalid, boundary and mutation witnesses.
 Historical fixture contracts remain frozen. This is bounded
 semantic verification, not native mainframe parity or exhaustive proof.
 
@@ -1185,6 +1285,8 @@ Markdown hash/path. `rules.json`/HTML include the entire source-unit comparison:
 source identity/span, choice, omission or replacement commentary, candidate versus
 evidenced replacement status, target versions/spans and test/evidence references.
 Non-runtime source structure has an explicit rationale, not executable credit.
+Protected source/row values in local evidence or operator reports must not be
+passed to a model; provide only approved sanitized derivatives for model review.
 Rule JSON/CSV/Excel and job/program rollups separate original total, selected,
 verified, unverified/blocked and `excluded_by_requirements` counts. Percentages
 cover requested Yes scope; they do not claim complete original-source conversion.
@@ -1192,7 +1294,7 @@ Executable omissions prevent whole-source asset credit and partial scopes cannot
 calibrate full-estate process effort/credits. Unknown business/technical categories
 remain visible; excluded unknowns do not masquerade as classified rules.
 
-The economics UI exposes GitHub Copilot credits used per provider/account from
+The economics UI exposes actual credits per provider/account from
 actual `usage` receipts (`quantities.credits`). Known zero and Unknown differ;
 conflicting/overlapping billing is withheld. No token-to-credit conversion or live
 GitHub billing connection is inferred. Optional budgets remain available in
@@ -1228,18 +1330,18 @@ structured `analysis/workstation-SHA256.json`; later global edits cannot rewrite
 
 Guided schema-2 retrieval adds a hash-bound absolute workspace and exact inbox.
 Found mainframe source requires read-only Zowe CLI command provenance; typed Db2
-catalogs/DDL and record exports require approved Db2 MCP provenance. Strict guided
+catalogs/DDL and protected record exports require approved Db2 MCP provenance. Strict guided
 version 1 recognizes typed catalogs for batch and online processes; CICS action
 and resource gates still require CICS version 1. JSON kind/key escapes and a
 single leading UTF-8 byte-order mark do not change typed receipt identity; the
 original export bytes/hash remain immutable. Record snapshots require an explicit
 guided row request even when their JSON spelling differs. Catalog recognition supplies static table facts,
-not verified SQL, keys, constraints or native database equivalence. No Claude
-MCP, driver, HTTP proxy or second writer is introduced. Historic request bytes and
-replay contracts remain unchanged. Copilot only retrieves. The current Claude
+not verified SQL, keys, constraints or native database equivalence. Claude uses
+approved Db2 MCP directly; no workflow proxy or second writer is introduced.
+Historic request bytes and replay contracts remain unchanged. The current Claude
 prompt references actual process, context, source, task, requirements and guide
 paths/hashes and instructs local analysis, implementation, randomized tests,
-adversarial review, adapter refresh and fresh analysis return. The primary Copilot
+adversarial review, adapter refresh and fresh analysis return. The primary Claude retrieval
 prompt appends configured Zowe aliases and the Db2 endpoint from the registered
 frozen process setup context, when present, as configuration-only data with its
 path/hash. Later global settings do not substitute another environment. Original
@@ -1262,12 +1364,12 @@ Record comparison uses immutable before/after exports with exact keys, input/run
 environment, scope, completeness and consistency facts. It distinguishes insert,
 update, delete, unchanged, initial-state and final-state differences. Equal five-row
 run deltas cannot hide twenty source-only historical rows or prove whole-table
-parity. The approved Db2 row tool uses uncommitted read; absent a qualified consistent
+parity. The approved protected export uses uncommitted read; absent a qualified consistent
 observation, equality/native parity is withheld. No agent executes mainframe jobs.
 Unsupported controllers, business SQL and types remain named obligations.
 
 The management deck remains six editable slides. Its first slide relates source,
-Copilot, frozen process evidence, Claude, Coordinator verification and target/report
+approved read-only retrieval, frozen process evidence, Claude, Coordinator verification and target/report
 components; legacy/target size and known original/selected-No/verified rule counts
 use the same report model. Python AST statement counts include generated validation
 and scaffolding and are not equivalent to COBOL rule counts. Old dates are context,
@@ -1293,6 +1395,13 @@ correction/commentary remains unresolved even with Yes; preserve the actual conc
 rather than deleting it to obtain a green result.
 
 ### Compact operator reference
+
+[prompts/CONTEXT.md](../prompts/CONTEXT.md) is the shared repository orientation
+for people and agents. It routes to these existing owners and the reusable
+[process-notes template](../examples/process-specific.md). The template stays in
+the external authoring package; its content freezes as structured context.
+Both Markdown files have checked local links and source bindings in the compact
+operator reference. They contain no live process state or approval.
 
 `prompts/OPERATOR_GUIDE.json` is a source-bound index for assistants answering
 operator questions. It records portable paths/SHA-256 bindings, bounded relevant
@@ -1366,3 +1475,156 @@ and [focus visibility guidance](https://www.w3.org/WAI/WCAG22/Understanding/focu
 Scoped browser geometry and finite contrast tests do not certify complete WCAG
 conformance. Windows 11, screen-reader, native popup, actual browser zoom and
 organization-specific design-system acceptance remain separately qualified.
+
+## Requirements traceability and gap analysis
+
+The accepted Program comparison is the requirement-to-evidence view: legacy
+behavior → saved scope → target mapping → validation → unresolved obligation.
+It follows the bidirectional, uniquely identified, version-maintained and
+many-to-many traceability practices described by
+[NASA's software traceability guidance](https://swehb.nasa.gov/spaces/7150/pages/16449675/SWE-059%2B-%2BBidirectional%2BTraceability%2BBetween%2BSoftware%2BRequirements%2Band%2BSoftware%2BDesign).
+This is a practical implementation of those practices, not industry certification.
+
+Start with aggregate legacy and modernized totals and the program summary.
+Select a program, filter **Gaps only**, **Verified** or **Selected No**, then open
+a logical unit's **View source, replacement and evidence** disclosure. The
+detail retains the exact original logical statement and source hash/span, actual
+version-bound target code or an explicit missing excerpt, fulfillment commentary,
+saved selection, test witnesses and specific closure requirements. Source-derived
+obligations are distinct from separately approved business requirements. Absent
+saved scope pins remain Unknown; default Yes is not evidence of a human Save.
+
+Many source units can map to one shared target span, and one unit can map to
+several targets. Deduplicate target span tuples independently of unique source
+unit IDs. Never use shorter Python code or consolidated programs to reduce the
+original obligation denominator. Program memberships may overlap: program totals
+are not safely summable into process totals. Unknown classifications stay visible.
+
+Candidate implementation, accepted source-derived satisfaction, selected No and
+blocked behavior retain different statuses. Exclusions preserve the exact reason
+“Not converted because selected No in requirements.” Missing evidence does not
+become satisfied, mainframe-only, unnecessary or native parity. A plan, description,
+source-rule ID or test count cannot close a gap. A gap identifies its affected
+source span, scope/cause, missing evidence and required resolution. Ownership,
+priority, observed mainframe parity and independent business-requirement approval
+remain Unknown unless recorded evidence establishes them. Whole-process gates
+remain visible even when filtered program units have no recorded gaps.
+
+The view derives only from the Coordinator's accepted frozen inventory and gates.
+It does not rerun conversion, reinterpret raw datasets, overwrite earlier reports
+or award new credit. Operator-local original code views are protected content;
+models use approved sanitized views or opaque hash/span projections instead.
+Historical inventories preserve their missing evidence and original bytes.
+
+## Local instruction-only skill pack
+
+[.claude/skill-pack.json](../.claude/skill-pack.json) records the requested fifteen
+upstream projects, pinned commits, source and installed hashes, license notices
+and deliberately excluded runtime features. The repository installs bounded
+local SKILL.md adaptations for relevant coding, testing, UI, explanation and
+review tasks. Headroom has a locally authored context adapter rather than its
+library/proxy/MCP runtime; Karpathy guidance is independently authored because
+a complete upstream license notice was unavailable. Other entries also state
+their adaptation scope instead of claiming installation of a full plugin.
+
+No additional MCP server, proxy, hook, telemetry, background service, automatic
+publishing or new agent engine is installed. The existing approved Db2 MCP and
+read-only Zowe constraints remain unchanged. Native
+[Claude skills](https://code.claude.com/docs/en/skills) discover the project
+SKILL.md structure; configuration is not proof of target-host invocation. Use
+`python tools/check_skill_pack.py` to validate package structure, hashes, pins,
+links and excluded executable/config surfaces. Revalidate after changes.
+
+Load only skills needed for the current task. They are subordinate to AGENTS, the
+shared Start workflow, source fidelity, privacy and the Coordinator. Caveman and
+I Have ADHD are explicit presentation options; they do not shorten the granular
+job aid, infer medical conditions or alter accessible labels. Ponytail supports
+minimal complete implementation, not removal of gates. Headroom-style summaries
+preserve source/target/test IDs, hashes, denominators, exclusions and unknowns;
+compression is not sanitization and no credit savings are inferred.
+
+## Text-first workspace connections and Windows launch
+
+Repository Git attributes keep public text as LF even when Windows Git enables
+`core.autocrlf`; the guide’s byte hashes therefore stay valid after checkout.
+The existing `examples/** -text` rule preserves frozen example evidence exactly.
+These attributes apply to tracked repository files, not private process exports.
+
+When the operator says **start**, request one bundle of nonsecret configuration
+facts before connection setup: workspace, selected dev/prod environment, actual
+z/OSMF hosts/ports, TSO account/code page/logon procedure, Db2 DDF location/host/port,
+approved driver name and both approved CA files. Never request passwords, file
+contents or a transport token in model conversation. The operator fills the one
+private file locally from the root `.env.example`; the example is never loaded.
+No connector UI is required. Process selection and evidence views remain in the UI.
+
+The shared `WORKSPACE/.env` has the canonical eight Db2 keys plus exactly eleven
+Zowe keys: `ZOWE_ENVIRONMENT`, `ZOWE_DEV_HOST`, `ZOWE_DEV_PORT`, `ZOWE_PROD_HOST`,
+`ZOWE_PROD_PORT`, `ZOWE_TSO_ACCOUNT`, `ZOWE_TSO_CODE_PAGE`,
+`ZOWE_TSO_LOGON_PROCEDURE`, `ZOWE_CA_CERTIFICATE`, `ZOWE_USERNAME` and
+`ZOWE_PASSWORD`. Unknown/duplicate keys and unsafe control/path values fail closed.
+Local deterministic loaders read the file; model tools never display its contents.
+Authentication stays in this protected file or the approved secure store, never
+JSON, Markdown, command arguments or returned diagnostics. An empty optional
+Zowe credential pair uses the secure store; .env alone does not sign Explorer in.
+
+The fixed local structure is:
+
+```text
+WORKSPACE/
+  .env                         private operator-edited values
+  zowe.config.json             clean nonsecret project profiles
+  zowe.schema.json             matching local profile schema
+  .mcp.json                    managed local stdio Db2 binding
+  certificates/
+    DB2-CA.cert                 actual approved PEM or DER Db2 CA
+    ZOWE-CA.pem                 actual approved PEM z/OSMF CA chain
+  .migration/                  generated local state; not a certificate folder
+  processes/PROCESS_ID/        existing immutable evidence categories
+```
+
+Db2 database equals DDF location, TLS remains true and its certificate path is
+`certificates/DB2-CA.cert` relative to .env. The shared parser retains quoted literal
+spaces/#/$ without expansion. `workbench.db2_setup --workspace WORKSPACE --env-file
+WORKSPACE/.env` validates the settings/CA and prepares only a fixed repository
+Python/module stdio binding. An optional bounded `--driver` selects the approved
+registered name. No URL, HTTP port or MCP bearer token is needed. Claude owns the
+server process through `Start-Claude.ps1 -Workspace WORKSPACE`; startup performs
+no Db2 query. Driver availability, trust, authentication and read access remain
+separate prerequisites. Existing unrelated bindings stay saved but are excluded
+from the strict active config. Conflicting managed bindings are not silently
+replaced. The explicit migration option replaces only a hash-matching previously
+managed HTTP binding and preserves the other entries.
+
+The Zowe helper's explicit `--env-file` path prepares a shared secure base,
+DevPlex/ProdPlex z/OSMF endpoints and a TSO profile from supplied account/code-page/
+logon-procedure values. At least the selected environment needs a complete endpoint;
+unselected pairs may both be blank. HTTPS and `rejectUnauthorized:true` remain
+required. The local Node child uses the approved PEM CA chain; no global trust
+setting is weakened. TSO declarations do not start a session or establish a
+physical/API location. `zowe config secure` is an actual human local prompt for
+Explorer's secure store. Qualified .env credentials may supply only the bounded
+read-only CLI child's environment; no secret argument or JSON field is generated.
+Existing different config/schema files stop with a preservation gate rather than
+removing profiles. Self-signed Endevor blocked by company policy stays unavailable;
+use an approved manual export. Importing a CA never overrides organization policy.
+
+The optional connection UI and existing authenticated HTTP/remote OAuth paths remain
+compatibility choices. UI gateway Save prepares the eight Db2 fields only when
+.env is absent; it preserves existing shared .env bytes. Its explicit env/config
+route applies the stricter env/config/global row ceiling. The former certificate
+alias is accepted only without conflicting values. Text setup never requires
+editing the legacy `.migration/db2-config.json`; explicit .env selection supersedes
+stale legacy connection/ODBC settings. No configuration proves connectivity.
+
+WEBELX is current display/input terminology. Historical WEDLX and `wedlx_folder`
+remain compatible identities; both aliases cannot declare two locations. Frozen
+bindings and issued process evidence remain unchanged. Tran Repository requires
+exact physical/file bindings.
+
+The Windows launcher runs synchronously. Database `.env` is independent of Python
+`.venv`. Setup accepts actual CPython 3.12 at any compatible patch, tries PATH after
+an unavailable launcher registration, overrides/restores pip user-install settings
+without dropping enterprise index/CA configuration and stops before UI on failure.
+An exclusive handle prevents competing startup/install work. `-NoBrowser` suppresses
+browser opening only. Native Windows and live enterprise acceptance remain separate.

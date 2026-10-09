@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import re
 import unicodedata
-from .domain import ValidationError, identity, require, safe_path, path_is_link
+from .domain import ValidationError, identity, require, safe_path, path_is_link,sha
 from .limits import MAX_SOURCE_ENTRIES, MAX_WORKSPACE_ENTRIES
 
 ROOT_FILES = frozenset({
@@ -162,8 +162,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', '--root', default=str(Path.cwd()))
     args = parser.parse_args(argv)
-    issues = validate_workspace(args.workspace)
-    print(json.dumps({'valid': not issues, 'issues': issues}, indent=2))
+    try:
+        issues = validate_workspace(args.workspace)
+        projected=[{'kind':'LAYOUT_ISSUE','evidence_sha256':sha(issue.encode('utf-8',errors='surrogatepass')),
+                    'message':'Inspect exact private local layout details; preserve frozen evidence.'} for issue in issues]
+    except (ValidationError,OSError,UnicodeError) as exc:
+        issues=[str(exc)]
+        projected=[{'kind':'LOCAL_DIAGNOSTIC_FAILURE','evidence_sha256':sha(str(exc).encode('utf-8',errors='surrogatepass')),
+                    'message':'Layout inspection could not complete; inspect private local diagnostics.'}]
+    print(json.dumps({'valid': not issues, 'issues':projected,'issue_count':len(issues)}, indent=2))
     return 2 if issues else 0
 
 

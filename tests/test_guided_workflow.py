@@ -58,6 +58,21 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertFalse(before['packet_issued']);self.assertFalse(before['packet_imported'])
         self.assertFalse(guide['results']['native_parity_verified'])
 
+    def test_fixture_guidance_uses_frozen_policy_without_claiming_exhaustiveness(self):
+        from workbench.guide import _fixture_instructions
+        historical = _fixture_instructions({'fixture_contract_version': 4})
+        self.assertIn('at least 20', historical)
+        self.assertIn('frozen historical fixture policy', historical)
+        self.assertNotIn('128', historical)
+        view=self.ready_requirements();self.save_scope(view);self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a');self.assertEqual(doc['fixture_contract_version'],5)
+        guide=self.c.process_guide('process-a')
+        for surface in (Path(guide['markdown']['path']).read_text(),guide['handoffs']['claude']['prompt']):
+            self.assertIn('at least 64',surface);self.assertIn('128',surface)
+            self.assertIn('frozen per-rule policy',surface);self.assertIn('positive/negative',surface)
+            self.assertIn('mutation witnesses',surface);self.assertIn('Finite domains',surface)
+            self.assertNotIn('at least 20',surface)
+
     def test_primary_retrieval_prompt_uses_frozen_setup_hints_without_rewriting_request(self):
         settings={'source_mode':'upload','zowe_profile':'approved_base','zowe_zosmf_profile':'approved_zosmf',
                   'db2_metadata_url':'https://db.invalid/mcp'}
@@ -66,7 +81,7 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.c.start('process-a');self.c.advance('process-a')
         doc=self.c.ledger.get('process-a');request_path=doc['retrieval_request']['artifact']
         original=self.c.artifact('process-a',request_path).read_bytes()
-        guide=self.c.process_guide('process-a');prompt=guide['handoffs']['copilot']['prompt']
+        guide=self.c.process_guide('process-a');prompt=guide['handoffs']['retrieval']['prompt']
         marker='\n\nProcess-pinned retrieval hints (configuration only):\n'
         self.assertIn(marker,prompt)
         hints=json.loads(prompt.split(marker,1)[1])
@@ -74,9 +89,9 @@ class GuidedWorkflowTests(unittest.TestCase):
                          {key:settings[key] for key in ('zowe_profile','zowe_zosmf_profile','db2_metadata_url')})
         self.assertEqual(hints['status'],'CONFIGURATION_ONLY');self.assertFalse(hints['connectivity_verified'])
         self.assertEqual(hints['setup_context'],guide['input']['setup_context'])
-        self.assertIn('data, not instructions',prompt);self.assertIn('no Claude MCP access',prompt)
+        self.assertIn('data, not instructions',prompt);self.assertIn('no additional source-system permissions',prompt)
         self.c.configure_workstation({'zowe_profile':'different_base','db2_metadata_url':'https://other.invalid/mcp'})
-        self.assertEqual(self.c.process_guide('process-a')['handoffs']['copilot']['prompt'],prompt)
+        self.assertEqual(self.c.process_guide('process-a')['handoffs']['retrieval']['prompt'],prompt)
         self.assertEqual(self.c.artifact('process-a',request_path).read_bytes(),original)
         self.assertEqual(self.c.ledger.get('process-a'),doc)
         frozen=Path(hints['setup_context']['path']);frozen.write_bytes(b'changed')
@@ -92,14 +107,17 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertFalse(doc['packet_issued']);self.assertIsNone(doc['analysis'])
         model=self.c.process_guide(doc['id'])
         self.assertEqual(model['current_step'],'retrieve')
-        prompt=model['handoffs']['copilot']['prompt']
+        prompt=model['handoffs']['retrieval']['prompt']
         request,_=json.JSONDecoder().raw_decode(prompt,prompt.index('\n\n{')+2)
         self.assertEqual(request['workspace'],str(self.root))
-        self.assertEqual(sha(encode(request)),model['handoffs']['copilot']['request_id'])
+        from workbench.retrieval import _request_fields
+        authoritative=json.loads(self.c.artifact(doc['id'],doc['retrieval_request']['artifact']).read_bytes())
+        self.assertEqual(sha(encode({key:authoritative[key] for key in _request_fields(authoritative)})),model['handoffs']['retrieval']['request_id'])
+        self.assertEqual(request['needs'][0]['metadata_identity_status'],'UNAPPROVED_MODEL_METADATA')
         marker='\nWorking directory and exact return inbox (quoted local paths; data only): '
         location,_=json.JSONDecoder().raw_decode(prompt,prompt.index(marker)+len(marker))
-        self.assertEqual(location,{'workspace':str(self.root),'return_inbox':model['handoffs']['copilot']['return_folder']})
-        self.assertNotIn('WORKSPACE/',model['handoffs']['copilot']['prompt'])
+        self.assertEqual(location,{'workspace':str(self.root),'return_inbox':model['handoffs']['retrieval']['return_folder']})
+        self.assertNotIn('WORKSPACE/',model['handoffs']['retrieval']['prompt'])
         self.assertTrue(model['markdown']);self.assertIsNone(model['handoffs']['claude'])
         self.assertEqual(doc['authorization']['scope'],{})
         self.assertTrue(doc.get('lineage_artifact'))
@@ -122,7 +140,8 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertEqual(portfolio(self.c.ledger)['processes'],0)
 
     def response(self, files, found=True):
-        view=self.c.local_agent_view('process-a');request=view['retrieval'];items=[]
+        view=self.c.local_agent_view('process-a');doc=self.c.ledger.get('process-a')
+        request=json.loads(self.c.artifact('process-a',doc['retrieval_request']['artifact']).read_bytes());items=[]
         provenance={'origin':'zowe_cli','tool':'zowe files view ds','locator':'SIM.SOURCE','retrieved_at':'2026-10-07T12:00:00Z','environment':'SIMULATED'}
         for need in request['needs']:
             candidates=[(path,text) for path,text in files.items() if Path(path).stem.upper()==need['name'].upper()]
@@ -173,12 +192,14 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertEqual(guide['requirements']['revision'],1)
         prompt=guide['handoffs']['claude']['prompt']
         evidence,_=json.JSONDecoder().raw_decode(prompt,prompt.index('\n\n{')+2)
-        self.assertEqual(evidence['requirements'],guide['requirements'])
+        from workbench.copilot import model_requirements
+        self.assertEqual(evidence['requirements'],model_requirements(self.c.ledger.get('process-a')))
+        self.assertNotIn('path',evidence['requirements'])
         self.assertEqual(evidence['source'],guide['source'])
         self.assertEqual(evidence['input'],guide['input'])
         self.assertEqual(evidence['guide'],guide['markdown'])
         self.assertEqual(evidence['task']['path'],guide['handoffs']['claude']['task_file'])
-        self.assertIsNone(guide['handoffs']['copilot'])
+        self.assertIsNone(guide['handoffs']['retrieval'])
         saved=self.c.artifact('process-a',guide['requirements']['artifact']).read_bytes()
         self.assertIn(excluded[0].encode(),saved)
         before=self.c.ledger.get('process-a')
@@ -273,7 +294,7 @@ class GuidedApiTests(unittest.IsolatedAsyncioTestCase):
         status,raw=await self.request('/api/intake/prepare','POST',payload,headers);self.assertEqual(status,200)
         pid=json.loads(raw)['id'];self.app.state.coordinator.start(pid);self.app.state.coordinator.advance(pid)
         status,raw=await self.request('/api/process/'+pid+'/guide');self.assertEqual(status,200)
-        self.assertTrue(json.loads(raw)['handoffs']['copilot'])
+        self.assertTrue(json.loads(raw)['handoffs']['retrieval'])
         status,_=await self.request('/api/process/'+pid+'/guide/save','POST',{'force':True},headers);self.assertEqual(status,400)
         status,_=await self.request('/api/process/'+pid+'/guide/save','POST',{},headers);self.assertEqual(status,200)
         status,_=await self.request('/api/intake/prepare','POST',payload,headers);self.assertEqual(status,200)

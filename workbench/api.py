@@ -258,27 +258,40 @@ def create_app(root, origin='http://127.0.0.1:8765'):
 
     @app.get('/api/process/{pid}/agent/rules')
     async def agent_rules(pid:str,after:int=0):
+        from .copilot import opaque_reference
+        from .domain import sha,encode
         require(after>=0,'Invalid rule cursor')
         task=c.agent_task(pid)
         frozen=json.loads(c.artifact(pid,task['analysis_reference']['path']).read_text(encoding='utf-8'))
         rules=frozen['rules'];require(after<=len(rules),'Invalid rule cursor')
-        entries=rules[after:after+50]
+        entries=[{'id':opaque_reference('RULE',rule['id']),
+                  'source_references_sha256':sha(encode(rule['source_refs'])),
+                  'start_line':rule['source_start'],'end_line':rule['source_end'],
+                  'description':'Private decision literals withheld; approved sanitized semantic context is required.'}
+                 for rule in rules[after:after+50]]
         return {'process_id':pid,'task_hash':task['task_hash'],'items':entries,'total':len(rules),'next_after':after+len(entries),'has_more':after+len(entries)<len(rules)}
 
     @app.get('/api/process/{pid}/agent/obligations')
     async def agent_obligations(pid:str,after:int=0):
+        from .domain import sha,encode
         require(after>=0,'Invalid obligation cursor')
         task=c.agent_task(pid)
         frozen=json.loads(c.artifact(pid,task['analysis_reference']['path']).read_text(encoding='utf-8'))
         blockers=frozen['blockers'];require(after<=len(blockers),'Invalid obligation cursor')
         entries=blockers[after:after+50]
-        return {'process_id':pid,'task_hash':task['task_hash'],'items':[{'index':after+i,**entry} for i,entry in enumerate(entries)],'total':len(blockers),'next_after':after+len(entries),'has_more':after+len(entries)<len(blockers)}
+        return {'process_id':pid,'task_hash':task['task_hash'],
+                'items':[{'index':after+i,'evidence_sha256':sha(encode(entry)),
+                          'status':'UNVERIFIED_OBLIGATION','message':'Private source details require approved sanitized context.'}
+                         for i,entry in enumerate(entries)],
+                'total':len(blockers),'next_after':after+len(entries),'has_more':after+len(entries)<len(blockers)}
 
     @app.get('/api/process/{pid}/agent/context')
     async def agent_context(pid:str,document_id:str,start_line:int=1,end_line:int|None=None):
         from .process_context import excerpt
         snapshot=json.loads(c.artifact(pid,'analysis/process-context.json').read_text(encoding='utf-8'))
-        return excerpt(snapshot,document_id,start_line,end_line)
+        value=excerpt(snapshot,document_id,start_line,end_line)
+        return {key:field for key,field in value.items() if key in {'document_id','sha256','start_line','end_line'}} | {
+            'authority':'UNVERIFIED_INPUT','private_contents_allowed':False}
 
     @app.get('/api/process/{pid}/local-agent')
     async def local_agent(pid:str):return await asyncio.to_thread(c.local_agent_view,pid)
@@ -292,7 +305,7 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         view=await asyncio.to_thread(c.local_agent_view,pid)
         return {'process_id':pid,'retrieval':view['retrieval'],'retrieval_state':view['retrieval_state'],
                 'retrieval_context':view.get('retrieval_context'),
-                'instruction':'Copilot retrieves requested files to the exact local inbox only. Claude owns analysis, development, testing and review without MCP.'}
+                'instruction':'Claude uses approved read-only Zowe CLI and Db2 MCP for request-bound retrieval, then local analysis, development, testing and review. Raw records stay local for programmatic comparisons.'}
 
     @app.get('/api/process/{pid}/development')
     async def development_view(pid:str):return await asyncio.to_thread(c.development_view,pid)
@@ -316,16 +329,22 @@ def create_app(root, origin='http://127.0.0.1:8765'):
         return await asyncio.to_thread(c.submit_development,handoff_id,await body(request,MAX_RETURN_BYTES))
 
     @app.get('/api/process/{pid}/agent/task')
-    async def agent_task(pid:str):return await asyncio.to_thread(c.agent_task,pid)
+    async def agent_task(pid:str):
+        task=await asyncio.to_thread(c.agent_task,pid)
+        require((task.get('data_policy') or {}).get('source_identity_mode')=='OPAQUE_HASH_REFERENCES',
+                'Historical private task is preserved; refresh through the local agent before model access')
+        return task
     @app.get('/api/process/{pid}/agent/lineage')
     async def agent_lineage(pid:str):
         doc=c.ledger.get(pid);c.sources(doc)
         require(doc.get('lineage_artifact'),'Start this process to map its lineage')
-        return decode(c.artifact(pid,doc['lineage_artifact']).read_bytes())
+        task=c.agent_task(pid)
+        require((task.get('data_policy') or {}).get('source_identity_mode')=='OPAQUE_HASH_REFERENCES',
+                'Historical private lineage is preserved; refresh through the local agent before model access')
+        return task['lineage']
     @app.get('/api/process/{pid}/agent/source')
     async def agent_source(pid:str,path:str,start_line:int=1,end_line:int|None=None):
-        from .copilot import source_excerpt
-        doc=c.ledger.get(pid);return source_excerpt(doc,c.sources(doc),path,start_line,end_line)
+        raise ValidationError('Raw source requires an explicitly approved sanitized view before model access')
     @app.post('/api/process/{pid}/agent/analysis')
     async def agent_analysis(pid:str,request:Request):
         submitted=await body(request,128*1024)

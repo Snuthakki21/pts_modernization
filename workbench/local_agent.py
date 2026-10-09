@@ -1,4 +1,4 @@
-"""Bounded local-file control for Claude; no MCP or network client.
+"""Bounded local-file Coordinator control for Claude; no network proxy.
 
 The existing Coordinator worker is the sole consumer. Durable start markers
 prevent automatic mutation replay when an action's final outcome is uncertain.

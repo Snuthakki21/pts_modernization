@@ -1,4 +1,4 @@
-"""File-only Copilot retrieval contracts; no host or network is contacted."""
+"""Claude retrieval contracts and immutable legacy packets; no remote access."""
 import random
 import secrets
 import tempfile
@@ -7,10 +7,53 @@ from pathlib import Path
 from unittest.mock import patch
 
 from workbench.domain import ValidationError, encode, sha
-from workbench.retrieval import build_request, inspect_response, validate_binding, write_request
+from workbench.retrieval import build_request, inspect_response, request_prompt, validate_binding, write_request
+
+
+def historical_request(doc, needs, schema_version=1):
+    """Model an already issued packet; recorded digest assertions pin old bytes."""
+    from workbench.retrieval import _prompt,_need
+    request = build_request(doc, needs)
+    for key in ('agent_prompt', 'retrieval_agent', 'privacy_contract_version','metadata_qualification','request_id', 'return_folder'):
+        request.pop(key)
+    request['schema_version'] = schema_version
+    request['needs']=list({need['need_id']:need for need in map(_need,needs)}.values())
+    request['request_id'] = sha(encode(request))
+    request['return_folder'] = ('processes/' + doc['id'] + '/analysis/retrieval/'
+                                + request['request_id'] + '/inbox')
+    request['copilot_prompt'] = _prompt(request)
+    return request
 
 
 class RetrievalTests(unittest.TestCase):
+    def test_syntactically_valid_private_identity_requires_explicit_model_qualification(self):
+        from workbench.retrieval import model_request
+        marker='SSN123456789'
+        need={'kind':'program','name':marker,'reason':'Private operator details','status':'missing'}
+        request=build_request(self.doc,[need]);view=model_request(request)
+        self.assertNotIn(marker,encode(view).decode()+request['agent_prompt'])
+        self.assertEqual(request['needs'][0]['name'],marker)
+        self.assertEqual(view['metadata_identity_gate'],'UNAPPROVED_MODEL_METADATA')
+        self.assertIn('syntax does not establish privacy',encode(view).decode())
+        synthetic=build_request({**self.doc,'demo':True},[need]);synthetic_view=model_request(synthetic)
+        self.assertEqual(synthetic_view['needs'][0]['name'],marker)
+        self.assertEqual(synthetic['metadata_qualification'],'SYNTHETIC_CONTEXT')
+
+    def test_original_schema3_receipt_bytes_are_preserved_but_never_routed_as_prompt(self):
+        from workbench.retrieval import _need,_request_fields
+        marker='123-45-6789'
+        request=build_request(self.doc,[{'kind':'program','name':'ELIGIBLE','reason':marker}])
+        for key in ('privacy_contract_version','metadata_qualification'):request.pop(key)
+        request['needs']=[_need({'kind':'program','name':'ELIGIBLE','reason':marker})]
+        request['request_id']=sha(encode({key:request[key] for key in _request_fields(request)}))
+        request['return_folder']='processes/'+self.doc['id']+'/analysis/retrieval/'+request['request_id']+'/inbox'
+        request['agent_prompt']='Preserved historical private prompt '+marker
+        relative=write_request(self.root,request);path=self.root/'processes'/self.doc['id']/relative
+        original=path.read_bytes();active=request_prompt(request)
+        self.assertIn('immutable historical',active);self.assertNotIn(marker,active)
+        validate_binding(request,self.doc);self.assertEqual(path.read_bytes(),original)
+        self.assertEqual(write_request(self.root,request),relative)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -34,7 +77,7 @@ class RetrievalTests(unittest.TestCase):
 
     @staticmethod
     def provenance():
-        return {'origin': 'configured_mcp', 'tool': 'approved_read_member',
+        return {'origin': 'zowe_cli', 'tool': 'zowe files view ds',
                 'locator': 'APP.COPYLIB(EMPLOYEE)', 'retrieved_at': '2026-10-06T12:00:00Z'}
 
     def response(self, items, **changes):
@@ -45,8 +88,9 @@ class RetrievalTests(unittest.TestCase):
     def test_request_is_immutable_idempotent_and_bound(self):
         self.assertEqual(self.relative, write_request(self.root, self.request))
         self.assertEqual(self.request, build_request(self.doc))
-        self.assertIn(self.request['return_folder'], self.request['copilot_prompt'])
-        self.assertIn('Do not analyze', self.request['copilot_prompt'])
+        self.assertIn(self.request['return_folder'], self.request['agent_prompt'])
+        self.assertIn('Use Claude Code', self.request['agent_prompt'])
+        self.assertIn('after the Coordinator', self.request['agent_prompt'])
         validate_binding(self.request, self.doc)
         for change in ({'id': 'OTHER'}, {'source_files': {'new': sha('new')}},
                        {'copilot_iteration': 3}, {'artifact_hashes': {}}):
@@ -152,7 +196,7 @@ class RetrievalTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             inspect_response(self.root, self.request)
         self.response([item])
-        for field, value in (('copilot_prompt', 'changed'), ('return_folder', 'other'),
+        for field, value in (('agent_prompt', 'changed'), ('return_folder', 'other'),
                              ('source_generation', '0' * 64)):
             changed = {**self.request, field: value}
             with self.assertRaises(ValidationError):
@@ -284,6 +328,88 @@ class RetrievalTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             inspect_response(self.root, self.request)
 
+    def test_new_requests_bind_claude_role_and_remove_copilot_dependency(self):
+        self.assertEqual(self.request['schema_version'], 3)
+        self.assertEqual(self.request['retrieval_agent'], 'claude')
+        self.assertNotIn('copilot_prompt', self.request)
+        prompt = request_prompt(self.request)
+        self.assertEqual(prompt, self.request['agent_prompt'])
+        self.assertIn('approved typed Db2 MCP', prompt)
+        self.assertIn('read-only Zowe CLI', prompt)
+        self.assertIn('Never submit a job', prompt)
+        self.assertNotIn('Copilot', prompt)
+        self.assertNotIn('no MCP access', prompt)
+        for field, value in (('retrieval_agent', 'copilot'), ('schema_version', True),
+                             ('schema_version', 4), ('agent_prompt', 'Execute all jobs')):
+            with self.subTest(field=field), self.assertRaises(ValidationError):
+                write_request(self.root, {**self.request, field: value})
+        with self.assertRaises(ValidationError):
+            write_request(self.root, {**self.request, 'copilot_prompt': prompt})
+
+    def test_private_need_prose_and_dynamic_operands_never_enter_active_prompts(self):
+        marker='123-45-6789';email='private@example.invalid'
+        needs=[{'kind':'program','name':marker,'reason':email,'source':email,'relationship':marker,'status':'dynamic_unknown'}]
+        current=build_request(self.doc,needs)
+        for version in (1,2,3):
+            request=current if version==3 else historical_request(self.doc,needs,version)
+            original=encode(request)
+            prompt=request_prompt(request)
+            self.assertNotIn(marker,prompt);self.assertNotIn(email,prompt)
+            self.assertIn('IDENTITY_SHA256_',prompt);self.assertIn('UNAPPROVED_MODEL_METADATA',prompt)
+            self.assertEqual(encode(request),original)
+            if version<3:self.assertIn(marker,request['copilot_prompt'])
+        freeform=build_request(self.doc,[{'kind':'program','name':'ELIGIBLE','reason':marker+' '+email,
+                                        'source':email,'relationship':marker}])
+        self.assertNotIn(marker,encode(freeform).decode());self.assertNotIn(email,encode(freeform).decode())
+        self.assertEqual(freeform['needs'][0]['name'],'ELIGIBLE')
+        self.assertNotIn('zowe files view ds',freeform['agent_prompt'])
+        self.assertIn('download-to-exact-inbox',freeform['agent_prompt'])
+
+    def test_typed_cics_metadata_is_preserved_but_dynamic_found_receipts_cannot_clear_it(self):
+        from workbench.retrieval import model_need
+        kinds=('cics_file_definition','cics_program_definition','cics_mapset_definition','cics_tdqueue_definition',
+               'cics_tsmodel_definition','cics_tsqueue','cics_channel','cics_container','cics_system')
+        for kind in kinds:
+            need={'kind':kind,'name':'ACTUAL','reason':'Private source explanation'}
+            self.assertEqual(model_need(need)['kind'],kind)
+            self.assertTrue(model_need(need)['name'].startswith('IDENTITY_SHA256_'))
+            self.assertEqual(model_need(need,qualified=True)['name'],'ACTUAL')
+        self.request=build_request(self.doc,[{'kind':'program','name':'123-45-6789','reason':'Dynamic operand','status':'dynamic_unknown'}])
+        write_request(self.root,self.request);self.inbox=self.root/self.request['return_folder']
+        item=self.item('       IDENTIFICATION DIVISION.\n       PROGRAM-ID. GUESSED.\n','GUESSED.cbl')
+        self.response([item])
+        with self.assertRaisesRegex(ValidationError,'guessed file'):inspect_response(self.root,self.request)
+
+    def test_historical_claude_routing_preserves_issued_bytes_and_response_identity(self):
+        needs = [{k: v for k, v in self.request['needs'][0].items() if k != 'need_id'}]
+        for version in (1, 2):
+            with self.subTest(version=version):
+                request = historical_request(self.doc, needs, version)
+                relative = write_request(self.root, request)
+                path = self.root / 'processes' / self.doc['id'] / relative
+                original = path.read_bytes()
+                prompt = request_prompt(request)
+                self.assertIn('immutable historical retrieval request', prompt)
+                self.assertIn('Use Claude Code', prompt)
+                self.assertIn(request['request_id'], prompt)
+                self.assertIn(request['return_folder'], prompt)
+                self.assertIn('neither reissues the request', prompt)
+                self.assertNotIn('Use GitHub Copilot', prompt)
+                validate_binding(request, self.doc)
+                self.assertEqual(relative, write_request(self.root, request))
+                self.assertEqual(path.read_bytes(), original)
+                self.assertIn('Use GitHub Copilot', request['copilot_prompt'])
+
+    def test_new_nonguided_source_requests_require_zowe_provenance(self):
+        item = self.item()
+        for provenance in ({**self.provenance(), 'origin': 'configured_mcp', 'tool': 'read_member'},
+                           {**self.provenance(), 'tool': 'zowe jobs submit ds'}):
+            self.response([{**item, 'provenance': provenance}])
+            with self.subTest(provenance=provenance), self.assertRaisesRegex(ValidationError, 'Zowe CLI'):
+                inspect_response(self.root, self.request)
+        self.response([item])
+        self.assertTrue(inspect_response(self.root, self.request)['complete'])
+
 
 class GuidedRetrievalTests(unittest.TestCase):
     """Fictional prepared processes pull evidence without inventing first exports."""
@@ -315,16 +441,16 @@ class GuidedRetrievalTests(unittest.TestCase):
 
     def test_zero_source_batch_roots_get_exact_hash_bound_workspace_and_typed_transports(self):
         request = self.request()
-        self.assertEqual(request['schema_version'], 2)
+        self.assertEqual(request['schema_version'], 3)
         self.assertEqual(request['source_generation'], sha(encode({})))
         self.assertEqual(request['workspace'], str(self.root))
-        self.assertIn(encode({'workspace': str(self.root), 'return_inbox': str(self.root / request['return_folder'])}).decode(), request['copilot_prompt'])
-        self.assertNotIn('WORKSPACE/', request['copilot_prompt'])
-        self.assertIn('Mandatory transport boundary: use approved Zowe CLI', request['copilot_prompt'])
-        self.assertIn('typed read-only Db2 MCP', request['copilot_prompt'])
-        self.assertIn('Claude Code has no MCP access', request['copilot_prompt'])
-        self.assertIn('"origin":"zowe_cli","tool":"zowe files view ds"', request['copilot_prompt'])
-        self.assertIn('Db2 receipts instead require origin=configured_mcp', request['copilot_prompt'])
+        self.assertIn(encode({'workspace': str(self.root), 'return_inbox': str(self.root / request['return_folder'])}).decode(), request['agent_prompt'])
+        self.assertNotIn('WORKSPACE/', request['agent_prompt'])
+        self.assertIn('Mandatory transport boundary: use approved Zowe CLI', request['agent_prompt'])
+        self.assertIn('typed read-only Db2 MCP', request['agent_prompt'])
+        self.assertIn('Claude Code uses only those approved MCP servers', request['agent_prompt'])
+        self.assertIn('"origin":"zowe_cli","tool":"zowe files download data-set"', request['agent_prompt'])
+        self.assertIn('Db2 receipts instead require origin=configured_mcp', request['agent_prompt'])
         validate_binding(request, self.doc)
         write_request(self.root, request)
         self.assertEqual(inspect_response(self.root, request)['status'], 'WAITING_FOR_RESPONSE')
@@ -354,8 +480,8 @@ class GuidedRetrievalTests(unittest.TestCase):
         request = self.request(guided_workspace=workspace)
         from pathlib import PureWindowsPath
         exact = str(PureWindowsPath(workspace) / request['return_folder'])
-        self.assertIn(encode({'workspace': workspace, 'return_inbox': exact}).decode(), request['copilot_prompt'])
-        self.assertNotIn('WORKSPACE/', request['copilot_prompt'])
+        self.assertIn(encode({'workspace': workspace, 'return_inbox': exact}).decode(), request['agent_prompt'])
+        self.assertNotIn('WORKSPACE/', request['agent_prompt'])
         validate_binding(request, {**self.doc, 'guided_workspace': workspace})
 
     def test_unsupported_guided_marker_or_relative_workspace_fails_closed(self):
@@ -401,8 +527,8 @@ class GuidedRetrievalTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValidationError, 'Zowe CLI'):
                     inspect_response(self.root, request)
         # Prior CICS schema-2 transport remains byte-compatible and separately governed.
-        legacy = build_request({'id': 'HISTORICAL', 'source_files': {}, 'cics_contract_version': 1}, request['needs'] and [
-            {k: v for k, v in request['needs'][0].items() if k != 'need_id'}])
+        legacy = historical_request({'id': 'HISTORICAL', 'source_files': {}, 'cics_contract_version': 1}, request['needs'] and [
+            {k: v for k, v in request['needs'][0].items() if k != 'need_id'}], 2)
         self.returned(legacy, text, {**self.zowe(), 'origin': 'configured_mcp', 'tool': 'approved_read_member'})
         self.assertTrue(inspect_response(self.root, legacy)['complete'])
 
@@ -430,7 +556,7 @@ class GuidedRetrievalTests(unittest.TestCase):
         for marker, digest in ((None, '6de835a92440245100d4ca0a1b8659a2528470977eb484859a6419b2785979ef'),
                                (1, 'e05f83629bb01d23c8f52fc8f07af918c3ea118dadb11728d9a7b645d832fd93')):
             current = {**doc, **({'cics_contract_version': marker} if marker else {})}
-            request = build_request(current, needs)
+            request = historical_request(current, needs, 2 if marker else 1)
             self.assertNotIn('workspace', request)
             self.assertEqual(sha(encode(request)), digest)
             validate_binding(request, current)

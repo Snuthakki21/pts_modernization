@@ -431,7 +431,7 @@ def validate_snapshot(text,provenance=None):
     require(consistency['status']!='consistent' or evidence,'Consistent snapshot requires actual external consistency evidence; ordinary WITH UR reads do not establish it')
     origin=value['provenance'];require(isinstance(origin,dict) and set(origin)=={'origin','tool','locator','retrieved_at'},'Snapshot provenance requires exact read identity and timestamp')
     _timestamp(origin['retrieved_at']);require(origin['locator']==name,'Snapshot locator differs from table identity')
-    if value['kind']=='DB2_RECORD_SNAPSHOT':require(origin['origin']=='configured_mcp' and origin['tool']=='db2_read_table_rows','Db2 records require the approved read-only Copilot MCP export')
+    if value['kind']=='DB2_RECORD_SNAPSHOT':require(origin['origin']=='configured_mcp' and origin['tool'] in {'db2_read_table_rows','db2_export_snapshot_to_inbox'},'Db2 records require the approved read-only MCP export')
     else:require(origin['origin']=='local_sqlite' and origin['tool']=='workbench.database.sqlite_snapshot','SQLite snapshot must come from the registered local read helper')
     if provenance is not None:
         require(isinstance(provenance,dict) and all(provenance.get(k)==v for k,v in origin.items()),'Snapshot provenance differs from accepted retrieval evidence')

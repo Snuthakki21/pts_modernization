@@ -42,7 +42,7 @@ class TextEncodingTests(unittest.TestCase):
             self.assertFalse(comparison['observed_legacy_parity'])
             self.assertTrue(adversarial_review(program, code, suite)['passed'])
 
-    def test_new_cli_fixtures_use_current_randomized_twenty_state_contract(self):
+    def test_new_cli_fixtures_use_current_randomized_v5_state_contract(self):
         env = dict(os.environ);env.pop('PYTHONPATH', None)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory).resolve()
@@ -56,9 +56,9 @@ class TextEncodingTests(unittest.TestCase):
                                         env=env, cwd=folder, capture_output=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', 'replace'))
                 suite = json.loads(output.read_bytes());suites.append(suite)
-                self.assertEqual(suite['version'], 4)
-                self.assertEqual(suite['coverage']['logic_validation']['minimum_distinct_records_per_logic'], 20)
-                self.assertTrue(all(count >= 20 for count in suite['coverage']['randomized_record_counts'].values()))
+                self.assertEqual(suite['version'], 5)
+                self.assertEqual(suite['coverage']['logic_validation']['minimum_distinct_records_per_logic'], 64)
+                self.assertTrue(all(count >= 64 for count in suite['coverage']['randomized_record_counts'].values()))
                 self.assertTrue(suite['coverage']['complete'])
                 program = analyze_program(source.name, source.read_bytes().decode('utf-8'),
                                           {'LAYOUT.cpy':(folder/'LAYOUT.cpy').read_bytes().decode('utf-8')})
@@ -167,8 +167,9 @@ class TextEncodingTests(unittest.TestCase):
                     program['target_contract_version'] = 2
                     self.assertEqual(suite['contract_hash'], sha(encode({'source':semantic_hash, 'seed':suite['seed'],
                                                                        'rules':program['rules'], 'fields':program['fields'],
-                                                                       'target_contract_version':2, 'fixture_contract_version':4,
-                                                                       'min_records_per_logic':20, 'budget':256})))
+                                                                       'target_contract_version':2, 'fixture_contract_version':5,
+                                                                       'min_records_per_logic':64, 'budget':4096,
+                                                                       'validation_policy':suite['coverage']['logic_validation']['validation_policy']})))
                     code = emit_program(program)
                     self.assertEqual(verify_program(program, code, suite)['differences'], [])
                     self.assertTrue(adversarial_review(program, code, suite)['passed'])

@@ -3,6 +3,7 @@ from .domain import path_is_link
 import argparse
 from io import BytesIO
 import json
+import re
 from pathlib import Path
 import shlex
 import time
@@ -160,6 +161,55 @@ def bundle_process(coordinator, pid):
         return str(path)
 
 
+def _recorded_number(value):
+    if value is None or type(value) in (int,float):return value
+    if isinstance(value,str) and re.fullmatch(r'[0-9]+(?:\.[0-9]+)?',value):return value
+    return None
+
+
+def _model_error(error):
+    # Exceptions may include source statements, private filenames or driver
+    # values. Expose fixed categories and a digest, never arbitrary error prose.
+    text=str(error)
+    topics=[label for label in ('manifest hash','manifest','missing','layout','reviewer','already consumed',
+            'source','retrieval','requirements','hash','workspace','command','timeout','configuration')
+            if label in text.casefold()]
+    return {'error':'Local validation failed ('+', '.join(topics or ['private input'])+
+                    '); private details are withheld. Preserve evidence and use deterministic local diagnostics.',
+            'error_sha256':sha(text)}
+
+
+def _model_economics(model):
+    """Explicit measurement fields, never recursive source/spec/prose values."""
+    usage=model.get('usage') or {}
+    accounts=(usage.get('credits') or {}).get('accounts',[])
+    credits=[{'account_reference_sha256':sha(json.dumps({key:row.get(key) for key in ('provider','account')},sort_keys=True)),
+              'credits_used':_recorded_number(row.get('credits_used'))} for row in accounts]
+    return {'receipt_count':model.get('receipt_count',0),'learning_count':model.get('learning_count',0),
+            'integrity_error_count':len(model.get('integrity_errors',[])),
+            'forecast_error_count':len(model.get('forecast_errors',[])),
+            'credits':{'status':'RECORDED' if credits else 'UNKNOWN','accounts':credits},
+            'budgets':[{'account_reference_sha256':sha(json.dumps({key:row.get(key) for key in ('provider','account')},sort_keys=True)),
+                        **{key:_recorded_number(row.get(key)) for key in ('remaining','tracked_since_snapshot','conditional_remaining')}}
+                       for row in usage.get('budgets',[])],
+            'processes':[{'work':{key:_recorded_number((row.get('work') or {}).get(key))
+                                 for key in ('recorded_detail_hours','total_effort_hours')},
+                          'timing':{key:_recorded_number((row.get('timing') or {}).get(key))
+                                    for key in ('elapsed_hours','service_hours')}} for row in model.get('processes',[])],
+            'boundary':'Actual attributed measurements only; private account labels and notes stay local.'}
+
+
+def _model_executive(model):
+    if not model:return None
+    return {'status':model['status'],'observed_mainframe_parity':model.get('observed_mainframe_parity') is True,
+            'scope':{key:_recorded_number((model.get('scope') or {}).get(key))
+                     for key in ('source_files','physical_lines','in_scope_lines','excluded_lines','non_executable_lines','applicable_lines')},
+            'progress':{key:_recorded_number((model.get('progress') or {}).get(key))
+                        for key in ('converted_lines','blocked_lines','unverified_lines','verification_percent','open_blockers')},
+            'before_after':[{'before':_recorded_number(row.get('before')),'after':_recorded_number(row.get('after'))}
+                            for row in model.get('before_after',[])[:7]]}
+
+
 def summary(coordinator, doc, timed_out=False):
     pid = doc['id']; root = coordinator.process_root(pid)
     result = {k: doc[k] for k in ('id', 'status', 'packet_hash', 'packet_issued', 'packet_imported')}
@@ -171,23 +221,38 @@ def summary(coordinator, doc, timed_out=False):
                    'sme_html_return_inbox': str(root / HTML_INBOX),
                    'continuation': shlex.join(['python', '-m', 'workbench.runner', 'resume', pid,
                                               '--workspace', str(coordinator.root), '--reviewer', 'ACTUAL REVIEWER'])})
-    result['economics']=coordinator.economics(pid)
+    result['economics']=_model_economics(coordinator.economics(pid))
     accepted=accepted_executive(coordinator,doc)
     primary=accepted['executive_report']
     result['primary_report']=str(root/primary) if primary else None
-    result['executive']=accepted['executive']
+    result['executive']=_model_executive(accepted['executive'])
     result['supporting_reports']=[path for path in result['reports'] if path!=result['primary_report']] if primary else []
     if primary:result['reports']=[result['primary_report']]
     if doc.get('factory_contract_version'):
-        from .factory import bounded_view
-        result['factory']=bounded_view(doc)
+        result['factory']={'obligation_count':len(doc.get('blockers',[])),
+                           'transaction_count':len(doc.get('transactions',[])),
+                           'source_file_count':len(doc['source_files']),
+                           'dependency_node_count':len((doc.get('lineage') or {}).get('nodes',[])),
+                           'dependency_edge_count':len((doc.get('lineage') or {}).get('edges',[])),
+                           'fixture_contract_version':doc.get('fixture_contract_version'),
+                           'minimum_distinct_records_per_logic':doc.get('logic_validation_min_records')}
     if doc['status'] == 'WAITING_SME':
         result['message'] = 'Deliver the issued checklist for the one SME review. Preserve Context/questions. Place the actual returned HTML in sme_html_return_inbox or workbook in sme_return_inbox, exactly one format, and resume with reviewer attribution. Never generate SME answers.'
     elif doc['status']=='WAITING_REQUIREMENTS':result['message']='Open the UI requirements breakdown, choose Yes/No and Save. The saved Markdown is the conversion input. Default Yes is scope, not SME approval.'
     elif doc['status']=='WAITING_DISCOVERY':result['message']='Read-only object discovery is incomplete. Inspect lineage gaps, supply original missing exports or local connector configuration, then resume. Conversion and the SME packet have not started.'
-    elif doc['status']=='WAITING_COPILOT':result['message']='Claude Code reads local evidence and performs analysis, development, testing and review without MCP. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE. Copilot retrieves missing files only.'
+    elif doc['status']=='WAITING_COPILOT':result['message']='Claude Code uses approved metadata and sanitized source views for analysis, development, testing and review. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE. Missing evidence uses approved read-only Db2 MCP and Zowe CLI; private records remain in local deterministic verification.'
     elif timed_out: result['message'] = 'Bounded wait expired; evidence is preserved. Inspect status and run resume to continue.'
     elif doc['status'] in STOPPED: result['message'] = 'Stage stopped; inspect blockers and event ledger, correct the cause, then explicitly resume.'
+    # CLI output can be consumed by Claude even for a historical process.
+    # Preserve private originals in the ledger; emit no source statement/prose.
+    result['blockers']=[{'kind':blocker.get('kind') if re.fullmatch(r'[a-z_]{1,64}',str(blocker.get('kind',''))) else 'unverified',
+                        'evidence_sha256':sha(json.dumps(blocker,sort_keys=True)),
+                        'message':'Private source-derived gap; inspect locally through deterministic evidence checks',
+                        'source_refs':[{'source_hash':doc['source_files'][ref['path']],
+                                        **{key:ref[key] for key in ('start_line','end_line') if type(ref.get(key)) is int}}
+                                       for ref in blocker.get('source_refs',[]) if isinstance(ref,dict) and ref.get('path') in doc['source_files']]}
+                       for blocker in doc.get('blockers',[])]
+    result['data_policy']='METADATA_ONLY_PRIVATE_PROSE_WITHHELD'
     if doc.get('agent_transport')=='local_files':result['local_agent']=coordinator.local_agent_view(pid)
     return result
 
@@ -200,7 +265,7 @@ def parser():
         c.add_argument('--workspace', '--workspace-path', '--root', required=True, help='Workspace containing the read-only Endeavor export')
         if name in ('run', 'start'):
             c.add_argument('--manifest', '--manifest-path', required=True)
-            c.add_argument('--assistant',choices=['claude_files','agent','copilot_chat','deterministic','opt_in'],default=None,help='claude_files uses local analysis and Copilot retrieval only; Claude needs no MCP')
+            c.add_argument('--assistant',choices=['claude_files','agent','copilot_chat','deterministic','opt_in'],default=None,help='claude_files uses Claude approved read-only retrieval and local analysis; private source and records stay in deterministic local verification')
             c.add_argument('--select-requirements',action='store_true',help='Wait for explicit UI Yes/No scope Save before conversion')
             c.add_argument('--source-folder',help='Complete local or mounted export to snapshot without altering originals')
             c.add_argument('--process-notes',help='Original process Markdown to freeze as cited context')
@@ -250,6 +315,13 @@ def agent_command(args):
             else:result={'status':'DONE','result':coordinator.local_agent_action(args.process_id,action,payload)}
         finally:
             if coordinator:coordinator.close()
+    if result['status'] in ('REJECTED','INDETERMINATE'):
+        result={**result,**_model_error(result['error'])}
+    if result['status']=='DONE' and action=='measurement':
+        record=result['result'];document=record.get('document') or {}
+        result={**result,'result':{'id':record.get('id'),'kind':record.get('kind'),
+                                 'document':{'process_id':document.get('process_id')},
+                                 'receipt_sha256':sha(json.dumps(record,sort_keys=True))}}
     print(json.dumps(result,indent=2))
     return 3 if result['status']=='PENDING' else 2 if result['status'] in ('REJECTED','INDETERMINATE') else 0
 
@@ -266,7 +338,9 @@ def main(argv=None):
         coordinator = Coordinator(args.workspace)
         if args.command=='measure':
             data=Path(args.file).read_bytes();require(len(data)<=65536,'Measurement exceeds 64 KiB')
-            print(json.dumps(coordinator.record_measurement(decode(data,65536)),indent=2));return 0
+            record=coordinator.record_measurement(decode(data,65536))
+            print(json.dumps({'id':record.get('id'),'kind':record.get('kind'),
+                              'receipt_sha256':sha(json.dumps(record,sort_keys=True))},indent=2));return 0
         if args.command in ('run', 'start'): doc = start_process(coordinator, args.manifest,args.assistant,args.source_folder,args.process_notes,args.select_requirements)
         else: doc = coordinator.ledger.get(args.process_id)
         if args.command == 'import': doc = import_return(coordinator, doc['id'], args.file, args.reviewer)
@@ -284,7 +358,7 @@ def main(argv=None):
         print(json.dumps(result, indent=2))
         return 3 if timed_out else 2 if doc['status'] in STOPPED else 0
     except (ValidationError, OSError) as exc:
-        print(json.dumps({'error': str(exc), 'continuation': 'Inspect status/layout and correct the named cause; preserve all existing evidence.'}, indent=2))
+        print(json.dumps({**_model_error(exc), 'continuation': 'Inspect status/layout and correct the named cause through deterministic local checks; preserve all existing evidence.'}, indent=2))
         return 2
     finally:
         if coordinator: coordinator.close()

@@ -1,4 +1,4 @@
-"""Claude operates on files; Copilot retrieves missing evidence without coding."""
+"""Claude retrieves approved evidence and operates through one Coordinator."""
 from pathlib import Path
 import json
 import tempfile
@@ -20,6 +20,185 @@ class LocalAgentFixture(unittest.TestCase):
         return self.c.create(MANIFEST,files,assistant_mode='claude_files')
 
 class LocalAgentTests(LocalAgentFixture):
+    def test_opaque_identities_resolve_privately_and_actual_target_comparison_still_runs(self):
+        from copy import deepcopy
+        from test_copilot_handoff import CopilotHandoffTests
+        from workbench.copilot import opaque_reference
+        from workbench.fixtures import plan_cases,verify_program
+        from workbench.target import emit_program
+        marker='123-45-6789';path='sources/'+marker+'.cbl'
+        files={'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n',path:COBOL,
+               'controls/'+marker+'.ctl':'* fictional unrelated export\n'}
+        self.c.create(MANIFEST,files,assistant_mode='claude_files');self.c.start('process-a');self.c.advance('process-a')
+        task=self.c.agent_task('process-a');guide=self.c.save_process_guide('process-a')
+        self.assertNotIn(marker,encode(task).decode()+Path(guide['markdown']['path']).read_text())
+        self.assertEqual(set(task['lineage']['sources']),{opaque_reference('SOURCE',p) for p in files})
+        self.assertIn('SOURCE_<hash>',task['return_contract']['source_ref']['path'])
+        submitted=CopilotHandoffTests().returned(task)
+        submitted['source_refs']=[{key:value for key,value in next(ref for ref in task['source_excerpts']
+            if ref['path']==opaque_reference('SOURCE',path)).items() if key!='text'}]
+        actual_rule=self.c.ledger.get('process-a')['analysis']['rules'][0]['id']
+        submitted['rule_classification_defaults']={opaque_reference('PROGRAM','ELIGIBLE'):{'category':'technical_logic','reason':'Fictional explicitly reviewed classification'}}
+        submitted['rule_classifications']={opaque_reference('RULE',actual_rule):{'category':'unclassified','reason':'Business meaning remains unverified'}}
+        for key,value in [('path',path),('path','SOURCE_'+'0'*64),('source_hash','0'*64),('end_line',999999)]:
+            with self.subTest(key=key,value=value):
+                invalid=deepcopy(submitted);invalid['source_refs'][0][key]=value
+                before=self.c.ledger.get('process-a')
+                with self.assertRaises(ValidationError):self.c.submit_agent_analysis('process-a',invalid)
+                self.assertEqual(self.c.ledger.get('process-a'),before)
+        self.c.submit_agent_analysis('process-a',submitted)
+        doc=self.c.ledger.get('process-a');accepted=doc['llm']
+        self.assertEqual(accepted['source_refs'][0]['path'],path)
+        self.assertIn('ELIGIBLE',accepted['analysis']['rule_classification_defaults'])
+        self.assertIn(actual_rule,accepted['analysis']['rule_classifications'])
+        self.assertEqual(self.c.sources(doc),files)
+        program=doc['analysis']['programs']['ELIGIBLE'];program={**program,'target_contract_version':2}
+        suite=plan_cases(program,472019,budget=4096,min_records_per_logic=64,fixture_contract_version=5)
+        comparison=verify_program(program,emit_program(program),suite)
+        self.assertEqual(comparison['differences'],[]);self.assertGreater(comparison['matched_count'],64)
+        self.assertFalse(comparison['observed_legacy_parity'])
+
+    def test_saved_private_requirements_are_consumed_locally_and_never_advertised_to_claude(self):
+        marker='123-45-6789';source=COBOL.replace('DECISION PIC X.','DECISION PIC X(11).').replace('MOVE "Y"','MOVE "'+marker+'"')
+        self.c.prepare_process(MANIFEST,{'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n','ELIGIBLE.cbl':source})
+        self.c.start('process-a');self.c.advance('process-a');scope=self.c.requirements_view('process-a')
+        self.c.save_requirements('process-a',{'catalog_hash':scope['catalog_hash'],'revision':scope['revision'],
+            'excluded_ids':[],'saved_by':'Fictional synthetic operator'})
+        self.c.advance('process-a');doc=self.c.ledger.get('process-a')
+        canonical=self.c.artifact('process-a',doc['requirements_artifact']).read_bytes()
+        self.assertIn(marker,canonical.decode())
+        task=self.c.agent_task('process-a');view=self.c.local_agent_view('process-a');guide=self.c.save_process_guide('process-a')
+        self.assertIsNone(view['requirements_file']);self.assertNotIn('path',task['requirements'])
+        self.assertFalse(task['requirements']['private_contents_allowed'])
+        self.assertEqual(task['requirements']['sha256'],sha(canonical))
+        serialized=encode(task).decode()+encode(view).decode()+Path(guide['markdown']['path']).read_text()+guide['handoffs']['claude']['prompt']
+        self.assertNotIn(marker,serialized);self.assertNotIn(doc['requirements_artifact'],guide['handoffs']['claude']['prompt'])
+        self.assertEqual(self.c.artifact('process-a',doc['requirements_artifact']).read_bytes(),canonical)
+
+    def test_old_metadata_task_without_opaque_identity_contract_stays_frozen_until_refresh(self):
+        from workbench.copilot import build_task
+        from workbench.layout import output_path
+        from workbench.domain import write_new
+        self.create();self.c.start('process-a');self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a');legacy_doc={**doc,'agent_transport':'historical'}
+        old=build_task(legacy_doc,self.c.sources(doc),doc['analysis'])
+        old['data_policy']={'version':1,'mode':'METADATA_AND_HASH_REFERENCES_ONLY'}
+        old['task_hash']=sha(encode({k:v for k,v in old.items() if k!='task_hash'}))
+        raw=encode(old);relative='analysis/copilot-task-'+sha(raw)+'.json'
+        write_new(output_path(self.root,'process-a',relative),raw);self.c.register(doc,relative)
+        doc['copilot_task_artifact']=relative;self.c.ledger.save(doc)
+        view=self.c.local_agent_view('process-a');guide=self.c.save_process_guide('process-a')
+        self.assertIsNone(view['task_file']);self.assertTrue(view['historical_private_task_blocked'])
+        self.assertIsNone(guide['handoffs']['claude']);self.assertEqual(guide['next_action']['action'],'refresh')
+        self.c.local_agent_action('process-a','refresh',{})
+        self.assertEqual(self.c.agent_task('process-a')['data_policy']['source_identity_mode'],'OPAQUE_HASH_REFERENCES')
+        self.assertEqual(self.c.artifact('process-a',relative).read_bytes(),raw)
+
+    def test_agent_api_never_returns_private_rules_obligations_context_or_raw_source(self):
+        from workbench.api import create_app
+        from fastapi.testclient import TestClient
+        marker='123-45-6789';inbox=self.root/'knowledge/inbox';inbox.mkdir(parents=True)
+        (inbox/'private-notes.md').write_text('# Context\n'+marker+'\n')
+        source=COBOL.replace('MOVE "Y"','MOVE "'+marker+'"').replace('GOBACK.',"DISPLAY '"+marker+"'.\nGOBACK.")
+        self.c.create(MANIFEST,{'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n','ELIGIBLE.cbl':source},assistant_mode='claude_files')
+        self.c.start('process-a');self.c.advance('process-a');self.c.close()
+        app=create_app(self.root);client=TestClient(app,base_url='http://127.0.0.1:8765')
+        try:
+            for suffix in ('agent/task','agent/lineage','agent/rules','agent/obligations','agent/context?document_id=NOTE_1&start_line=1&end_line=2'):
+                response=client.get('/api/process/process-a/'+suffix)
+                self.assertEqual(response.status_code,200,(suffix,response.text));self.assertNotIn(marker,response.text)
+            response=client.get('/api/process/process-a/agent/source?path=ELIGIBLE.cbl')
+            self.assertEqual(response.status_code,400);self.assertNotIn(marker,response.text)
+        finally:client.close();app.state.coordinator.close()
+        self.c=Coordinator(self.root)
+
+    def test_cli_errors_expose_only_fixed_categories_and_digests(self):
+        from workbench.runner import _model_error
+        marker='123-45-6789 private@example.invalid'
+        result=_model_error(ValidationError('source retrieval '+marker))
+        self.assertNotIn(marker,json.dumps(result));self.assertNotIn('private@example.invalid',json.dumps(result))
+        self.assertIn('retrieval',result['error']);self.assertIn('source',result['error'])
+        self.assertEqual(result['error_sha256'],sha('source retrieval '+marker))
+
+    def test_historical_task_with_private_context_is_not_advertised_after_human_packet(self):
+        from test_copilot_handoff import CopilotHandoffTests
+        marker='123-45-6789'
+        source=COBOL.replace('PROCEDURE DIVISION USING INPUT-RECORD.',
+                            '*> '+marker+'\nPROCEDURE DIVISION USING INPUT-RECORD.')
+        self.c.create(MANIFEST,{'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n','ELIGIBLE.cbl':source},assistant_mode='copilot_chat')
+        self.c.start('process-a');self.c.advance('process-a')
+        task=self.c.agent_task('process-a');self.assertIn(marker,encode(task).decode())
+        guide=self.c.save_process_guide('process-a')
+        self.assertTrue(guide['historical_private_task_blocked']);self.assertIsNone(guide['handoffs']['claude'])
+        self.assertEqual(guide['next_action']['action'],'refresh')
+        self.c.submit_agent_analysis('process-a',CopilotHandoffTests().returned(task));self.c.advance('process-a')
+        doc=self.c.ledger.get('process-a');self.assertTrue(doc['packet_issued'])
+        relative=doc['copilot_task_artifact'];original=self.c.artifact('process-a',relative).read_bytes()
+        view=self.c.local_agent_action('process-a','inspect',{})
+        self.assertIsNone(view['task_file']);self.assertTrue(view['historical_private_task_blocked'])
+        self.assertEqual(self.c.artifact('process-a',relative).read_bytes(),original)
+        self.assertEqual(self.c.ledger.get('process-a'),doc)
+
+    def test_private_missing_receipt_reason_is_local_and_does_not_reissue_or_leak(self):
+        self.create(True);self.c.start('process-a');self.c.advance('process-a')
+        view=self.c.local_agent_action('process-a','inspect',{})
+        request=view['retrieval'];folder=self.root/request['return_folder'];marker='123-45-6789'
+        provenance={'origin':'zowe_cli','tool':'zowe files download data-set','locator':'APP.COBOL(ELIGIBLE)',
+                    'retrieved_at':'2026-10-08T00:00:00Z'}
+        response={'request_id':request['request_id'],'items':[{'need_id':need['need_id'],'status':'NOT_FOUND',
+                  'reason':marker,'provenance':provenance} for need in request['needs']]}
+        (folder/'response.json').write_bytes(encode(response))
+        result=self.c.local_agent_action('process-a','continue',{})
+        self.assertNotIn(marker,json.dumps(result));self.assertEqual(result['retrieval_state']['missing_item_count'],len(request['needs']))
+        self.assertIn(marker,json.dumps(self.c.ledger.get('process-a')['retrieval_request']))
+        state=self.c.ledger.get('process-a')
+        for _ in range(3):
+            repeat=self.c.local_agent_action('process-a','continue',{})
+            self.assertNotIn(marker,json.dumps(repeat));self.assertEqual(repeat['retrieval']['request_id'],request['request_id'])
+        self.assertEqual(self.c.ledger.get('process-a'),state)
+
+    def test_private_dynamic_lookup_and_unsupported_display_stay_out_of_model_views(self):
+        from workbench.runner import summary
+        markers=('123-45-6789','private@example.invalid')
+        for index,operand in enumerate(markers):
+            for statement in ("EXEC CICS LINK PROGRAM('"+operand+"') END-EXEC.","DISPLAY '"+operand+"'."):
+                with self.subTest(statement=statement):
+                    pid='private-'+str(index)+'-'+('link' if statement.startswith('EXEC') else 'display')
+                    manifest=MANIFEST.replace('process-a',pid)
+                    source=COBOL.replace('PROCEDURE DIVISION USING INPUT-RECORD.',
+                                        'PROCEDURE DIVISION USING INPUT-RECORD.\n    '+statement)
+                    self.c.create(manifest,{'JOBA.jcl':'//JOBA JOB\n//S010 EXEC PGM=ELIGIBLE\n','ELIGIBLE.cbl':source},assistant_mode='claude_files')
+                    self.c.start(pid);self.c.advance(pid)
+                    doc=self.c.ledger.get(pid)
+                    view=self.c.local_agent_action(pid,'inspect',{})
+                    before=encode(self.c.ledger.get(pid))
+                    self.assertNotIn(operand.upper(),json.dumps(view).upper());self.assertNotIn(operand.upper(),json.dumps(summary(self.c,doc)).upper())
+                    self.assertEqual(self.c.sources(doc)['ELIGIBLE.cbl'],source)
+                    if statement.startswith('EXEC'):
+                        self.assertIn(operand.upper(),json.dumps(doc['lineage']['closure']['gaps']).upper())
+                        self.assertTrue(view['retrieval']['needs']);self.assertFalse(doc['lineage']['closure']['complete'])
+                        if operand==markers[0]:
+                            self.assertTrue(any(need.get('status')=='dynamic_unknown' for need in view['retrieval']['needs']))
+                    self.assertEqual(encode(self.c.ledger.get(pid)),before)
+
+    def test_claude_task_guide_and_prompt_withhold_private_source_comments_literals_and_context(self):
+        ssn='123-45-6789';email='private@example.invalid'
+        source=COBOL.replace('PROCEDURE DIVISION USING INPUT-RECORD.',
+                            '*> '+ssn+' '+email+'\nPROCEDURE DIVISION USING INPUT-RECORD.').replace('MOVE "Y"','MOVE "'+email+'"')
+        files={'JOBA.jcl':"//JOBA JOB (TEST),'FICTIONAL'\n//S010 EXEC PGM=ELIGIBLE\n",'ELIGIBLE.cbl':source}
+        self.c.create(MANIFEST,files,assistant_mode='claude_files',prompt=ssn+' '+email)
+        self.c.start('process-a');self.c.advance('process-a')
+        task=self.c.agent_task('process-a');guide=self.c.save_process_guide('process-a')
+        serialized=encode(task).decode()+encode(guide).decode()+Path(guide['markdown']['path']).read_text()
+        self.assertNotIn(ssn,serialized);self.assertNotIn(email,serialized)
+        self.assertEqual(task['context_character_count'],0);self.assertFalse(task['context_complete'])
+        self.assertFalse(task['data_policy']['source_text_allowed']);self.assertFalse(task['data_policy']['business_records_allowed'])
+        self.assertTrue(all('text' not in excerpt for excerpt in task['source_excerpts']))
+        self.assertEqual(self.c.sources(self.c.ledger.get('process-a')),files)
+        from workbench.copilot import source_excerpt
+        with self.assertRaisesRegex(ValidationError,'approved sanitized view'):
+            source_excerpt(self.c.ledger.get('process-a'),files,'ELIGIBLE.cbl',1,2)
+
     def test_initial_source_directory_aliases_are_rejected_before_storage(self):
         for first,second in [('LIB/ELIGIBLE.cbl','lib/OTHER.cpy'),
                              ('caf\u00e9/ELIGIBLE.cbl','cafe\u0301/OTHER.cpy'),
@@ -41,16 +220,17 @@ class LocalAgentTests(LocalAgentFixture):
             self.c.start('process-a');self.c.advance('process-a')
         view=self.c.local_agent_action('process-a','inspect',{})
         self.assertEqual(view['status'],'WAITING_COPILOT')
-        self.assertEqual(view['host_roles']['analysis'],'Claude Code, local files only; no MCP')
+        self.assertEqual(view['host_roles']['analysis'],'Claude Code, accepted local evidence, development, testing and review')
         self.assertTrue(Path(view['task_file']).is_file())
-        self.assertEqual(self.c.agent_task('process-a')['host_roles']['copilot'],'Retrieve requested evidence only; no development, analysis, testing or review')
+        self.assertIn('approved Db2 MCP',self.c.agent_task('process-a')['host_roles']['retrieval'])
 
     def test_missing_program_produces_copyable_retrieval_prompt_and_known_inbox(self):
         self.create(True);self.c.start('process-a');self.c.advance('process-a')
         view=self.c.local_agent_action('process-a','inspect',{})
         self.assertEqual(view['status'],'WAITING_DISCOVERY')
-        self.assertIn('ELIGIBLE',view['retrieval']['copilot_prompt'])
-        self.assertIn('response.json',view['retrieval']['copilot_prompt'])
+        self.assertNotIn('ELIGIBLE',view['retrieval']['agent_prompt'])
+        self.assertEqual(view['retrieval']['metadata_identity_gate'],'UNAPPROVED_MODEL_METADATA')
+        self.assertIn('response.json',view['retrieval']['agent_prompt'])
         self.assertFalse(self.c.ledger.get('process-a')['packet_issued'])
 
     def test_running_service_consumes_local_command_without_second_writer_or_http(self):
@@ -69,7 +249,7 @@ if __name__=='__main__':unittest.main()
 class RetrievalLifecycleTests(LocalAgentFixture):
     def response(self, view, found=True, path='ELIGIBLE.cbl', text=COBOL):
         request=view['retrieval']; inbox=self.root/request['return_folder']
-        provenance={'origin':'configured_mcp','tool':'read_member','locator':'TEST.SOURCE(ELIGIBLE)','retrieved_at':'2026-10-06T12:00:00Z'}
+        provenance={'origin':'zowe_cli','tool':'zowe files view ds','locator':'TEST.SOURCE(ELIGIBLE)','retrieved_at':'2026-10-06T12:00:00Z'}
         items=[]
         for need in request['needs']:
             item={'need_id':need['need_id'],'status':'FOUND' if found else 'NOT_FOUND','provenance':provenance}
@@ -160,7 +340,7 @@ class RetrievalLifecycleTests(LocalAgentFixture):
         result=self.c.local_agent_action('process-a','continue',{})
         self.assertEqual(result['status'],'WAITING_DISCOVERY')
         self.assertEqual(result['retrieval_state']['status'],'CONSUMED')
-        self.assertTrue(result['retrieval_state']['missing_items'])
+        self.assertGreater(result['retrieval_state']['missing_item_count'],0)
         for _ in range(3):self.assertEqual(self.c.local_agent_action('process-a','continue',{})['retrieval'],view['retrieval'])
         self.assertFalse(self.c.ledger.get('process-a')['packet_issued'])
         self.assertTrue(any(b['kind']=='retrieval_unresolved' for b in self.c.ledger.get('process-a')['blockers']))
@@ -236,7 +416,8 @@ class RetrievalLifecycleTests(LocalAgentFixture):
                 self.assertEqual(self.c.sources(doc)[name+'.cbl'],source)
                 self.assertEqual(doc['source_files'][name+'.cbl'],sha(source))
                 self.assertEqual(doc['retrieval_unresolved'],{})
-                self.assertIn(name,self.c.agent_task(pid)['program_catalog'])
+                from workbench.copilot import opaque_reference
+                self.assertIn(opaque_reference('PROGRAM',name),self.c.agent_task(pid)['program_catalog'])
                 self.assertFalse(doc['packet_issued'])
 
     def test_requirements_save_invalidates_previous_retrieval_generation(self):

@@ -97,6 +97,7 @@ class Review500ReportingTests(unittest.TestCase):
     def coordinator(self):
         c = Mock()
         c.root = self.root; c.lock = threading.RLock(); c.ledger = self.ledger
+        c.economics.return_value = {'receipt_count':0,'learning_count':0,'usage':{'credits':{'accounts':[]},'budgets':[]},'processes':[]}
         c.process_root.side_effect = lambda pid: self.base
         def artifact(pid, name):
             path = self.base / name
@@ -337,7 +338,7 @@ class Review500ReportingTests(unittest.TestCase):
         self.assertEqual(sum(s.shape_type==MSO_SHAPE_TYPE.AUTO_SHAPE for s in diagram.shapes),6)
         self.assertEqual(sum(s.shape_type==MSO_SHAPE_TYPE.LINE for s in diagram.shapes),5)
         diagram_text='\n'.join(s.text for s in diagram.shapes if s.has_text_frame)
-        for label in ('Mainframe + Db2','Copilot retrieves','Process folder','Claude develops','Coordinator verifies','Target + report'):
+        for label in ('Mainframe + Db2','Claude retrieves','Process folder','Claude develops','Coordinator verifies','Target + report'):
             self.assertIn(label,diagram_text)
         for index,slide in enumerate(prs.slides):
             self.assertEqual(sum(s.has_table for s in slide.shapes),0 if index==0 else 1)

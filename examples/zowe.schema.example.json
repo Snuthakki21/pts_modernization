@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$version": 3,
+  "title": "Workbench clean Zowe project configuration",
+  "description": "Local subset for HTTPS z/OSMF, TSO settings and secure-store credentials; it grants no mainframe permissions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "profiles",
+    "defaults",
+    "autoStore"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "./zowe.schema.json",
+        "./zowe.schema.example.json"
+      ]
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_base",
+        "tso"
+      ],
+      "properties": {
+        "project_base": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "properties",
+            "secure"
+          ],
+          "properties": {
+            "type": {
+              "const": "base"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "secure": {
+              "const": [
+                "user",
+                "password"
+              ]
+            }
+          }
+        },
+        "DevPlex": {
+          "$ref": "#/$defs/zosmf"
+        },
+        "ProdPlex": {
+          "$ref": "#/$defs/zosmf"
+        },
+        "tso": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "properties"
+          ],
+          "properties": {
+            "type": {
+              "const": "tso"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "account",
+                "codePage",
+                "logonProcedure"
+              ],
+              "properties": {
+                "account": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "codePage": {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,6}$"
+                },
+                "logonProcedure": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z@$#][A-Za-z0-9@$#]{0,7}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "zosmf",
+        "tso"
+      ],
+      "properties": {
+        "base": {
+          "const": "project_base"
+        },
+        "zosmf": {
+          "enum": [
+            "DevPlex",
+            "ProdPlex"
+          ]
+        },
+        "tso": {
+          "const": "tso"
+        }
+      }
+    },
+    "autoStore": {
+      "const": true
+    }
+  },
+  "$defs": {
+    "zosmf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "properties"
+      ],
+      "properties": {
+        "type": {
+          "const": "zosmf"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "host",
+            "port",
+            "protocol",
+            "rejectUnauthorized"
+          ],
+          "properties": {
+            "host": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "protocol": {
+              "const": "https"
+            },
+            "rejectUnauthorized": {
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "defaults": {
+            "properties": {
+              "zosmf": {
+                "const": "DevPlex"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profiles": {
+            "required": [
+              "DevPlex"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "defaults": {
+            "properties": {
+              "zosmf": {
+                "const": "ProdPlex"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profiles": {
+            "required": [
+              "ProdPlex"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

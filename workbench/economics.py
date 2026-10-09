@@ -335,7 +335,11 @@ def usage_summary(receipts, as_of, process_id=None):
     for (provider,account,model,unit,provenance),value in totals.items():
         if provider.casefold().replace(' ','').replace('-','') in ('copilot','githubcopilot') and unit=='credits':copilot[(provider,account)]+=value
     credit_counts=[{'provider':provider,'account':account,'credits_used':number(value)} for (provider,account),value in sorted(copilot.items())]
+    all_credits=defaultdict(Decimal)
+    for (provider,account,model,unit,provenance),value in totals.items():
+        if unit=='credits':all_credits[(provider,account)]+=value
     return {'quantities':[dict(zip(('provider','account','model','unit','provenance'),key),quantity=number(value)) for key,value in sorted(totals.items())],
+            'credits':{'accounts':[{'provider':p,'account':a,'credits_used':number(v)} for (p,a),v in sorted(all_credits.items())],'status':'RECORDED' if all_credits else 'UNKNOWN','basis':'Actual attributed credits receipts only; providers and accounts remain separate. No token conversion or live account balance is inferred.'},
             'copilot_credits':{'accounts':credit_counts,'status':'RECORDED' if credit_counts else 'UNKNOWN','basis':'Actual attributed credits receipts only. Count is recorded usage for this scope; no token-to-credit estimate or live account total is inferred.'},
             'provider_calls':dict(calls),'budgets':budgets,'issues':[{'provider':k[0],'account':k[1],'process_id':k[2],'message':v} for k,v in credit_issues.items()]+[{'provider':k[0],'account':k[1],'model':k[2],'unit':k[3],'message':'Overlapping imported usage is ambiguous; affected totals withheld'} for k in sorted(conflicts)], 'primary_budget_unit':'credits','billing_state':'IMPORTED_SNAPSHOTS' if budgets else 'UNKNOWN',
             'boundary':'Distinct providers, accounts and units are never converted or summed together. Host Claude/Copilot usage and allowance are unknown without receipts. Imported totals must exclude calls already observed by this workbench; cached calls incur no repeated token credit.'}
@@ -432,8 +436,8 @@ def render_economics(model):
     contents+=''.join('<p class="boundary">Unresolved measurement: '+esc(w)+'</p>' for w in warnings)
     contents+=table(('Process','Status','Elapsed hours','Service hours','Pilot effort hours','Effort complete','Demonstration'),pilot_rows)
     contents+='<h2>One-time framework investment</h2><p>Recorded hours: '+esc(model['framework']['recorded_detail_hours'])+'. Service duration, work effort and elapsed waiting must not be added together.</p>'
-    credits=usage.get('copilot_credits',{}).get('accounts',[])
-    contents+='<h2>GitHub Copilot credits used</h2>'+ (table(('Account','Recorded credits used'),[(r['account'],r['credits_used']) for r in credits]) if credits else '<p>Unknown: no actual credits receipt for this scope.</p>')
+    credits=usage.get('credits',{}).get('accounts',[])
+    contents+='<h2>AI credits used</h2>'+ (table(('Provider','Account','Recorded credits used'),[(r['provider'],r['account'],r['credits_used']) for r in credits]) if credits else '<p>Unknown: no actual credits receipt for this scope.</p>')
     contents+='<h2>AI credits and observed usage</h2><p>Credits are the budget unit. Tokens do not establish credit charges.</p>'
     contents+=table(('Provider','Account','Model','Unit','Recorded amount','Provenance'),[(r['provider'],r['account'],r['model'],r['unit'],r['quantity'],r['provenance']) for r in usage['quantities']]) if usage['quantities'] else '<p>Recorded usage: Unknown.</p>'
     contents+=table(('Provider / account','Snapshot','Allowance (credits)','Consumed','Remaining at snapshot','Conditional remaining','Period ends'),[(r['provider']+' / '+r['account'],r['snapshot_at'],r['allowance'],r['consumed_at_snapshot'],r['remaining_at_snapshot'],r['conditional_remaining'],r['period_end']) for r in usage['budgets']]) if usage['budgets'] else '<p>Credit allowance and remaining balance: Unknown.</p>'

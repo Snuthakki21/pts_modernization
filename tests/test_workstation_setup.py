@@ -395,7 +395,7 @@ class WorkstationMarkdownTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot['settings'], view['settings'])
         self.assertEqual(snapshot['connections'], view['connection_setup']['choices'])
         self.assertIn('Add process', instructions['next_step'])
-        self.assertIn('Copilot retrieval prompt', instructions['next_step'])
+        self.assertIn('Claude retrieval prompt', instructions['next_step'])
         self.assertNotIn('copilot_prompt', instructions)
         self.assertFalse(view['readiness']['connectivity_verified'])
         _, inspected = await self.request('/api/setup/workstation')

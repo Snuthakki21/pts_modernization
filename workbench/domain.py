@@ -18,7 +18,16 @@ MAX_UPLOAD = MAX_UPLOAD_BYTES
 # analysis/process wrappers while keeping arbitrary document nesting bounded.
 MAX_DOCUMENT_DEPTH = 256
 ID = re.compile(r'^[a-zA-Z][a-zA-Z0-9_-]{0,79}$')
-DEVICES = {'CON','PRN','AUX','NUL',*(f'COM{i}' for i in range(1,10)),*(f'LPT{i}' for i in range(1,10))}
+# Win32 device aliases remain reserved with extensions and in subdirectories.
+# Include the superscript aliases and console handles recognized by Python's
+# Windows path rules, even when intake runs on Linux or macOS.
+DEVICES = {'CON', 'PRN', 'AUX', 'NUL', 'CONIN$', 'CONOUT$',
+           *(f'COM{i}' for i in '123456789¹²³'),
+           *(f'LPT{i}' for i in '123456789¹²³')}
+
+
+def _reserved_name(name):
+    return name.split('.')[0].rstrip(' ').upper() in DEVICES
 
 
 class ValidationError(ValueError):
@@ -53,7 +62,11 @@ def safe_path(root, relative):
     require(not any(ord(c)<32 or c in '<>"|?*' for c in relative),'Path contains unsupported control or platform-reserved characters')
     rel = Path(relative)
     require(rel.parts and not rel.is_absolute() and '..' not in rel.parts, 'Path must remain inside its process directory')
-    require(all(not p.endswith(('.', ' ')) and p.split('.')[0].upper() not in DEVICES for p in rel.parts),'Path uses a reserved or ambiguous platform filename')
+    # Evidence identities are ledger keys. Path() otherwise erases redundant
+    # separators/dot components, permitting several keys for the same file.
+    require(all(part and part not in {'.', '..'} for part in relative.split('/')),
+            'Relative path must use one canonical spelling without empty or dot components')
+    require(all(not p.endswith(('.', ' ')) and not _reserved_name(p) for p in rel.parts),'Path uses a reserved or ambiguous platform filename')
     candidate = root / rel
     require(not any(path_is_link(p) for p in [candidate, *candidate.parents] if p != root.parent), 'Symlink paths are not accepted')
     require(candidate.resolve().is_relative_to(root), 'Path escapes its directory')
@@ -180,7 +193,7 @@ def checked_zip(data):
             parts = name.split('/')
             require(all(part and part not in {'.', '..'} for part in parts), 'Archive paths must have canonical member identities')
             require(not any(ord(c) < 32 or c in ':<>"|?*' for c in name), 'Archive path uses unsupported characters')
-            require(all(not p.endswith(('.', ' ')) and p.split('.')[0].upper() not in DEVICES for p in parts), 'Archive path uses a reserved platform filename')
+            require(all(not p.endswith(('.', ' ')) and not _reserved_name(p) for p in parts), 'Archive path uses a reserved platform filename')
             key = unicodedata.normalize('NFC', name).casefold()
             require(key not in identities, 'Archive members have colliding portable identities')
             identities[key] = x.is_dir()

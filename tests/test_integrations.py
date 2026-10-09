@@ -9,6 +9,7 @@ from workbench.domain import ValidationError
 
 class FixtureHandler(BaseHTTPRequestHandler):
     calls=0
+    provider_bodies=[]
     def log_message(self,*args):pass
     def do_POST(self):
         self.__class__.calls+=1
@@ -18,7 +19,9 @@ class FixtureHandler(BaseHTTPRequestHandler):
         if 'method' in body:
             result={'tools':[{'name':n} for n in ['db2_list_schemas','db2_list_tables','db2_describe_table','db2_sample_rows']]} if body['method']=='tools/list' else {'structuredContent':{'rows':[{'CREATOR':'DEMO','NAME':'CUSTOMERS'}]}} if body['method']=='tools/call' else {'protocolVersion':'2025-03-26','capabilities':{'tools':{}}}
             response={'jsonrpc':'2.0','id':body['id'],'result':result}
-        else:response={'choices':[{'message':{'content':json.dumps({'summary':'Source-based example analysis','assumptions':[],'questions':['Is the stated rule correct?']})}}],'usage':{'prompt_tokens':10,'completion_tokens':12}}
+        else:
+            self.__class__.provider_bodies.append(body)
+            response={'choices':[{'message':{'content':json.dumps({'summary':'Source-based example analysis','assumptions':[],'questions':['Is the stated rule correct?']})}}],'usage':{'prompt_tokens':10,'completion_tokens':12}}
         data=json.dumps(response).encode();self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
 
 
@@ -49,6 +52,20 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(got['usage']['prompt_tokens'],10)
         self.assertTrue(again['cache_hit'])
         self.assertEqual(FixtureHandler.calls,before+1)
+
+    def test_optional_provider_never_transfers_source_records_or_operator_prose(self):
+        from uuid import uuid4
+        p=StructuredProvider(self.url,'test-model','example-token',allow_egress=True)
+        for _ in range(64):
+            marker=str(uuid4());source='MOVE "SSN-'+marker+'" TO CUSTOMER. 123-45-6789'
+            goal='Private name/email '+marker+' customer@example.test'
+            result=p.analyze(source,goal)
+            wire=json.dumps(FixtureHandler.provider_bodies[-1])
+            self.assertNotIn(marker,wire);self.assertNotIn('123-45-6789',wire)
+            self.assertNotIn('customer@example.test',wire);self.assertNotIn('MOVE',wire)
+            context=json.loads(FixtureHandler.provider_bodies[-1]['messages'][1]['content'])
+            self.assertEqual(set(context),{'source_sha256','source_characters','goal_sha256','goal_characters','data_policy'})
+            self.assertEqual(result['data_policy'],'METADATA_HASHES_ONLY')
 
     def test_catalog_queries_are_read_only_and_bound_identifiers(self):
         sql,params=catalog_sql('db2_list_tables',{})

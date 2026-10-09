@@ -19,15 +19,16 @@ def check(root):
             if removed in text:issues.append(name+': advertises removed development MCP tool '+removed)
         if 'up to 16 KB' in text or 'maximum 16 KB for automatic ingestion' in text:issues.append(name+': obsolete context limit')
         if str(MAX_CONTEXT_FILES) not in text or str(MAX_CONTEXT_BYTES//(1024*1024))+' MiB' not in text:issues.append(name+': current context bounds missing')
-    if set(TOOLS) != {'workbench_retrieval_task'}:issues.append('Copilot MCP must expose only the retrieval request')
+    if set(TOOLS) != {'workbench_retrieval_task'}:issues.append('Legacy retrieval bridge must expose only the retrieval request')
     if set(WorkflowBridge(role='discovery').tools) != {'workbench_retrieval_task'}:issues.append('Legacy discovery alias restores forbidden tools')
     try:WorkflowBridge(role='development')
     except ValidationError:pass
-    else:issues.append('Claude development MCP integration must be rejected')
+    else:issues.append('Workflow-proxy development MCP integration must be rejected')
     claude=json.loads((root/'examples/claude-mcp.json').read_text(encoding='utf-8'))
-    if claude != {'mcpServers':{}}:issues.append('Claude template must configure no MCP servers')
+    expected={'mcpServers':{'workbench-db2':{'type':'http','url':'${WB_DB2_MCP_URL}','headers':{'Authorization':'Bearer ${WB_DB2_MCP_TOKEN}'}}}}
+    if claude != expected:issues.append('Claude template must use the approved typed Db2 server with private environment token')
     copilot=json.loads((root/'examples/mcp.json').read_text(encoding='utf-8'))
-    if copilot['servers']['workbench']['args'][-2:]!=['--role','retrieval']:issues.append('Copilot template must select retrieval')
+    if copilot['servers']['workbench']['args'][-2:]!=['--role','retrieval']:issues.append('Deprecated Copilot template must remain retrieval-only')
     # The route must exist in the real running API, not just the advertised schema.
     import tempfile
     scratch=root/'.implementation/tmp';scratch.mkdir(parents=True,exist_ok=True)

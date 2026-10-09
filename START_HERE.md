@@ -1,8 +1,8 @@
 # Mainframe Modernization Workbench
 
 A local modernization workbench: provide a process, discover its object lineage,
-choose conversion requirements, use GitHub Copilot to retrieve information and
-Claude Code to analyze, build and test, review one checklist, and receive one
+choose conversion requirements, use approved Claude Code retrieval, analysis,
+build and testing, review one checklist, and receive one
 executive report.
 Python/SQLite is the non-production target. Unsupported semantics require tested
 adapters; a plan cannot be marked converted.
@@ -17,33 +17,39 @@ Follow the **Your next step** panel for the selected process. It shows the curre
 prompt, exact return folder and saved instructions; use **Refresh guide** after
 an assistant finishes. The normal sequence is:
 
-1. **Save setup**. Enter nonsecret Zowe and approved Db2 MCP choices. Save writes
-   `.migration/workstation.md` and shows **Add a process**. Complete the displayed
-   native secure credential/client steps; configuration alone does not prove access.
+1. **Prepare local connections in text**. Answer one bundle of approved nonsecret
+   setup facts, then fill one private `WORKSPACE/.env` locally and place the two CA
+   files. Run the Zowe and Db2 helpers and launch Claude as described below.
+   In the Workbench, **Save setup** saves source defaults and shows **Add a process**.
+   Client trust, authentication and actual read access remain separate checks.
 2. **Add a process**. Paste/upload the ordered manifest Markdown or intake workbook.
    Add prose process notes separately under **Add optional analysis context**.
    Choose **No exports yet** if files have not been collected, then **Prepare process guide**.
    The fictional template keeps an explicit fictional flag and is excluded from real
    inventory and forecasts. Clear it only when supplying an actual process.
-3. **Copy Copilot prompt**. Paste the exact generated prompt into GitHub Copilot
-   in VS Code. It retrieves source with Zowe CLI and Db2 facts with approved MCP
-   into that request's inbox. Click **Continue after Copilot saves files**.
+3. **Copy Claude retrieval prompt**. Paste the exact generated prompt into
+   Claude Code. It uses read-only Zowe CLI and approved Db2 MCP to collect
+   requested safe source/metadata into that request's inbox. Click
+   **Continue after Claude saves evidence**.
    Missing or wrong identities stop here and remain named gaps.
 4. **Choose logic**. Everything defaults to Yes. Uncheck unwanted units and
    **Save requirements and continue**. The immutable requirements Markdown is
    conversion input; No retains its exact exclusion reason and source evidence.
 5. **Copy Claude prompt**. Paste the current analysis, development and test prompt
-   into Claude Code. It reads the pinned process guide, source, context and
-   requirements locally. After its current task-bound return, click
+   into Claude Code. It reads the pinned process guide, safe task/context and
+   requirements plus approved sanitized source views. After its current task-bound return, click
    **Continue after Claude returns analysis**.
-   Missing evidence leads back to a specific Copilot request; Claude has no MCP.
+   Missing evidence becomes a specific approved Claude retrieval request; source
+   privacy, authorization and completeness remain gates.
 6. **SME review**. Share the one issued review file. The actual SME answers,
    comments and clicks **Save review file**. Import the downloaded file with their
    real reviewer name.
    An unanswered/default choice is never approval; no second questionnaire is issued.
 7. **Validate and compare**. The Coordinator executes supported targets and
-   creates the accepted report. Filter **Program comparison → Gaps only**, inspect
-   saved No reasons and source/Python evidence, and download **management.pptx**.
+   creates the accepted report. Open **Program comparison** for aggregate legacy and modernized totals.
+   Select a program, use **Gaps only**, and open **View source, replacement and evidence**
+   on a logical unit to inspect original code, target code, satisfaction and precise
+   closure needs. Inspect saved No reasons and download **management.pptx**.
    The read-only Database view exposes registered SQLite schema candidates and
    tables; schema creation does not convert business SQL or establish Db2 parity.
 
@@ -64,136 +70,220 @@ For the detailed walkthrough, open the [offline screenshot job aid](examples/mai
 in your browser. Its 46 steps, screenshots and fictional sample ZIP are embedded
 in one file. It remains a review draft; screenshot paths are illustrative.
 
-## 1. Install and open
+## Context files and consistent folders
 
-Use CPython **3.12** and a writable folder on your local disk.
+[Repository context](prompts/CONTEXT.md) gives people and assistants one compact
+map of roles, folder ownership and authoritative references. For each new
+process, copy the [process context template](examples/process-specific.md) into
+its external authoring folder as `process-specific.md`, beside `manifest.md`
+and `Endeavor/`. Fill only cited facts; leave missing facts `Unknown`. Supply that
+notes file separately in Intake. The Coordinator indexes and freezes it as
+`analysis/process-context.json`; do not create another context Markdown inside
+the process. All processes use the same seven categories, created as needed.
 
-- **Windows:** run `./scripts/Start.ps1` in PowerShell.
-- **Linux/macOS:** run `bash scripts/start.sh`.
+## 1. Start with one text setup bundle
 
-The launcher installs the locked environment when needed, starts the existing
-workbench and opens **http://127.0.0.1:8765** after startup. Keep the terminal
-open. Use `-NoBrowser` on Windows or `--no-browser` on Linux/macOS when needed.
-The UI is included; running it does not require Node. Follow any named setup error
-before continuing. CPython 3.12 must already be installed. Native installation
-and offline checks pass on Windows Server and Linux; Windows 11 desktop and
-organization-specific driver/client/host acceptance remain separate.
+Use **Windows 11**, CPython **3.12** and writable local NTFS folders. Before
+opening a setup UI or starting services, Claude asks for this one bundle of
+approved **nonsecret** facts. Leave an unknown value `Unknown`; do not guess.
+Passwords, usernames used as credentials, tokens and private `.env` contents
+are entered locally, never returned in chat.
 
-Commands shown as `python` below use the repository's locked environment:
-`.\.venv\Scripts\python.exe` on Windows PowerShell, or `.venv/bin/python` on
-Linux/macOS. Use that executable directly for agent and maintenance commands;
-no separate global dependency installation is needed.
+| Needed fact | What to supply safely |
+| --- | --- |
+| Repository and workspace | Exact installed repository and selected local evidence workspace paths |
+| Zowe environment | `dev` or `prod`; the protocol is fixed **HTTPS** |
+| z/OSMF endpoints | Approved dev host/port and prod host/port; the selected pair is required, an unused pair may stay blank |
+| TSO metadata | Approved account code, code page and logon procedure; these configure a profile, not a TSO session |
+| Db2 service | Approved z/OS DDF location, host and service port; database equals the DDF location |
+| Certificate files | Approved CA filenames and current local paths for both Db2 and Zowe |
+| Db2 driver | Approved installed registered IBM Db2 ODBC driver name; the default is `IBM DB2 ODBC DRIVER` |
+| Retrieval boundaries | Read-only authorization, approved sanitized source/metadata route and exact WEBELX/Tran Repository folders when supplied |
 
-To keep evidence outside the installed repository, create an empty local
-workspace folder first. In the repository's PowerShell terminal, run:
+For offline fictional practice, say **offline** and leave remote connection
+facts unused. No mainframe connection is needed for the embedded sample.
+No existing Zowe profiles are required for the text setup below.
+
+Open PowerShell in the installed repository. If its locked environment is not
+ready, run `./scripts/Setup.ps1` **synchronously** and wait for **Environment ready**
+or its concrete error. Setup tries `py -3.12`, then `python`, then `python3`,
+accepting CPython 3.12 at any patch version, including an approved installation
+on PATH when the Python launcher has no registered 3.12. It reuses a compatible
+`.venv`, installs the hash-locked dependencies and temporarily prevents inherited
+`PIP_USER=1` from redirecting that install while retaining approved package-index
+and CA settings. It restores the caller's `PIP_USER` afterward.
+Do not run parallel installers, manual pip retries or background setup. Preserve
+an incompatible `.venv` for the technical owner before replacing it after setup
+stops. Private `.env` is a connection file; Python `.venv` is a runtime folder.
+
+Commands shown as `python` below mean the repository's locked executable
+`.\.venv\Scripts\python.exe`. The committed UI needs no operator Node install;
+Zowe CLI and the approved native Claude Code client need their approved runtimes.
+
+Create your empty workspace first. Initialize its one knowledge catalog:
 
 ```powershell
-.\scripts\Setup.ps1
 .\.venv\Scripts\python.exe -m workbench.preflight --workspace "C:\MainframeFactory\JobAidWorkspace" --initialize-knowledge
+```
+
+Replace every example path with the same actual workspace. Keep the external
+manifest, notes and source authoring package outside it.
+
+## 2. Prepare one private `.env`, then the native clients
+
+Copy the repository's [.env.example](.env.example) to **`WORKSPACE/.env`** only
+when that private file does not already exist. In File Explorer enable file
+extensions and keep the exact filename `.env`, never `.env.txt`. Open it only in
+your approved local editor inside the approved network. Preserve an existing
+file and correct named prerequisites locally; never overwrite it to hide a
+conflict. Neither Claude nor a diagnostic command should print its contents.
+
+The single file contains these **19 keys**. The owner fills the four credential
+values locally; Claude can prepare only nonsecret values and empty placeholders.
+Quote literal values containing spaces, `#` or `$`; values are never executed.
+
+| Key | Local value or rule |
+| --- | --- |
+| `DB2_LOCATION_NAME` | Actual z/OS DDF location |
+| `DB2_DATABASE` | Exactly the same DDF location |
+| `DB2_HOSTNAME` | Actual Db2 service host, without a URL |
+| `DB2_PORT` | Actual Db2 service port |
+| `DB2_USERNAME` | Read-only account, entered only locally |
+| `DB2_PASSWORD` | Password, entered only locally |
+| `DB2_SSL_CONNECTION` | `true`; SSL stays enabled |
+| `DB2_SSL_SERVER_CERTIFICATE` | `certificates/DB2-CA.cert` |
+| `ZOWE_ENVIRONMENT` | `dev` or `prod` |
+| `ZOWE_DEV_HOST` | Approved dev z/OSMF host, or blank when unused |
+| `ZOWE_DEV_PORT` | Matching dev service port; never a partial host/port pair |
+| `ZOWE_PROD_HOST` | Approved prod z/OSMF host, or blank when unused |
+| `ZOWE_PROD_PORT` | Matching prod service port; never a partial host/port pair |
+| `ZOWE_TSO_ACCOUNT` | Supplied account code |
+| `ZOWE_TSO_CODE_PAGE` | Supplied code page |
+| `ZOWE_TSO_LOGON_PROCEDURE` | Supplied logon procedure |
+| `ZOWE_CA_CERTIFICATE` | `certificates/ZOWE-CA.pem` |
+| `ZOWE_USERNAME` | Read-only account, entered only locally or at the secure client prompt |
+| `ZOWE_PASSWORD` | Password, entered only locally or at the secure client prompt |
+
+Create **`WORKSPACE/certificates/`**. Copy the approved Db2 CA bytes to
+**`DB2-CA.cert`** (approved PEM or DER) and the approved Zowe PEM CA bytes to
+**`ZOWE-CA.pem`**. A filename or a placeholder is not a valid certificate.
+Relative certificate paths above resolve from the workspace's `.env` folder.
+Do not disable TLS or certificate validation. If company certificate policy
+blocks an Endevor/Zowe connection, retain the named gate and have the authorized
+owner supply the complete approved source export locally through
+`WORKSPACE/Endeavor/` or Intake's **Copy from a folder on this workstation**.
+Do not invent an Endevor connection or treat TPX session names as API hosts.
+
+From the repository, prepare a clean Zowe project config/schema programmatically:
+
+```powershell
+.\.venv\Scripts\python.exe tools\setup_zowe.py --workspace "C:\MainframeFactory\JobAidWorkspace" --from-env --env-file "C:\MainframeFactory\JobAidWorkspace\.env"
+```
+
+The helper uses the provided template, selected environment, HTTPS and certificate
+validation. It prepares `project_base`, `DevPlex`/`ProdPlex` for the complete
+endpoint pairs and the TSO metadata profile. Credentials do not enter JSON,
+Markdown, arguments or model output. A conflicting existing config is a named
+prerequisite, not permission to delete profiles. Preparation creates no TSO
+session, submits no job and proves no connection.
+
+**Zowe Explorer has a separate secure-store login.** A populated `.env` alone
+does not sign in Explorer. Before starting VS Code/Explorer, the operator or
+approved launcher must set `NODE_EXTRA_CA_CERTS` to the full local
+`WORKSPACE\certificates\ZOWE-CA.pem` path, then launch/restart VS Code with the
+workspace containing the generated config. In a local terminal in that workspace,
+run `zowe config secure` and supply requested credentials privately. Keep secure
+storage enabled. Follow only approved read-only retrieval requests.
+
+Save your work and exit **all VS Code windows** first so an older process cannot
+reuse an environment without this CA. In a fresh PowerShell window, replace the
+example workspace and run:
+
+```powershell
+$workspace = "C:\MainframeFactory\JobAidWorkspace"
+$env:NODE_EXTRA_CA_CERTS = Join-Path $workspace "certificates\ZOWE-CA.pem"
+Set-Location -LiteralPath $workspace
+zowe config secure
+code --new-window $workspace
+```
+
+Enter the mainframe username/password only at Zowe's local secure prompts.
+The `code` command opens the approved VS Code installation with this inherited
+CA environment. If `code` is unavailable, have the technical owner launch the
+approved Code executable from this same PowerShell window; a desktop shortcut
+or an already running Code process may not inherit the CA. Do not disable TLS.
+
+Prepare the approved local Db2 MCP binding from the same `.env`:
+
+```powershell
+.\.venv\Scripts\python.exe -m workbench.db2_setup --workspace "C:\MainframeFactory\JobAidWorkspace" --env-file "C:\MainframeFactory\JobAidWorkspace\.env"
+.\scripts\Start-Claude.ps1 -Workspace "C:\MainframeFactory\JobAidWorkspace"
+```
+
+For an approved driver registered under a different name, append
+`--driver "Exact registered IBM Db2 driver name"` to the Db2 setup command.
+For offline fictional practice use
+`python -m workbench.db2_setup --workspace WORKSPACE --offline` instead; a fresh
+workspace gets an empty managed MCP configuration and no Db2 server.
+The Db2 helper checks local fields/certificate prerequisites and prepares private
+`WORKSPACE/.mcp.json`. Install the approved IBM Db2 ODBC driver; its registered
+name must match the supported configuration. Missing credentials remain an
+explicit local action. Fill them before launch: **stdio does not prompt for
+credentials**. Claude owns the stdio server as its child; there is no separate
+Db2 server terminal, HTTP port or MCP bearer token in this primary path.
+The launcher preserves saved config and activates only managed `workbench-db2`
+through a bounded `--strict-mcp-config`; it retains repository instructions and
+adds a separate workspace with `--add-dir`. Other saved servers are not activated.
+Complete actual Claude project trust and server approval; inspect `/mcp` and an
+approved typed metadata read to verify access. A saved configuration or server
+startup is not connectivity evidence. The approved VS Code extension must load
+the same configuration in its actual host. Start a fresh conversation after a
+configuration change. See the [official MCP contract](https://code.claude.com/docs/en/mcp).
+
+Mainframe source/dataset metadata uses read-only **Zowe CLI**; Db2 schema/DDL uses
+approved **typed MCP**. Arbitrary SQL, row/sample/search tool responses and a
+workflow-proxy MCP are not allowed. Protected comparison exports use the exact
+request-bound `db2_export_snapshot_to_inbox(process_id, request_id, need_id)`;
+only path/hash/count/scope metadata returns to Claude. Original source, comments,
+control cards, raw customer records and private exports stay deterministic-local.
+Only explicitly approved sanitized semantic views and approved metadata may enter
+the model. Missing safe context is a qualification gap. The operator-only local
+Database view does not authorize model-visible rows or screenshots.
+
+Now open the Workbench. For the repository itself as workspace run
+`.\scripts\Start.ps1` synchronously. `-NoBrowser` only suppresses automatic browser
+opening; setup and the Workbench stay foreground. For the separate workspace above:
+
+```powershell
 .\.venv\Scripts\python.exe -m workbench.launch --root "C:\MainframeFactory\JobAidWorkspace" --port 8765
 ```
 
-`C:\MainframeFactory\JobAidWorkspace` is an example; use your actual folder.
-`Start.ps1` launches the repository root and has no `-Root` option. The explicit
-`--root` command selects a separate workspace; it serves the installed assets and
-standard catalog without copying implementation files into that workspace.
+Keep that one terminal open. Open **http://127.0.0.1:8765** after its URL appears;
+never start another Coordinator. `Start.ps1` has no `-Root` option. In **Setup**,
+save source-export/process-note defaults and optional exact **WEBELX folder** and
+**Tran Repository folder**. Text-prepared connectors need no UI onboarding.
+Leave the connector selectors unchanged; do not replace text config with a UI
+connection draft. Click **Save setup**, then **Add a process** and follow
+**Your next step**. Save affects future intake defaults; frozen evidence stays intact.
+WEBELX is the current label; historical WEDLX/internal `wedlx_folder` bindings
+remain compatible and frozen identities are not renamed.
 
-## 2. Enter your settings and save once
+### Retained compatibility routes
 
-The first visit opens **Workspace setup**. Choose your local source export folder,
-or upload files when adding a process. Optionally enter your process Markdown
-and exact WEDLX/Tran Repository folders. These defaults survive a restart.
+Existing supplied Zowe config/schema imports, existing profile selection and
+Workspace setup's connection form remain explicit compatibility routes. They
+are optional, preserve existing files and still require native authentication,
+approved CA policy and actual read evidence. `setup_zowe.py --check` checks local
+configuration; `--normalize` is limited to duplicate secure-field declarations.
+Neither establishes access. The technical reference owns their detailed contract.
 
-The same screen prepares your approved retrieval connections:
-
-- **Copilot MCP:** select the retrieval bridge. Save writes the ignored
-  `.vscode/mcp.json` with the current Python interpreter and running Workbench
-  address. Existing approved servers and inputs are preserved. Db2 access
-  always uses an approved MCP server with a secure VS Code token prompt.
-- **Zowe:** select existing project profiles, create profiles using the actual
-  z/OSMF host/port and two aliases, or import your exact supplied config/schema
-  paths. Import preserves file bytes. New profiles declare secure credentials
-  and require HTTPS with certificate validation.
-- **Db2 MCP:** select an existing approved server address, or prepare the
-  supplied local server. Enter the actual Db2 host, service port, database, DDF
-  location, registered IBM ODBC driver name, approved CA file, local MCP port
-  and read limit. Save prepares ignored `.migration/db2-config.json`, the CA
-  certificate and the Copilot binding. The local MCP port is separate from the
-  mainframe Db2 service port. Missing certificates or drivers remain visible.
-
-Mainframe source and dataset metadata use **Zowe CLI**. Db2 catalogs and data use
-**MCP**. There is no alternate direct Db2 retrieval route in the Workbench.
-
-Click **Save setup** once to prepare the selected files and save intake defaults.
-Unsaved Setup entries survive navigation within the app. Save before closing
-or reloading the browser; the browser warns while changes remain unsaved.
-The result shows the files, local CLI availability and any remaining client steps.
-Copy the displayed command to install your approved Zowe CLI when needed, then
-recheck. Zowe requires its approved Node/npm runtime; the Workbench UI itself
-needs no Node installation. Enter credentials only at the displayed local
-`zowe config secure` command or VS Code's secure prompt. Open this workspace in
-VS Code and use **MCP: List Servers** to review/start the approved retrieval
-servers. Keep the Workbench running for its retrieval bridge.
-
-For the local Db2 server, copy its displayed command into your terminal. It
-checks the selected registered driver and certificate before prompting privately
-for credentials and the approved MCP token. Enter that same token at the VS Code
-secure prompt, and keep the server terminal open. The command runs the existing
-read-only FastMCP server; it does not execute a Db2 query during setup. Install the
-organization-approved IBM driver and `pyodbc` in the displayed Python environment
-if the local check reports them missing.
-
-Local intake can continue with **Add a process** when its settings pass.
-Connector actions remain visible until their native configuration/authentication
-is established; the form never asserts connectivity or migration parity from
-configuration. Save performs no CLI execution, network or model calls.
-Passwords and tokens stay in their approved secure clients or private launch
-environment. Claude Code builds and tests from local files with **no MCP
-servers**. Source snapshots, requirements Save and the actual SME return keep
-their existing gates.
-
-Conflicting MCP bindings, different existing Zowe import destinations, unsafe
-paths or invalid schemas stop the save and preserve existing files. Ordinary
-failed writes restore prior configuration. Correct the named conflict and retry.
-CLI alternatives remain `python tools/setup_zowe.py --workspace WORKSPACE
---import-config CONFIG --import-schema SCHEMA` and `--interactive`; the
-[technical reference](docs/TECHNICAL_REFERENCE.md) describes the same helpers.
-Zowe installation follows its [official CLI guide](https://docs.zowe.org/stable/user-guide/cli-installcli/);
-VS Code activation follows its [MCP guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
-
-Existing Db2 installations can keep **`tools/dq3g_mcp/.env`** (template:
-[tools/dq3g_mcp/.env.example](tools/dq3g_mcp/.env.example)). The supplied connection
-settings remain local; `DB2_USERNAME` stays commented out. Set `DB2_USERNAME`
-and `DB2_PASSWORD` privately in the launch shell, or supply the password locally
-in `.env`. Place the approved certificate at the file's `DB2_SSL_CERT_LOCATION`,
-relative to the `.env` directory. SSL is required; PEM and DER certificates are
-accepted. Install the approved IBM Db2 ODBC driver and `pyodbc` locally.
-
-Start the Python FastMCP server with
-`python tools/db2_mcp_server.py --transport http` after setting a private
-`WB_DB2_MCP_TOKEN`. It listens only on `127.0.0.1:8766/mcp`.
-Save the endpoint in Workspace setup and supply the same token privately when
-using Workbench connector commands; the `db2` entry in
-[examples/mcp.json](examples/mcp.json) connects Copilot to that same server.
-For an approved Copilot MCP subprocess configuration, use `--transport stdio`; run
-only one Db2 server for the workspace's search journal. The existing UI bridge
-continues to use the running Coordinator.
-
-For unknown data, Copilot can call `db2_search_start` with a literal phrase, then
-`db2_search_continue` while status is `RUNNING`. Every search includes table
-contents across discovered schemas, tables, views, aliases and catalog-listed
-DDF locations. Page `db2_search_results` with `kind="matches"` for hits and
-`kind="objects"` for coverage; pass `next_after` as `after` until `has_more=false`.
-Use `db2_search_status` or `db2_search_cancel` as needed.
-**`DB2_QUERY_ROW_LIMIT=500000`** caps each query across continuation calls.
-Unreadable locations, denied objects, capped rows and interrupted cursors remain
-explicit partial results. This searches what the account and configured DDF
-routes expose; it cannot discover unadvertised servers. Configuration alone
-does not verify connectivity.
-
-Existing explicit `WB_DB2_CONFIG` JSON installations remain supported with their
-original private credential variables and certificate path. See the technical
-reference for precedence and recovery details.
+Existing Db2 JSON/`WB_DB2_CONFIG`, legacy `tools/dq3g_mcp/.env` and its
+`DB2_SSL_CERT_LOCATION` alias, and separately approved remote HTTP/OAuth/bearer
+MCP bindings retain their documented compatibility handling. Transport tokens
+are relevant only to those explicit HTTP routes and are separate from Db2
+passwords. Do not use them for the recommended local stdio route. No retained
+route is presumed connected, Windows 11 accepted or enterprise approved.
+Historical other-platform receipts remain scoped history.
 
 ## 3. Provide your process
 
@@ -211,8 +301,9 @@ workspace, for example `C:\MainframeFactory\Inputs\referral-batch\`.
 upload it in **Process manifest**. `process-specific.md` contains ordinary prose
 about dependencies and business context; enter its full path in **Add optional
 analysis context → Process Markdown path on this workstation**. A prose notes
-file alone is not a valid manifest. Claude may derive a manifest from explicit
-notes/JCL facts locally; missing facts stay Unknown.
+file alone is not a valid manifest. Claude may draft a manifest only from
+explicitly approved sanitized ordered notes/JCL facts. The local owner verifies
+original bindings programmatically; missing safe facts stay Unknown.
 The Coordinator freezes the manifest as `input/process-input.md`, the original
 source under `input/sources/`, and notes inside `analysis/process-context.json`
 under that process ID. Do not add `input/process-specific.md` or edit frozen copies.
@@ -222,7 +313,7 @@ and **2 million physical lines**. Browser uploads permit 32 MiB combined; larger
 repositories use local Endeavor. The 822-file/700,570-byte regression is verified;
 full ceilings are protective limits, not memory or analysis certification.
 
-For WEDLX/Tran Repository, copy [examples/input-locations.json](examples/input-locations.json)
+For WEBELX/Tran Repository, copy [examples/input-locations.json](examples/input-locations.json)
 to `knowledge/input-locations.json`. Set the actual mounted folders and exact
 `{"logical_id":"REFERRAL","file":"referral.dat"}` bindings. These are application
 staging locations. File availability is distinct from business readiness.
@@ -240,8 +331,8 @@ explain file classification, utilities, required evidence and editable facts.
 Click **Prepare process guide** to save the process and begin discovery.
 Existing ready processes show **Start discovery** in their guide.
 The workbench retains the full export, maps the job's transitive objects, checks
-local definitions, and prepares exact Copilot retrieval requests for missing objects.
-The local Claude workflow makes no remote connector calls.
+local definitions, and prepares exact Claude retrieval requests for missing objects.
+Claude uses approved read-only Zowe/Db2 tools; accepted returns remain local and hash-bound.
 **Waiting for discovery** stops before conversion or questions when identities
 are missing/ambiguous. Correct the named configuration/evidence and retry.
 **Select requirements** shows every retained file and a paged source breakdown.
@@ -263,11 +354,11 @@ gap. Requirements are separate from SME answers and lock at packet issue.
 Changed adapter analysis requires a new scope Save; issued evidence never changes.
 
 **Waiting for Claude analysis** provides frozen evidence and a local task.
-Claude reads the approved files, develops and tests needed adapters, performs
+Claude reads approved sanitized source/metadata, develops and tests adapters, performs
 independent review, refreshes analysis and submits a current task-bound result.
-If information is missing, the handoff gives you a copyable Copilot retrieval
-prompt and an exact return folder. Paste it into Copilot; after retrieval, return
-to Claude and say **Continue**. Missing or mismatched returns keep the gate open.
+If information is missing, the guide provides a Claude retrieval prompt and exact
+return folder. Claude collects only approved safe evidence, saves the complete
+response and continues through the local runner. Missing or mismatched returns keep the gate open.
 The coordinator then emits supported targets and one SME checklist. Historical
 ledgers retain the internal `WAITING_COPILOT` key; it does not assign coding to Copilot.
 The screen shows the current stage and next action. Pause, Resume and Cancel
@@ -284,9 +375,11 @@ it with their actual name. No install or server is required for the SME. The ori
 overwritten automatically; return the downloaded file. The legacy
 `sme-checklist.xlsx` remains an alternative for the same single packet. Agents must never fill these answers. The workbench automatically runs
 source-derived synthetic tests, comparisons, adversarial checks and reporting.
-New process fixture contracts require **at least 20 distinct randomized valid source logic states per applicable
-supported logic item**, generated at runtime with a recorded random seed, plus boundaries, invalid
-inputs and source-evidenced linked-record matches/mismatches. Unsupported,
+New fixture-v5 processes require **64 distinct randomized valid source states**
+per applicable logic/layout/step; **128 applies only to recorded source-risk logic**.
+The recorded runtime seed, positive/negative/boundary, invalid-input, linked-record
+and adversarial/mutation obligations are separate requirements; count alone is
+insufficient. Historical contracts retain their original floors. Unsupported,
 unreachable, undersampled or failing obligations stay explicit gaps. Expectations
 are frozen before Python execution; no synthetic records go to the mainframe.
 Unresolved answers remain blockers; it does not issue another questionnaire.
@@ -310,57 +403,34 @@ Passing local tests does not establish observed mainframe parity.
 
 For the current software's results, open [executive-report.html](docs/executive-report.html).
 
-## Use Copilot for retrieval and Claude Code for implementation
+## Use Claude Code from retrieval through verification
 
-**Copilot in VS Code only retrieves files and metadata.** It may use your already
-approved MCP connections for mainframe discovery, catalog lookups and source
-pulls. The optional [Copilot template](examples/mcp.json) selects
-`--role retrieval`; its workbench tool reads the current retrieval task. Keep your
-approved Zowe/Db2 bindings. Do not assign analysis, coding, testing or review to
-Copilot.
+Claude Code handles approved read-only Zowe/Db2 retrieval and safe local analysis,
+development, tests and independent review. Copilot is not a dependency.
+After the text connection setup and **Save setup** for source defaults, use the
+same-workspace Claude session and the current
+**Copy Claude retrieval prompt** or **Copy Claude prompt** from **Your next step**.
 
-**Claude Code does the local work**, including in your organization-approved VS
-Code extension: source and lineage analysis, inventory, rules, development,
-unit/scenario testing, independent adversarial review and reports. It reads the
-approved local exports and process notes. **Claude has no MCP servers.**
-[examples/claude-mcp.json](examples/claude-mcp.json) is empty by design; nothing
-needs registering or connecting. Do not substitute an MCP/HTTP shell wrapper or
-route Claude through a Copilot tool.
-
-1. Put the initial approved export in `WORKSPACE/Endeavor/`, or provide its local
-   path and process notes. Give Claude the initial prompt below. It uses the
-   existing Coordinator and presents the default-Yes requirements for your Save.
-2. Claude reads the current task with
+1. Provide the process manifest, optional background and approved export path, or
+   **No exports yet**. Claude reads the current task with
    `python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE`.
-   When evidence is missing, it writes a bounded request using `--request-file`
-   and returns the generated **Copy Copilot retrieval prompt** text.
-3. Paste that prompt into Copilot. Copilot writes original files into
-   `processes/PROCESS_ID/analysis/retrieval/REQUEST_ID/inbox/files/` and finishes
-   with that request's `inbox/response.json`. The prompt contains the exact paths,
-   identities and response schema. Partial, missing, denied or ambiguous results
-   must remain explicit. `FOUND` carries an original portable member path, hash
-   and provenance. When a name cannot be staged in an analysis folder (for example
-   a `.md` source), preserve it in `path` and use `staged_path` for its `.txt`
-   inbox filename. `NOT_FOUND`/`AMBIGUOUS` carry the reason instead. A denied or
-   partial lookup must not be returned as a complete found file. Copilot stops
-   when retrieval is finished.
-4. Return to Claude and say **Continue**. It runs the local command below,
-   validates the request-bound files and resumes analysis. Subsequent requests
-   identify only the remaining information; prior accepted evidence is retained.
-   Default requests batch up to 128 needs and show remaining counts. A found file
-   still needs a matching parsed object before its gap clears. NOT_FOUND or
-   AMBIGUOUS results stop at a visible checkpoint; Claude does not repeat the same
-   retrieval automatically.
-5. Claude implements and verifies selected behavior, refreshes stale analysis
-   after adapter changes and submits the fresh result. Your actual SME HTML review or workbook
-   remains the one human review; retrieval packets do not answer it or add a
-   second questionnaire.
-
-On **Linux/macOS**, from the repository with its configured environment:
-
-```sh
-.venv/bin/python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE --continue
-```
+2. Missing evidence becomes a bounded `--request-file` request. Claude follows its
+   current prompt through approved read-only tools, writing the exact
+   `analysis/retrieval/REQUEST_ID/inbox/files/` and `inbox/response.json`.
+   Metadata-only responses and approved sanitized sources may be model-visible;
+   protected customer snapshots and original source are deterministic-local inputs.
+   Preserve original identities, bytes, provenance and hashes. A missing, partial,
+   denied or ambiguous result is never a successful FOUND.
+3. Claude runs `--continue` after the complete response. The existing Coordinator
+   validates identities/paths/hashes and resumes eligible work. Default batches
+   contain at most 128 needs and show remaining counts. A returned file must match
+   a unique parsed object before clearing a need. NOT_FOUND/AMBIGUOUS stop at a
+   visible checkpoint; never repeat an unchanged failed lookup automatically.
+4. You explicitly **Save requirements and continue**. Claude implements/tests the
+   selected safe semantics, refreshes changed adapter analysis and submits its
+   fresh task-bound return. Missing approved semantic views remain named gates.
+5. The real SME completes the one issued review packet. No agent may save scope
+   on your behalf, answer the packet or turn silence into approval.
 
 On **Windows PowerShell**:
 
@@ -379,10 +449,10 @@ identical action. INDETERMINATE (exit 2) means the action may already have chang
 state; its durable start marker prevents executing that command again. Run a fresh
 inspection command first, then decide on any new action. Never delete the marker
 or silently replay a mutation. REJECTED also exits 2 and names the cause.
-The local queue requires hard-link support (such as NTFS and usual Linux/macOS
-local filesystems); unsupported filesystems fail closed. Execution has been
-verified on macOS; native offline path guards also pass. Full queued-agent
-execution on Windows 11/Linux still needs end-to-end acceptance.
+The local queue requires hard-link support, such as local NTFS; unsupported
+filesystems fail closed. Historical macOS/Windows Server/Linux receipts are scoped
+evidence. Windows 11 queued-agent/approved-host acceptance must actually run before
+claiming it verified.
 
 A `--request-file` contains only `{"needs": [...]}`; each need names its `kind`,
 `name` and `reason`. The generated packet provides the complete return schema.
@@ -392,12 +462,12 @@ for an actual usage receipt. If loaded adapters changed, restart the existing UI
 when idle before refreshing. Neither an analysis return nor a plan clears a
 semantic gap; actual supported behavior and verification evidence are required.
 
-Both hosts use the four shared mainframe skills and one workflow. Actual credits
+The four shared mainframe skills extend one workflow. Actual credits
 remain attributed to the provider/account that supplied the receipt; Claude
 usage is not GitHub Copilot credits. Missing receipts stay Unknown. No agent is
 automatically launched, and host policy/authentication still need workstation
 verification. Existing source-free development packets are historical evidence,
-not the active no-MCP Claude workflow.
+not the current approved Claude workflow.
 
 For a safe trial, use **Explore a fictional example** in the UI. Its results are
 excluded from real portfolio totals. No real process has been converted in the
@@ -408,9 +478,11 @@ software validation supplied with this repository.
 The source selector can snapshot a supplied workstation/mounted folder directly.
 CLI equivalent: add `--source-folder SOURCE_FOLDER --process-notes PROCESS_MD`
 to the shared Start command, using `--assistant claude_files --select-requirements`. Originals stay unchanged.
-The process Markdown is frozen as evidence; the agent derives the standard
-manifest from explicit notes and JCL facts when your document is ordinary prose.
-Ambiguous job identities still require evidence. Markdown in `knowledge/inbox/`
+The process Markdown is frozen as evidence and consumed programmatically.
+Claude can help draft the public manifest format from explicitly approved sanitized
+ordered facts; an authorized owner verifies private bindings locally. Original
+notes/JCL and their paths stay out of the chat. Missing, ambiguous or unqualified
+job identities still require approved evidence. Markdown in `knowledge/inbox/`
 is indexed: at most 20 documents and 1 MiB combined, with bounded excerpt reads.
 
 The executive report includes business-rule and technical-logic totals by job
@@ -438,9 +510,23 @@ credentials or certify connectivity.
 
 Copy this initial prompt into **Claude Code**:
 
-> Read CLAUDE.md, AGENTS.md and prompts/START_MODERNIZATION.md. Use approved local
-> source at `[SOURCE_FOLDER]`, process notes `[PROCESS_MD_PATH]` and workspace
-> `[WORKSPACE]`. Claude has no MCP access. Use the existing Coordinator through
+> Read CLAUDE.md, AGENTS.md, prompts/CONTEXT.md and prompts/START_MODERNIZATION.md.
+> First ask one bundle of approved nonsecret setup facts: repository/workspace,
+> selected dev/prod environment and both available HTTPS host/port pairs, TSO
+> account/code page/logon procedure, Db2 DDF/host/port, approved CA filenames/local
+> paths and registered IBM driver. Keep unknowns explicit. Prepare one workspace
+> .env with the canonical 19 keys and empty credential placeholders; have me fill
+> credentials only locally. Run the documented text Zowe/Db2 helpers and launch
+> Claude-owned stdio without a token before opening the process UI. Never read or
+> print .env. If certificate policy blocks retrieval, use an approved local export.
+> Then follow the selected process guide's current safe task and exact opaque references.
+> Use public repository context and explicitly approved sanitized views only.
+> Original source, process notes, private filenames and raw customer data remain
+> local intake data consumed programmatically, never chat context. Preserve
+> UNAPPROVED_MODEL_METADATA until an approved sanitized lookup identity or local
+> deterministic export capability exists; never infer names from hashes or open
+> protected requests. Approved Db2 MCP and read-only Zowe remain the only retrieval
+> routes; protected Db2 export resolves exact IDs server-side. Use the existing Coordinator through
 > its local-file runner workflow; never create another engine or writer. Inventory
 > the complete export and trace job/program/data dependencies with evidence.
 > Analyze business rules separately from technical logic. Present all conversion
@@ -451,32 +537,23 @@ Copy this initial prompt into **Claude Code**:
 > unsupported Db2/mainframe operations with source/target/test evidence or exact
 > missing replacements. Do not silently correct or retire behavior. Document
 > evidence for any future Oracle decision. Generate
-> at least 20 distinct runtime-randomized valid source states per supported logic,
+> the pinned fixture-v5 floor (64 valid states; 128 for recorded risk triggers),
+> positive/negative/boundary and adversarial/mutation obligations,
 > pin seeds, execute unit and target-comparison tests, and perform independent
 > adversarial review. Own analysis, development, integration, testing and reporting.
-> When information is missing, produce the exact request-bound prompt for me to
-> paste into GitHub Copilot; it retrieves files/metadata only. When I say Continue,
-> validate that request's local return folder and resume. Do not guess missing
+> When information is missing, follow the exact request-bound Claude retrieval
+> prompt through approved tools, save its local response, validate and resume.
+> Do not expose raw records or private source to any LLM/tool output. Do not guess missing
 > objects or count a partial return as complete. Preserve source, evidence and
 > one authentic SME checklist. Report original versus converted behavior by
 > job/program with evidence, replacements, omissions and unresolved obligations.
 > Track actual effort and provider credits; leave unavailable usage Unknown.
 
-For the **initial pull in GitHub Copilot**, before a process task exists:
-
-> Follow the retrieval role in .github/copilot-instructions.md. Use only already
-> approved MCP connections to discover and retrieve the source and metadata for
-> `[APPLICATION / STARTING JOBS]` into `[WORKSPACE]/Endeavor/`. Preserve original
-> member paths, bytes, environment and provenance; use supplied WEDLX/Tran
-> Repository bindings. Resolve read-only dependencies as requested. Record missing,
-> denied, partial or ambiguous objects; never invent a successful lookup or
-> substitute I* and Z* identities without evidence. Do not analyze rules, code,
-> test or review. Stop after writing the export and tell me to continue in Claude.
-
-For later missing information, use Claude's **generated Copilot retrieval prompt**
-unchanged. It carries the current request ID, exact inbox and response schema.
-After Copilot finishes, tell Claude: **“Continue process `[PROCESS_ID]` in
-`[WORKSPACE]` from its recorded retrieval inbox.”**
+For later missing information, use the **generated Claude retrieval prompt**
+unchanged. It carries current request/need references and the exact inbox; private
+operational names may remain masked with `UNAPPROVED_MODEL_METADATA`. That gate is
+not permission to guess names or read private requests. To resume, tell Claude: **“Continue process `[PROCESS_ID]` in `[WORKSPACE]` from
+its recorded retrieval inbox using only approved safe evidence.”**
 
 ## Application inventory and program knowledge
 
@@ -516,18 +593,20 @@ SME checklist remain authoritative.
 
 ## Online-first factory
 
-For an online process, the agent derives a transaction table from your process
-notes and source instead of inventing batch jobs. Give it transaction, entry
-program and map bindings when available. Missing identities stay discovery gaps.
+For an online process, Claude drafts a transaction table from explicitly approved
+sanitized process/source facts. The local owner verifies original bindings
+programmatically; do not expose protected notes/source to the model. Supply safe
+transaction, entry-program and map facts when available. Missing safe identities
+stay discovery gaps; never invent batch jobs.
 **Evidence & reports → Inspect evidence → Factory** shows capability coverage,
 transaction/API candidates and paged obligations. The final report links the same factory detail and Excel sheets.
 
 For CICS intake, include the transaction/program/map table in your process Markdown,
 then supply that file and your export folder through the existing Start flow.
-Copilot retrieves full CICS programs, BMS maps, symbolic COPY dependencies and
+Claude retrieves approved CICS programs, BMS maps, symbolic COPY dependencies and
 resource definitions with Zowe CLI; Db2 descriptions/DDL use the approved Db2 MCP
 connection. Returns go into the exact process/request inbox, then Claude reads
-validated local exports. Missing, dynamic or conflicting dependencies stop discovery.
+accepted metadata and explicitly approved sanitized views. Missing, dynamic or conflicting dependencies stop discovery.
 
 In **Select requirements**, filter by program, mapset/map and component. Each field
 and `EXEC CICS` action has a default-Yes checkbox and its exact original source span.
@@ -538,7 +617,7 @@ not authorize a redesign. Every No retains the exact requirements omission reaso
 The supported literal BMS character profile generates Python layout code and a
 FastAPI rendering route in `target/RUN/online/`. Its form shows source positions,
 input widths, protected defaults and the actual API layout result. Generated unit
-cases, at least 20 distinct randomized valid input/layout states, malformed requests
+cases, the pinned fixture-v5 64-state layout floor, malformed requests
 and adversarial mutations are compared before layout credit. Static-only or small
 finite domains retain their test-state deficit. **Program comparison** shows original
 BMS/CICS and Python/FastAPI spans, with Gaps only and Selected No filters.
@@ -548,7 +627,8 @@ controller flow, sessions, security or database effects. Those remain named,
 source-specific obligations. A layout-only package disables transaction execution.
 Supported record modules can also expose the existing tested record API. Neither
 candidate is a claim of full CICS replacement or observed mainframe parity.
-The package includes OpenAPI, HTTP comparisons and Windows/POSIX launchers. Use
+The package includes OpenAPI, HTTP comparisons and a Windows launcher; historical
+POSIX artifacts retain their original evidence. Use
 the existing Python environment and set a private `ONLINE_TOKEN` (32+ characters).
 Choose a free candidate port separate from the Workbench and Db2 MCP server.
 When the Db2 gateway uses 8766, use 8767 if available. From the package directory,
@@ -559,12 +639,6 @@ On Windows PowerShell:
 ```powershell
 $env:ONLINE_PORT = "8767"
 python application.py
-```
-
-On Linux/macOS:
-
-```bash
-ONLINE_PORT=8767 python application.py
 ```
 
 Open `http://127.0.0.1:8767`. If that port is occupied, choose another free port
@@ -585,8 +659,9 @@ Add this to the initial prompt above:
 > Use my process Markdown and export folder. Present the program/screen/component
 > checkboxes, pin my explicit Save to the process requirements Markdown, and compare
 > original BMS fields and CICS actions with actual Python/FastAPI code and receipts.
-> Gather missing dependencies through the exact Copilot retrieval inbox; Claude uses
-> local exports only. Keep layout verification separate from controller/data parity.
+> Gather missing dependencies through approved Claude retrieval into the exact
+> local inbox. Keep raw source/records protected; read only approved safe views.
+> Keep layout verification separate from controller/data parity.
 
 ## Pilot effort, AI credits and the remaining estate
 
@@ -613,12 +688,11 @@ establish a complete-estate rate. Excluded executable source also prevents
 whole-asset conversion credit.
 Service and sequential elapsed projections remain separate from work effort.
 
-**GitHub Copilot credits used** is the primary usage count, per account. Import
-actual Copilot credit receipts through the panel or Claude
-`agent --measurement-file RECEIPT_JSON`. Copilot may retrieve an available receipt
-as a file using an approved connection. A zero is shown only when evidenced; missing receipts stay Unknown.
-Token/request counts are not converted into credits. Optional allowance and
-other-provider detail remain in the collapsed advanced usage section.
+Import actual provider/account credit receipts through the panel or Claude
+`agent --measurement-file RECEIPT_JSON`. Older Copilot receipts remain attributed
+to Copilot; Claude usage must not be counted as Copilot credits. Missing receipts
+stay Unknown and known zero requires evidence. Tokens/requests are not converted
+to credits; an Anthropic token or currency charge is not an invented credit count.
 
 The AI budget uses **credits**, separated by provider/account. Import actual
 credit statements and dated allowance/consumption snapshots through the panel
@@ -637,3 +711,22 @@ Add this to the initial prompt:
 > artifacts, validation, timings and complete effort/credit evidence to update the
 > same-unit estate forecast. Separate calibration samples from completed scope,
 > expose unestimated work and never treat an estimate as verified conversion.
+
+## Claude Code skills for development and review
+
+The requested instruction-only additions are already in `.claude/skills/`,
+indexed by [.claude/skill-pack.json](.claude/skill-pack.json). From the installed
+repository, run `python tools/check_skill_pack.py` before relying on a changed
+pack. Start Claude using `scripts/Start-Claude.ps1 -Workspace WORKSPACE`; the
+repository entrypoint routes to the shared workflow and relevant local skills.
+If a running client has cached skill discovery, reopen its repository session.
+No separate plugin installer, MCP server, proxy, hook or service is required by
+this pack. Existing approved Db2 MCP/Zowe setup remains separate.
+
+Use only guidance relevant to the task: reproducible fixes, focused architecture,
+meaningful tests, consistent accessible UI, bounded context and independent
+review. Each entry states its upstream pin, license and adaptation scope. These
+are local skill adaptations rather than the full upstream runtimes; they never
+authorize access to protected source/records, human scope/SME decisions or changes
+to evidenced legacy behavior. Native Windows/client invocation remains a target
+acceptance check, not an automatic consequence of installing files.

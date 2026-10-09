@@ -105,6 +105,10 @@ class NativeZoweTests(unittest.TestCase):
             for declaration in ({'name':'other-cli','bin':{'zowe':'./lib/main.js'}},
                                 {'name':'@zowe/cli','bin':{'zowe':'../outside.js'}},
                                 {'name':'@zowe/cli','bin':{'zowe':'C:/outside.js'}},
+                                {'name':'@zowe/cli','bin':{'zowe':'././lib/main.js'}},
+                                {'name':'@zowe/cli','bin':{'zowe':'./lib//main.js'}},
+                                {'name':'@zowe/cli','bin':{'zowe':'lib/./main.js'}},
+                                {'name':'@zowe/cli','bin':{'zowe':'./lib/../lib/main.js'}},
                                 {'name':'@zowe/cli','bin':{'zowe':'./lib/main.cmd'}},
                                 {'name':'@zowe/cli','bin':'./lib/main.js'},
                                 {'name':'@zowe/cli','bin':{'zowe':'./lib/missing.js'}}):
@@ -149,9 +153,12 @@ class NativeZoweTests(unittest.TestCase):
             with patch('workbench.connectors.bounded_command', return_value={'success': True, 'data': 'source'}) as reader:
                 connectors.ZoweReader('approved').read_member('IAPP.SOURCE(MEMBER)')
             environment = reader.call_args.args[1]
-            with patch('sys.platform', 'win32'), patch('shutil.which', return_value=str(prefix / 'zowe.cmd')):
-                result = connectors.bounded_command(['zowe', *arguments], environment)
-            self.assertEqual(result, {'success': True, 'args': arguments})
+            for entry in ('./lib/main.js', 'lib/main.js'):
+                (package / 'package.json').write_text(json.dumps({'name': '@zowe/cli', 'bin': {'zowe': entry}}), encoding='utf-8')
+                with self.subTest(entry=entry), patch('sys.platform', 'win32'), \
+                     patch('shutil.which', return_value=str(prefix / 'zowe.cmd')):
+                    result = connectors.bounded_command(['zowe', *arguments], environment)
+                    self.assertEqual(result, {'success': True, 'args': arguments})
 
 
 if __name__ == '__main__':

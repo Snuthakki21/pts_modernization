@@ -14,6 +14,51 @@ from workbench.preflight import inspect_workspace, initialize_knowledge
 
 
 class PreflightTests(unittest.TestCase):
+    def test_actual_json_and_text_cli_withhold_private_source_and_filename_details(self):
+        markers=('123-45-6789','private@example.invalid')
+        source=COBOL.replace('GOBACK.',"DISPLAY '"+' '.join(markers)+"'.\nGOBACK.")
+        original=self.root/'Endeavor/ELIGIBLE.cbl';original.unlink()
+        path=self.root/'Endeavor'/('123-45-6789.cbl');path.write_text(source)
+        before={p.relative_to(self.root).as_posix():p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+        internal=self.inspect();self.assertTrue(internal['conversion_blockers'])
+        for marker in markers:self.assertIn(marker,json.dumps(internal))
+        for option in (['--json'],[]):
+            with self.subTest(json=bool(option)):
+                result=subprocess.run([sys.executable,'-m','workbench.preflight','--workspace',str(self.root),
+                    '--manifest',str(self.manifest),*option],capture_output=True,text=True,
+                    env={key:value for key,value in os.environ.items() if not key.startswith('WB_')},timeout=30)
+                self.assertEqual(result.returncode,0,result.stderr)
+                for marker in markers:self.assertNotIn(marker,result.stdout+result.stderr)
+                if option:
+                    output=json.loads(result.stdout)
+                    self.assertEqual(output['conversion_blocker_count'],len(internal['conversion_blockers']))
+                    self.assertEqual(output['conversion_status'],'BLOCKED')
+                    self.assertTrue(all('evidence_sha256' in item for item in output['conversion_blockers']))
+        self.assertEqual({p.relative_to(self.root).as_posix():p.read_bytes() for p in self.root.rglob('*') if p.is_file()},before)
+        self.assertEqual(path.read_text(),source)
+
+    def test_cli_projection_and_errors_use_fixed_categories_and_hashes(self):
+        from contextlib import redirect_stdout
+        import io
+        from workbench.domain import ValidationError,sha,encode
+        from workbench.preflight import cli_projection,main
+        marker='123-45-6789 private@example.invalid'
+        private={'status':'BLOCKED','conversion_status':'BLOCKED',
+                 'checks':[{'id':marker,'status':marker,'message':marker,'action':marker}],
+                 'conversion_blockers':[{'kind':marker,'message':marker,'path':marker,'lines':[3,4]}],
+                 'metrics':{'private':marker},'input':{'files':1,'bytes':20,'private':marker}}
+        output=cli_projection(private);self.assertNotIn(marker,json.dumps(output))
+        self.assertEqual(output['conversion_blockers'][0]['evidence_sha256'],sha(encode(private['conversion_blockers'][0])))
+        self.assertEqual(output['conversion_blockers'][0]['start_line'],3)
+        self.assertEqual(output['conversion_blockers'][0]['end_line'],4)
+        self.assertEqual(output['checks'][0]['id'],'preflight');self.assertEqual(output['input'],{'files':1,'bytes':20})
+        for detail in (marker,marker+'\udcff'):
+            for option in (['--json'],[]):
+                stream=io.StringIO()
+                with patch('workbench.preflight.inspect_workspace',side_effect=ValidationError(detail)),redirect_stdout(stream):
+                    self.assertEqual(main(['--workspace',str(self.root),*option]),2)
+                self.assertNotIn(marker,stream.getvalue());self.assertIn('private',stream.getvalue())
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)

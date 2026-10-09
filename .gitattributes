@@ -1,3 +1,5 @@
+# Public hash-bound instructions and code use identical bytes on Windows clones.
+* text=auto eol=lf
 # Frozen fictional evidence must retain exactly the bytes in its hash receipts.
 examples/** -text
 *.csv whitespace=cr-at-eol

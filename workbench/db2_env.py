@@ -1,8 +1,10 @@
 """Load the fixed private Db2 .env without executing or expanding its contents.
 
-Only the nine documented DB2 fields are read. The optional env_file argument is
-for isolated embedding/tests; the server uses DEFAULT_ENV_FILE and has no path
-environment variable. Values and ODBC strings must never be used as diagnostics.
+Only documented DB2 fields and exact shared Zowe fields are accepted. Zowe
+fields are ignored by Db2 settings, never exported or expanded. The
+optional env_file argument is for embedding/tests and the gateway's explicit
+--env-file selection. The retained fallback uses DEFAULT_ENV_FILE; no path
+environment variable exists. Never use values or ODBC strings as diagnostics.
 """
 from .domain import path_is_link
 from dataclasses import dataclass, field
@@ -19,7 +21,12 @@ from .domain import ValidationError, require
 DEFAULT_ENV_FILE = Path(__file__).resolve().parents[1] / 'tools/dq3g_mcp/.env'
 KEYS = frozenset({'DB2_LOCATION_NAME', 'DB2_HOSTNAME', 'DB2_PORT', 'DB2_DATABASE',
                   'DB2_USERNAME', 'DB2_PASSWORD', 'DB2_SSL_CONNECTION',
-                  'DB2_SSL_CERT_LOCATION', 'DB2_QUERY_ROW_LIMIT'})
+                  'DB2_SSL_SERVER_CERTIFICATE', 'DB2_SSL_CERT_LOCATION', 'DB2_QUERY_ROW_LIMIT'})
+ZOWE_KEYS = frozenset({'ZOWE_ENVIRONMENT', 'ZOWE_DEV_HOST', 'ZOWE_DEV_PORT',
+                       'ZOWE_PROD_HOST', 'ZOWE_PROD_PORT', 'ZOWE_TSO_ACCOUNT',
+                       'ZOWE_TSO_CODE_PAGE', 'ZOWE_TSO_LOGON_PROCEDURE',
+                       'ZOWE_CA_CERTIFICATE', 'ZOWE_USERNAME', 'ZOWE_PASSWORD'})
+WORKSPACE_KEYS = KEYS | ZOWE_KEYS
 MAX_ENV_BYTES = 65536
 MAX_CERT_BYTES = 1024 * 1024
 MAX_ROWS = 500000
@@ -68,7 +75,7 @@ def _read(path: Path, maximum: int, *, missing_ok: bool = False) -> bytes:
         raise ValidationError('Db2 local configuration file is unavailable or unsafe') from None
 
 
-def _parse(content: bytes) -> dict[str, str]:
+def _parse(content: bytes, *, allowed_keys: frozenset[str] = KEYS) -> dict[str, str]:
     try:
         text = content.decode('utf-8')
     except UnicodeError:
@@ -87,7 +94,7 @@ def _parse(content: bytes) -> dict[str, str]:
         match = re.fullmatch(r'([A-Z][A-Z0-9_]*)\s*=\s*(.*)', line)
         require(match is not None, 'Db2 environment file requires one literal KEY=value per line')
         key, value = match.groups()
-        require(key in KEYS and key not in values,
+        require(key in allowed_keys and key not in values,
                 'Db2 environment file contains an unknown or duplicate field')
         if value.startswith(('"', "'")):
             quote = value[0]
@@ -102,6 +109,15 @@ def _parse(content: bytes) -> dict[str, str]:
                 value = ''
         values[key] = value
     return values
+
+
+def read_workspace_env(path: Path | str) -> dict[str, str]:
+    """Read only the bounded literal shared private file; never mutate the shell.
+
+    Callers must keep returned credentials local and out of logs/model content.
+    Unknown/duplicate keys fail closed even when a different connector owns them.
+    """
+    return _parse(_read(Path(path), MAX_ENV_BYTES), allowed_keys=WORKSPACE_KEYS)
 
 
 def _text(value: object, maximum: int, *, empty: bool = False) -> str:
@@ -129,29 +145,46 @@ def _host(value: object) -> str:
     return host
 
 
-def settings(env: Mapping[str, str] | None = None, env_file: Path | str | None = None) -> Db2Settings:
+def settings(env: Mapping[str, str] | None = None, env_file: Path | str | None = None, *, canonical: bool = False) -> Db2Settings:
     """Resolve settings; missing credentials/certificate are checked at connection.
 
     Explicit shell fields, including empty values, override file values. No
-    environment changes, network calls or credential printing occur here.
+    environment changes, network calls or credential printing occur here. Explicit
+    canonical selection requires an existing file and database/location equality;
+    the legacy fixed-file contract remains compatible.
     """
     env = os.environ if env is None else env
     path = _path(Path(DEFAULT_ENV_FILE if env_file is None else env_file))
-    values = _parse(_read(path, MAX_ENV_BYTES, missing_ok=True))
+    values = _parse(_read(path, MAX_ENV_BYTES, missing_ok=not canonical), allowed_keys=WORKSPACE_KEYS)
+    certificate_keys = ('DB2_SSL_SERVER_CERTIFICATE', 'DB2_SSL_CERT_LOCATION')
+    # Alias ambiguity fails closed within either source. Explicit shell fields,
+    # including an empty credential/certificate, override the entire alias pair.
+    for source in (values, env):
+        if all(key in source for key in certificate_keys):
+            require(source[certificate_keys[0]] == source[certificate_keys[1]],
+                    'Db2 certificate aliases must contain the same literal value')
+    canonical = canonical or 'DB2_SSL_SERVER_CERTIFICATE' in values or 'DB2_SSL_SERVER_CERTIFICATE' in env
+    if any(key in env for key in certificate_keys):
+        for key in certificate_keys:
+            values.pop(key, None)
     values.update({key: env[key] for key in KEYS if key in env})
     ssl_value = values.get('DB2_SSL_CONNECTION', '')
     require(isinstance(ssl_value, str) and ssl_value.lower() == 'true',
             'Db2 SSL must remain enabled')
-    certificate = _text(values.get('DB2_SSL_CERT_LOCATION'), 1024)
+    certificate = _text(values.get('DB2_SSL_SERVER_CERTIFICATE', values.get('DB2_SSL_CERT_LOCATION')), 1024)
     relative = Path(certificate)
     require(not relative.is_absolute() and not PureWindowsPath(certificate).drive
             and '\\' not in certificate and '..' not in relative.parts and relative.parts,
             'Db2 certificate path must stay relative to the private environment file')
     certificate_path = _path(path.parent / relative)
     row_limit = values.get('DB2_QUERY_ROW_LIMIT', '')
+    location = _text(values.get('DB2_LOCATION_NAME'), 253)
+    database = _text(values.get('DB2_DATABASE'), 253)
+    require(not canonical or database == location,
+            'The z/OS Db2 database must equal the configured location name')
     return Db2Settings(
-        location=_text(values.get('DB2_LOCATION_NAME'), 253),
-        database=_text(values.get('DB2_DATABASE'), 253),
+        location=location,
+        database=database,
         host=_host(values.get('DB2_HOSTNAME')),
         port=_integer(values.get('DB2_PORT'), 65535, 'Db2 port must be 1..65535'),
         ssl=True,
@@ -198,13 +231,14 @@ def validate_certificate(content: bytes) -> None:
         raise ValidationError('Supply an actual valid PEM or DER Db2 CA certificate') from None
 
 
-def connection_string(env: Mapping[str, str] | None = None, env_file: Path | str | None = None) -> str:
+def connection_string(env: Mapping[str, str] | None = None, env_file: Path | str | None = None, *, canonical: bool = False, driver: str = "IBM DB2 ODBC DRIVER") -> str:
     """Build an in-memory ODBC connection string. Never log or persist the result."""
-    config = settings(env, env_file)
+    config = settings(env, env_file, canonical=canonical)
     require(bool(config.username) and bool(config.password),
             'Supply Db2 credentials through the private local environment')
     _certificate(config.certificate)
-    values = {'DRIVER': 'IBM DB2 ODBC DRIVER', 'DATABASE': config.database,
+    driver = _text(driver, 253)
+    values = {'DRIVER': driver, 'DATABASE': config.database,
               'HOSTNAME': config.host, 'PORT': config.port, 'PROTOCOL': 'TCPIP',
               'SECURITY': 'SSL', 'SSLServerCertificate': str(config.certificate),
               'SSLClientHostnameValidation': 'Basic', 'UID': config.username, 'PWD': config.password}

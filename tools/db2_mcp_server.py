@@ -8,15 +8,159 @@ import json
 import os
 import secrets
 import threading
+import time
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from workbench.connectors import READ_TOOLS,MCP_VERSIONS,MAX_RESPONSE_BYTES,catalog_sql
-from workbench.domain import decode,encode,require,ValidationError
+from workbench.domain import decode,encode,require,ValidationError,identity,safe_path,sha
+
+_EXPORT_LOCK=threading.RLock()
+# Selected only by this process' explicit CLI arguments, never a path env var.
+_SELECTED_ENV_FILE=None
+_SELECTED_CONFIG_FILE=None
+_SELECTED_DRIVER_NAME=None
+_SELECTED_ENV_ONLY=False
+
+
+def _private_request(workspace,process_id,request_id,need_id):
+    """Read Coordinator authorization without creating another ledger writer."""
+    import re
+    import sqlite3
+    from contextlib import closing
+    from workbench.retrieval import _verify_request,validate_binding,_snapshot_request,MAX_PACKET_BYTES
+    require(workspace is not None,'Protected export needs the approved local workspace')
+    root=Path(workspace).absolute();identity(process_id)
+    require(isinstance(request_id,str) and re.fullmatch('[0-9a-f]{64}',request_id),'Invalid retrieval request ID')
+    require(isinstance(need_id,str) and re.fullmatch('N[0-9a-f]{16}',need_id),'Invalid retrieval need ID')
+    relative='analysis/retrieval/'+request_id+'/request.json'
+    request_path=safe_path(root,'processes/'+process_id+'/'+relative)
+    require(request_path.is_file() and request_path.stat().st_size<=MAX_PACKET_BYTES,'Registered bounded retrieval request required')
+    raw=request_path.read_bytes();request=decode(raw,MAX_PACKET_BYTES);_verify_request(request)
+    require(request['process_id']==process_id and request['request_id']==request_id,'Retrieval identity differs')
+    ledger=safe_path(root,'.migration/ledger.sqlite')
+    require(ledger.is_file(),'Existing Coordinator ledger required')
+    with closing(sqlite3.connect(ledger.as_uri()+'?mode=ro',uri=True,timeout=10)) as db:
+        db.execute('PRAGMA query_only=ON')
+        row=db.execute('SELECT document,status,packet_issued FROM processes WHERE id=?',(process_id,)).fetchone()
+    require(row is not None and not row[2] and row[1] in ('WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT'),
+            'Protected export requires an idle pre-review Coordinator checkpoint')
+    doc=decode(row[0]);state=doc.get('retrieval_request') or {}
+    require(state.get('status')=='WAITING' and state.get('id')==request_id and state.get('artifact')==relative
+            and relative in doc.get('artifacts',[]) and doc.get('artifact_hashes',{}).get(relative)==sha(raw),
+            'Protected export requires the exact registered outstanding request')
+    validate_binding(request,doc)
+    need=next((need for need in request['needs'] if need['need_id']==need_id),None)
+    require(need is not None and need['kind']=='db2_snapshot','Protected export requires explicit Db2 snapshot authorization')
+    context=_snapshot_request(need)
+    require(context['scope']['kind']=='full_table' and not context['scope']['keys'],
+            'Record key values cannot enter the model-facing export request')
+    return root,request,need,context
+
+
+def export_snapshot_to_inbox(workspace,process_id,request_id,need_id):
+    """Raw records go only to a derived local file; return metadata, never values."""
+    from workbench.retrieval import private_snapshot_path,_snapshot_return
+    from workbench.database import validate_snapshot,MAX_BYTES,MAX_ROWS
+    from workbench.local_agent import _publish
+    with _EXPORT_LOCK:
+        root,request,need,context=_private_request(workspace,process_id,request_id,need_id)
+        relative=private_snapshot_path(need_id)
+        path=safe_path(root,request['return_folder']+'/files/'+relative)
+        if path.exists():
+            require(path.is_file() and path.stat().st_size<=MAX_BYTES,'Private snapshot must be regular and bounded')
+            raw=path.read_bytes();snapshot=_snapshot_return(raw.decode('utf-8'),None,need)
+            require(snapshot['provenance']['tool']=='db2_export_snapshot_to_inbox','Existing private export has a different origin')
+        else:
+            schema,table=need['name'].split('.');maximum=min(configured_row_limit(),MAX_ROWS)
+            rows=[];cursor=None;complete=False;reason='row_budget';deadline=time.monotonic()+60
+            # Reserve envelope overhead and estimate encoded row bytes before
+            # final bounded validation; a cap remains an explicit partial export.
+            size=len(encode(context))+8192
+            try:
+                while len(rows)<maximum:
+                    require(time.monotonic()<deadline,'Private export time budget reached')
+                    args={'schema':schema,'table':table,'limit':min(100,maximum-len(rows)),'max_rows':maximum}
+                    if cursor:args['cursor']=cursor
+                    page=ROW_READS.read(args);cursor=page['next_cursor']
+                    for row in page['rows']:
+                        require(list(row)==context['column_names'],'Actual private export column order differs from request')
+                        row_size=len(encode(row))
+                        if size+row_size>MAX_BYTES:reason='byte_budget';break
+                        rows.append(row);size+=row_size
+                    if reason=='byte_budget':break
+                    if not page['has_more']:
+                        complete=page['reason']=='end_of_cursor';reason=page['reason'];break
+                provenance={'origin':'configured_mcp','tool':'db2_export_snapshot_to_inbox','locator':need['name'],
+                            'retrieved_at':datetime.now(timezone.utc).isoformat()}
+                snapshot={**context,'scope':{**context['scope'],'complete':complete},'schema_version':1,
+                          'kind':'DB2_RECORD_SNAPSHOT','schema':schema,'table':table,'rows':rows,
+                          'provenance':provenance,'consistency':{'status':'unverified','evidence':[]}}
+                raw=encode(snapshot,MAX_BYTES);snapshot=validate_snapshot(raw.decode('utf-8'))
+                # A changed/stale request cannot publish private records.
+                _private_request(root,process_id,request_id,need_id)
+                require(_publish(path,raw),'Private export already exists; inspect the preserved receipt')
+            finally:
+                if cursor:ROW_READS.close(cursor)
+        item={'need_id':need_id,'status':'FOUND','path':relative,'sha256':sha(raw),
+              'provenance':snapshot['provenance']}
+        # Snapshot-only requests can be finalized deterministically without the
+        # model seeing private catalog identities in provenance. Mixed requests
+        # retain a named local receipt-binding gap; do not guess other items.
+        response_ready=False;response_path=safe_path(root,request['return_folder']+'/response.json')
+        if all(entry['kind']=='db2_snapshot' for entry in request['needs']):
+            items=[]
+            for entry in request['needs']:
+                exported=private_snapshot_path(entry['need_id'])
+                existing=safe_path(root,request['return_folder']+'/files/'+exported)
+                if not existing.exists():break
+                require(existing.is_file() and existing.stat().st_size<=MAX_BYTES,'Private snapshot must be regular and bounded')
+                content=existing.read_bytes();record=_snapshot_return(content.decode('utf-8'),None,entry)
+                items.append({'need_id':entry['need_id'],'status':'FOUND','path':exported,'sha256':sha(content),
+                              'provenance':record['provenance']})
+            if len(items)==len(request['needs']):
+                receipt=encode({'request_id':request_id,'items':items})
+                _private_request(root,process_id,request_id,need_id)
+                if response_path.exists():require(response_path.read_bytes()==receipt,'Existing private response differs; preserve its original evidence')
+                else:require(_publish(response_path,receipt),'Private response already exists; inspect the preserved receipt')
+                response_ready=True
+        safe_item={key:value for key,value in item.items() if key!='provenance'}
+        safe_item['provenance_reference_sha256']=sha(encode(item['provenance']))
+        return {'request_id':request_id,'item':safe_item,'row_count':len(snapshot['rows']),
+                'complete':snapshot['scope']['complete'],'consistency':'unverified',
+                'private_file':str(path),'read_only':True,'data_policy':'LOCAL_PRIVATE_RECORDS_NO_MODEL_VALUES',
+                'response_ready':response_ready,'response_file':str(response_path),
+                'receipt_status':'SAVED_PRIVATE_RESPONSE' if response_ready else 'NEEDS_LOCAL_PROTECTED_RECEIPT_BINDING'}
+
+
+def protected_metadata(name,result):
+    """Only structural catalog fields cross the Claude MCP boundary."""
+    fields={'db2_list_schemas':{'CREATOR'},'db2_list_tables':{'CREATOR','NAME','TYPE'},
+            'db2_describe_table':{'NAME','COLTYPE','LENGTH','SCALE','NULLS','COLNO','CCSID'}}[name]
+    require(isinstance(result,dict) and isinstance(result.get('rows'),list),'Typed metadata response required')
+    allowed={'rows','has_more','next_cursor','bounded','read_only','snapshot_consistent'}
+    return {**{key:value for key,value in result.items() if key in allowed and key!='rows'},
+            'rows':[{key:value for key,value in row.items() if key in fields} for row in result['rows']],
+            'data_policy':'STRUCTURAL_METADATA_ONLY_NO_REMARKS_DEFAULTS_OR_RECORDS'}
+
+
+def _selected_env_driver():
+    if _SELECTED_DRIVER_NAME is not None:
+        return _SELECTED_DRIVER_NAME
+    if _SELECTED_CONFIG_FILE is None:
+        return 'IBM DB2 ODBC DRIVER'
+    from workbench.db2_env import _read,_text
+    from workbench.db2_setup import _config
+    config=_config(decode(_read(_SELECTED_CONFIG_FILE,1024*1024),1024*1024))
+    return _text(config.get('driver'),253)
 
 
 def connection_string():
+    if _SELECTED_ENV_FILE is not None:
+        from workbench.db2_env import connection_string as from_env
+        return from_env({} if _SELECTED_ENV_ONLY else os.environ,_SELECTED_ENV_FILE,canonical=True,driver=_selected_env_driver())
     if os.environ.get('WB_DB2_CONFIG'):
         from workbench.db2_setup import load_connection
         return load_connection(os.environ['WB_DB2_CONFIG'],os.environ)
@@ -27,6 +171,13 @@ def connection_string():
 
 
 def configured_row_limit():
+    if _SELECTED_ENV_FILE is not None:
+        from workbench.db2_env import settings
+        limit=settings({} if _SELECTED_ENV_ONLY else os.environ,_SELECTED_ENV_FILE,canonical=True).row_limit
+        if _SELECTED_CONFIG_FILE is not None:
+            from workbench.db2_setup import configured_max_rows
+            limit=min(limit,configured_max_rows(_SELECTED_CONFIG_FILE))
+        return min(500000,limit)
     if os.environ.get('WB_DB2_CONFIG'):
         from workbench.db2_setup import configured_max_rows
         return min(500000, configured_max_rows(os.environ['WB_DB2_CONFIG']))
@@ -76,7 +227,7 @@ class RowReadSessions:
             else:
                 require(maximum<=configured_row_limit(),'Table read exceeds the configured local row budget')
                 require(len(self.sessions)<16,'Concurrent table read cursor budget reached')
-                if os.environ.get('WB_DB2_CONFIG'):
+                if _SELECTED_ENV_FILE is None and os.environ.get('WB_DB2_CONFIG'):
                     from workbench.db2_setup import configured_max_rows
                     require(maximum<=configured_max_rows(os.environ['WB_DB2_CONFIG']),
                             'Table read exceeds the configured local row budget')
@@ -255,7 +406,7 @@ class LocalSecurity:
         return await self.app(scope,receive,send)
 
 
-def create_server(search_root=None):
+def create_server(search_root=None,*,workspace=None,protected=True):
     from contextlib import asynccontextmanager
     from fastmcp import FastMCP
     from workbench.db2_discovery import SearchStore
@@ -275,9 +426,15 @@ def create_server(search_root=None):
             for token in list(ROW_READS.sessions): ROW_READS.close(token)
     server=FastMCP('workbench-db2-read-only',version='1.0.0',mask_error_details=True,
                   strict_input_validation=True,lifespan=lifespan,
-                  instructions='All Db2 operations are read-only. To find unknown data, start a literal content search, continue until terminal, then page matches and object outcomes. Never equate PARTIAL/denied/capped with absent. No free-form SQL, mainframe writes or parity claims.')
+                  instructions=('Approved structural metadata only. Customer records never enter tool responses. '
+                                'Explicit Coordinator snapshot requests use db2_export_snapshot_to_inbox for local private files. '
+                                'No raw row/sample/content search tools, free-form SQL, writes or parity claims.' if protected else
+                                'Historical read-only compatibility mode; never expose its business records to Claude.'))
     annotations={'readOnlyHint':True,'destructiveHint':False,'openWorldHint':True}
     def register(function):
+        if protected and function.__name__ in {'db2_sample_rows','db2_read_table_rows',*{'db2_search_'+suffix for suffix in ('start','continue','status','results','cancel')}}:
+            return function
+        if not protected and function.__name__=='db2_export_snapshot_to_inbox':return function
         from functools import wraps
         from fastmcp.exceptions import ToolError
         @wraps(function)
@@ -290,15 +447,22 @@ def create_server(search_root=None):
     @register
     def db2_list_schemas(after_schema: str='', limit: int=100) -> dict:
         """List local schemas with keyset continuation."""
-        return execute('db2_list_schemas',locals())
+        result=execute('db2_list_schemas',locals())
+        return protected_metadata('db2_list_schemas',result) if protected else result
     @register
     def db2_list_tables(schema: str | None=None, after_schema: str='', after_table: str='', limit: int=100) -> dict:
         """List local tables, views and aliases across schemas; no default schema filter."""
-        return execute('db2_list_tables',locals())
+        result=execute('db2_list_tables',locals())
+        return protected_metadata('db2_list_tables',result) if protected else result
     @register
     def db2_describe_table(schema: str, table: str, after_column: int=-1, limit: int=100) -> dict:
         """Describe a local table's columns."""
-        return execute('db2_describe_table',locals())
+        result=execute('db2_describe_table',locals())
+        return protected_metadata('db2_describe_table',result) if protected else result
+    @register
+    def db2_export_snapshot_to_inbox(process_id: str, request_id: str, need_id: str) -> dict:
+        """Export authorized private rows into the exact local inbox; return counts/hash/path only."""
+        return export_snapshot_to_inbox(workspace,process_id,request_id,need_id)
     @register
     def db2_sample_rows(schema: str, table: str, limit: int=10) -> dict:
         """Small explicit sample; samples do not establish completeness."""
@@ -333,22 +497,33 @@ def create_server(search_root=None):
 
 
 def main():
+    global _SELECTED_ENV_FILE,_SELECTED_CONFIG_FILE,_SELECTED_DRIVER_NAME,_SELECTED_ENV_ONLY
     import argparse
     import getpass
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--transport',choices=('stdio','http'),default='stdio')
     parser.add_argument('--config',help='Exact nonsecret workspace Db2 configuration prepared by setup')
+    parser.add_argument('--env-file',help='Exact private workspace .env; supplies literal z/OS connection fields and private credentials')
     parser.add_argument('--port',type=int,help='Approved loopback MCP port')
+    parser.add_argument('--driver',help='Exact approved registered IBM Db2 ODBC driver for an explicit private .env')
+    parser.add_argument('--workspace',help='Approved local evidence workspace for protected exact-inbox exports')
     parser.add_argument('--interactive',action='store_true',help='Enter credentials privately in this local terminal for HTTP startup')
     args=parser.parse_args()
-    require(not args.interactive or args.transport=='http' and args.config and sys.stdin.isatty(),
-            'Interactive Db2 startup requires HTTP, a selected local config and your local terminal')
+    require(not args.interactive or args.transport=='http' and (args.config or args.env_file) and sys.stdin.isatty(),
+            'Interactive Db2 startup requires HTTP, selected local settings and your local terminal')
     require(args.port is None or 1<=args.port<=65535,'Invalid loopback MCP port')
+    require(args.driver is None or args.env_file is not None,'An explicit driver requires the selected private .env')
     changes={}
+    previous_selection=(_SELECTED_ENV_FILE,_SELECTED_CONFIG_FILE,_SELECTED_DRIVER_NAME,_SELECTED_ENV_ONLY)
     def local(name,value):
         changes.setdefault(name,os.environ.get(name))
         os.environ[name]=value
     try:
+        _SELECTED_ENV_FILE=Path(args.env_file).absolute() if args.env_file else None
+        _SELECTED_CONFIG_FILE=Path(args.config).absolute() if args.config else None
+        from workbench.db2_setup import _stdio_driver
+        _SELECTED_DRIVER_NAME=_stdio_driver(args.driver) if args.driver is not None else None
+        _SELECTED_ENV_ONLY=bool(args.env_file and args.transport=='stdio')
         search_root=None
         if args.config:
             from workbench.db2_env import _read
@@ -358,7 +533,7 @@ def main():
             config=_config(decode(_read(config_path,1024*1024),1024*1024))
             local('WB_DB2_CONFIG',str(config_path))
             search_root=config_path.parent/'db2-search'
-            if args.interactive:
+            if args.interactive and not args.env_file:
                 connection_fields(config)
                 from workbench.db2_env import validate_certificate
                 from workbench.db2_setup import CERTIFICATE
@@ -374,13 +549,40 @@ def main():
                         'The selected Db2 ODBC driver is not registered locally; install the approved driver or correct setup')
                 for name,prompt,secret in (('WB_DB2_USER','Read-only Db2 username: ',False),
                                            ('WB_DB2_PASSWORD','Db2 password: ',True),
-                                           ('WB_DB2_MCP_TOKEN','Approved MCP token (also enter in VS Code): ',True)):
+                                           ('WB_DB2_MCP_TOKEN','Approved MCP token (also enter in the Claude launcher): ',True)):
                     if not os.environ.get(name):local(name,getpass.getpass(prompt) if secret else input(prompt))
                 # Validate local TLS and credential representation; never connect here.
                 from workbench.db2_setup import load_connection
                 load_connection(config_path,os.environ)
+        if args.env_file:
+            from workbench.db2_env import settings,_certificate
+            # Local file parsing and certificate checks precede all prompts.
+            # This never connects, writes .env, or exposes its contents as tools.
+            configured=settings({} if _SELECTED_ENV_ONLY else os.environ,_SELECTED_ENV_FILE,canonical=True)
+            _certificate(configured.certificate)
+            configured_row_limit()
+            driver=_selected_env_driver()
+            if args.interactive:
+                try:
+                    import pyodbc
+                    drivers=pyodbc.drivers()
+                except Exception:
+                    raise ValidationError('Install the organization-approved pyodbc package and IBM Db2 ODBC driver before starting the MCP server') from None
+                require(isinstance(drivers,list) and any(isinstance(value,str) and value.casefold()==driver.casefold() for value in drivers),
+                        'The selected Db2 ODBC driver is not registered locally; install the approved driver or correct setup')
+                for name,prompt,secret,current in (
+                    ('DB2_USERNAME','Read-only Db2 username: ',False,configured.username),
+                    ('DB2_PASSWORD','Db2 password: ',True,configured.password),
+                    ('WB_DB2_MCP_TOKEN','Approved MCP token (also enter in the Claude launcher): ',True,os.environ.get('WB_DB2_MCP_TOKEN',''))):
+                    if not current:local(name,getpass.getpass(prompt) if secret else input(prompt))
+            connection_string()
         if args.port is not None:local('WB_DB2_MCP_PORT',str(args.port))
-        server=create_server(search_root=search_root)
+        export_workspace=Path(args.workspace).absolute() if args.workspace else None
+        if export_workspace is None and args.config:
+            export_workspace=config_path.parent.parent if config_path.parent.name=='.migration' else config_path.parent
+        elif export_workspace is None and args.env_file:
+            export_workspace=_SELECTED_ENV_FILE.parent
+        server=create_server(search_root=search_root,workspace=export_workspace)
         if args.transport=='stdio':server.run(transport='stdio',show_banner=False)
         else:
             from starlette.middleware import Middleware
@@ -397,6 +599,7 @@ def main():
                        allowed_hosts=[f'127.0.0.1:{port}',f'localhost:{port}',f'[::1]:{port}'],
                        allowed_origins=[f'http://127.0.0.1:{port}',f'http://localhost:{port}',f'http://[::1]:{port}'])
     finally:
+        _SELECTED_ENV_FILE,_SELECTED_CONFIG_FILE,_SELECTED_DRIVER_NAME,_SELECTED_ENV_ONLY=previous_selection
         for name,previous in changes.items():
             if previous is None:os.environ.pop(name,None)
             else:os.environ[name]=previous

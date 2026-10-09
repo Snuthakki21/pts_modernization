@@ -8,12 +8,12 @@ from test_source import COBOL
 from test_workflow import MANIFEST
 
 class RuntimePolicyTests(unittest.TestCase):
-    def test_new_process_pins_twenty_and_runtime_seed_once(self):
+    def test_new_process_pins_sixty_four_and_runtime_seed_once(self):
         with tempfile.TemporaryDirectory() as folder:
             with CoordinatorContext(folder) as c:
                 doc=c.create(MANIFEST,{'ELIGIBLE.cbl':COBOL})
-                self.assertEqual(doc['logic_validation_min_records'],20)
-                self.assertEqual(doc['fixture_contract_version'],4)
+                self.assertEqual(doc['logic_validation_min_records'],64)
+                self.assertEqual(doc['fixture_contract_version'],5)
                 with patch('secrets.randbits',return_value=90123) as random_seed:
                     doc=c.start('process-a')
                     self.assertEqual(doc['authorization']['seed'],90123)

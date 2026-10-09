@@ -118,8 +118,8 @@ investigating utilities whose normal purpose is to change data.
 
 ## Application routing and source-derived fixtures
 
-WEDLX is a local/mounted input-availability location. Source-system files arrive
-at Tran Repository for WEDLX/downstream steps. Put exact folder/file bindings in
+WEBELX is a local/mounted input-availability location. Source-system files arrive
+at Tran Repository for WEBELX/downstream steps. Put exact folder/file bindings in
 `knowledge/input-locations.json` using [the template](../examples/input-locations.json).
 Do not invent datasets from location names. Availability does not establish
 layout, cutoff, completeness or business readiness.
@@ -133,7 +133,9 @@ provenance. Batch COBOL comes from Endeavor; JCL/PROCs may also be in actual
 mainframe libraries.
 
 Every applicable business/technical source logic item needs explicit validation.
-New process fixtures require at least 20 distinct randomized valid source logic states,
+New v5 process fixtures require at least 64 distinct randomized valid source logic states,
+or 128 for recorded compound predicates, cross-layout compared keys and prior effects
+that change predicate inputs. Frozen historical policies retain their original floors.
 modeled outcomes/boundaries, invalid layouts and linked-group matching/mismatching
 keys. Freeze expectations from source before target execution. Unsupported
 numeric/file/Db2/CICS/utility semantics need reviewed adapters. Sample rows or

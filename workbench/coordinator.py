@@ -40,6 +40,13 @@ class Coordinator:
             from .setup import load_workstation_settings
             self.workstation_settings=load_workstation_settings(self.root)
             for p in self.ledger.list(True):
+                try:self.artifact_reference_integrity(p)
+                except ValidationError as exc:
+                    p['report_verified']=False
+                    if not any(b['kind']=='evidence_integrity' for b in p['blockers']):p['blockers'].append({'kind':'evidence_integrity','message':str(exc)})
+                    status='QUEUED_REPORT' if p['status'] in ('COMPLETED','COMPLETED_WITH_BLOCKERS','ANALYZING','VERIFYING','REPORTING') else None
+                    self.ledger.save(p,status)
+                    continue # Preserve unsafe historical keys and their original baselines.
                 prior_artifacts=len(p['artifacts'])
                 hashes=p.get('artifact_hashes') or {}
                 review_paths=['review/'+f for f in ('packet.json','sme-checklist.xlsx','sme-checklist.docx','sme-checklist.html')]
@@ -111,7 +118,7 @@ class Coordinator:
         require(not _prepare or local_files and requirements_selection,'Prepared retrieval intake requires the local Claude workflow and explicit requirements selection')
         agent_mode=assistant_mode in ('agent','claude_files')
         if agent_mode:assistant_mode='copilot_chat'
-        require(assistant_mode in ('deterministic','disabled','copilot_chat','opt_in'),'Choose Copilot Chat, deterministic analysis, or the explicitly configured legacy provider')
+        require(assistant_mode in ('deterministic','disabled','copilot_chat','opt_in'),'Choose the Claude workflow, deterministic analysis, or the explicitly configured legacy provider')
         require(isinstance(prompt,str),'Analysis prompt must be text')
         try:
             encoded_sources={path:text.encode('utf-8') for path,text in source_files.items()}
@@ -158,8 +165,8 @@ class Coordinator:
                 doc['source_origin']={'kind':'pending_retrieval' if _prepare and not source_files else 'folder' if source_folder is not None else 'workspace_or_upload', 'location':str(Path(source_folder).absolute()) if source_folder is not None else None}
                 write_new(base/'analysis'/'source-origin.json',encode(doc['source_origin']))
                 self.register(doc,'analysis/source-origin.json')
-                doc['logic_validation_min_records']=20
-                doc['fixture_contract_version']=4
+                doc['logic_validation_min_records']=64
+                doc['fixture_contract_version']=5
                 from .inventory import snapshot_inventory
                 doc['inventory_baseline']=snapshot_inventory(self.root)
                 write_new(base/'analysis'/'inventory-baseline.json',encode(doc['inventory_baseline']))
@@ -222,9 +229,9 @@ class Coordinator:
             require_layout(self.root)
             doc=self.ledger.get(pid);self.manifest_integrity(doc);require(doc['status']=='READY','Process already started; use Resume when applicable')
             import secrets
-            seed=secrets.randbits(63) if doc.get('fixture_contract_version')==4 else 21
+            seed=secrets.randbits(63) if doc.get('fixture_contract_version') in (4,5) else 21
             doc['authorization']={'recorded':now(),'scope':dict(doc['source_files']),'target':'verified-adapters/python-sqlite','seed':seed,'max_cases_per_program':4096 if doc.get('logic_validation_min_records') else 256,'max_repair_attempts':1,'source_operations':'read-only','mainframe_execution':False}
-            if doc.get('fixture_contract_version')==4:doc['authorization']['fixture_contract_version']=4
+            if doc.get('fixture_contract_version') in (4,5):doc['authorization']['fixture_contract_version']=doc['fixture_contract_version']
             return self.ledger.save_event(doc,'QUEUED_ANALYSIS','start','Start authorization recorded; source writes and mainframe execution are prohibited')
 
     def control(self,pid,action):
@@ -354,7 +361,19 @@ class Coordinator:
             self.ledger.consume_return(pid,answers)
             return self.ledger.get(pid)
 
+    def artifact_reference_integrity(self,doc):
+        # Historical registrations may predate portable path guards. Validate
+        # identities without reading, normalizing or repinning their evidence.
+        references=[*(doc.get('artifacts') or []), *(doc.get('artifact_hashes') or {}),
+                    *(doc.get('report_hashes') or {})]
+        require(all(isinstance(relative,str) for relative in references),'Frozen evidence references must be text')
+        for relative in dict.fromkeys(references):
+            try:output_path(self.root,doc['id'],relative)
+            except ValidationError as exc:
+                raise ValidationError('Frozen evidence reference '+repr(relative)+' is invalid; preserve its original key and baseline: '+str(exc)) from exc
+
     def manifest_integrity(self,doc):
+        self.artifact_reference_integrity(doc)
         require(doc.get('manifest_hash'),'Frozen manifest baseline is missing; preserve this process and create a new intake with an original manifest baseline; never pin an existing mutable file on Resume')
         raw=output_path(self.root,doc['id'],'input/process-input.md').read_bytes()
         require(sha(raw)==doc['manifest_hash'],'Frozen process manifest changed; existing evidence cannot be credited')
@@ -559,31 +578,49 @@ class Coordinator:
     def agent_task(self,pid):
         with self.lock:
             doc=self.ledger.get(pid);sources=self.sources(doc)
-            require(doc.get('copilot_task_artifact'),'Complete object discovery before requesting Copilot analysis')
+            require(doc.get('copilot_task_artifact'),'Complete object discovery before requesting agent analysis')
             return decode(self.artifact(pid,doc['copilot_task_artifact']).read_bytes())
 
     def local_agent_view(self, pid):
+        from .retrieval import request_prompt,model_request,model_need
+        from .copilot import model_requirements
         with self.lock:
             doc=self.ledger.get(pid);self.sources(doc)
             request=None
             if doc.get('retrieval_request'):
-                request=decode(self.artifact(pid,doc['retrieval_request']['artifact']).read_bytes())
+                frozen_request=decode(self.artifact(pid,doc['retrieval_request']['artifact']).read_bytes())
+                request=model_request(frozen_request)
+                request.update(agent_prompt=request_prompt(frozen_request),retrieval_agent='claude',
+                               historical_request=frozen_request.get('privacy_contract_version')!=1)
             from .setup import inspect_workstation
             current_setup=inspect_workstation(self.root)['settings']
             retrieval_context={key:current_setup[key] for key in ('zowe_profile','zowe_zosmf_profile','db2_metadata_url')}
             retrieval_context.update(status='CONFIGURATION_ONLY',connectivity_verified=False,
-                                     role='Copilot approved retrieval only; never Claude MCP access')
+                                     role='Claude approved Db2 MCP and read-only Zowe CLI retrieval')
+            task_file=None
+            if doc.get('copilot_task_artifact'):
+                task=decode(self.artifact(pid,doc['copilot_task_artifact']).read_bytes())
+                if (task.get('data_policy') or {}).get('source_identity_mode')=='OPAQUE_HASH_REFERENCES':
+                    task_file=str(self.artifact(pid,doc['copilot_task_artifact']))
             return {'process_id':pid,'status':doc['status'],'retrieval_context':retrieval_context,'host_roles':{
-                'retrieval':'GitHub Copilot, approved MCP retrieval into the request inbox only',
-                'analysis':'Claude Code, local files only; no MCP'},
-                'task_file':str(self.artifact(pid,doc['copilot_task_artifact'])) if doc.get('copilot_task_artifact') else None,
+                'retrieval':'Claude Code, approved Db2 MCP and read-only Zowe CLI into the request inbox',
+                'analysis':'Claude Code, accepted local evidence, development, testing and review'},
+                'task_file':task_file,
+                'historical_private_task_blocked':bool(doc.get('copilot_task_artifact') and task_file is None),
                 'source_directory':str(self.process_root(pid)/'input/sources'),
-                'requirements_file':str(self.artifact(pid,doc['requirements_artifact'])) if doc.get('requirements_artifact') else None,
+                'requirements_file':None,
+                'requirements':model_requirements(doc),
                 'analysis_return_inbox':str(output_path(self.root,pid,'analysis/agent-return-inbox.json')),
-                'retrieval':request,'retrieval_state':doc.get('retrieval_request'),
-                'unresolved_retrieval':list(doc.get('retrieval_unresolved',{}).values())[:128],
+                'retrieval':request,'retrieval_state':None if not doc.get('retrieval_request') else
+                    {key:value for key,value in doc['retrieval_request'].items() if key in
+                     {'id','artifact','status','total_need_count','remaining_need_count','response_artifact'}} |
+                    {'missing_item_count':len(doc['retrieval_request'].get('missing_items',[]))},
+                'unresolved_retrieval':[{'need':model_need(record['need']),
+                    'request_id':record['request_id'],'reason':'Unresolved local evidence; private details remain in the ledger',
+                    **({'status':record['status']} if record.get('status') in {'RECEIVED','NOT_FOUND','AMBIGUOUS'} else {})}
+                    for record in list(doc.get('retrieval_unresolved',{}).values())[:128]],
                 'unresolved_retrieval_count':len(doc.get('retrieval_unresolved',{})),
-                'message':'Claude reads the local task and evidence, performs analysis/coding/testing/review, then returns task-bound analysis. When evidence is missing, copy the retrieval prompt to Copilot; Continue validates its inbox. Requirements Save and the one actual SME return remain human gates.'}
+                'message':'Claude retrieves named evidence through approved read-only connections into the exact inbox. Continue validates and freezes its return before local analysis, coding, testing and review. Requirements Save and the one actual SME return remain human gates.'}
 
     @staticmethod
     def _retrieval_need_key(need):
@@ -617,7 +654,7 @@ class Coordinator:
             for need in request['needs']:
                 unresolved[self._retrieval_need_key(need)]={'need':{k:v for k,v in need.items() if k!='need_id'},
                     'request_id':request['request_id'],'reason':'Awaiting requested local evidence'}
-            self.ledger.save_event(doc,None,'retrieval','Copilot retrieval request prepared; Claude continues from local returned files',{'request_id':request['request_id']})
+            self.ledger.save_event(doc,None,'retrieval','Claude retrieval request prepared; Continue validates the exact returned evidence',{'request_id':request['request_id']})
             if doc.get('guided_contract_version') or doc.get('guide_artifact'):
                 from .guide import snapshot
                 snapshot(self,doc);self.ledger.save(doc)
@@ -692,7 +729,7 @@ class Coordinator:
                 require(doc['status'] in ('READY','WAITING_DISCOVERY','WAITING_REQUIREMENTS','WAITING_COPILOT'),'Enable local-file analysis at a stable checkpoint')
                 doc['agent_transport']='local_files';doc['assistant_mode']='copilot_chat';doc['development_contract_version']=2
                 if doc.get('development_handoff'):doc['historical_development_handoff']=doc.pop('development_handoff')
-                self.ledger.save_event(doc,None,'agent','Claude local-file workflow selected; Copilot limited to retrieval and prior handoff evidence preserved')
+                self.ledger.save_event(doc,None,'agent','Claude workflow selected for approved retrieval and local analysis; prior handoff evidence preserved')
                 if doc['status']=='WAITING_COPILOT':self.refresh_analysis(pid);migrated=True
         if migrated:self.advance(pid)
         if action=='request':return self.request_retrieval(pid,payload.get('needs'))
@@ -835,7 +872,7 @@ class Coordinator:
             require(not self._current_development(doc,task),'Development handoff requires a return, integration review and refresh before final analysis')
             if doc.get('development_contract_version'):
                 require(adapter_fingerprint()==self.adapter_fingerprint==doc.get('analysis_adapter_fingerprint'),'Adapter code changed; restart the existing service and refresh analysis before final analysis')
-            result=validate_submission(task,submitted,doc.get('analysis'))
+            result=validate_submission(task,submitted,doc.get('analysis'),doc['source_files'])
             data=encode(result);relative='analysis/copilot-return-'+sha(data)+'.json'
             write_new(output_path(self.root,pid,relative),data);self.register(doc,relative)
             doc['llm']=result;doc['copilot_return_artifact']=relative
@@ -1010,7 +1047,7 @@ class Coordinator:
         from .connectors import ReadOnlyLineageResolver
         strict=doc.get('assistant_mode')=='copilot_chat'
         if not doc.get('lineage') or (strict and not doc['lineage']['closure']['complete']):
-            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.from_environment() if strict and doc.get('agent_transport')!='local_files' else None)
+            lineage=map_lineage(source_files,doc,doc.get('mainframe_knowledge'),resolver=ReadOnlyLineageResolver.from_environment(workspace=self.root) if strict and doc.get('agent_transport')!='local_files' else None)
             self.freeze_discovered_sources(doc,lineage.get('source_snapshots',[]))
             source_files=self.sources(doc)
             # Fetched text is retained in immutable source snapshots and journal,
@@ -1058,24 +1095,24 @@ class Coordinator:
             require(not path_is_link(context_path) and context_path.stat().st_size<=16000,'Knowledge context must be a regular Markdown file of at most 16 KB')
             doc['knowledge_context']={'text':context_path.read_bytes().decode('utf-8'),'sha256':sha(context_path.read_bytes()),'status':'UNVERIFIED_INPUT'}
         from .connectors import read_only_discovery
-        if 'discovery' not in doc:doc['discovery']={'status':'COPILOT_RETRIEVAL_ONLY','operations':[]} if doc.get('agent_transport')=='local_files' else read_only_discovery()
+        if 'discovery' not in doc:doc['discovery']={'status':'CLAUDE_APPROVED_RETRIEVAL_REQUIRED','operations':[]} if doc.get('agent_transport')=='local_files' else read_only_discovery()
         doc.setdefault('llm',{'status':'NOT_CONFIGURED','live_ready':False})
         if strict and doc['llm']['status']!='AGENT_ANALYSIS_RETURNED':
             analysis_bytes=encode(analysis);analysis_relative='analysis/source-analysis-'+sha(analysis_bytes)+'.json'
             frozen=output_path(self.root,pid,analysis_relative)
-            if frozen.exists():require(frozen.read_bytes()==analysis_bytes,'Analysis differs from frozen Copilot evidence')
+            if frozen.exists():require(frozen.read_bytes()==analysis_bytes,'Analysis differs from frozen agent evidence')
             else:write_new(frozen,analysis_bytes)
             self.register(doc,analysis_relative);doc['analysis_artifact']=analysis_relative
             from .copilot import build_task, unknown_usage
             doc['analysis_adapter_fingerprint']=self.adapter_fingerprint
             task=build_task(doc,source_files,analysis);data=encode(task);relative='analysis/copilot-task-'+sha(data)+'.json'
             destination=output_path(self.root,pid,relative)
-            if destination.exists():require(destination.read_bytes()==data,'Copilot task recovery differs')
+            if destination.exists():require(destination.read_bytes()==data,'Agent task recovery differs')
             else:write_new(destination,data)
             self.register(doc,relative);doc['copilot_task_artifact']=relative
-            doc['llm']={'status':'WAITING_COPILOT','live_ready':False,'usage':unknown_usage()}
+            doc['llm']={'status':'WAITING_COPILOT','live_ready':False,'usage':task.get('usage',unknown_usage())}
             self.stage_success(doc,'QUEUED_ANALYSIS');self.checkpoint(doc,'WAITING_COPILOT')
-            self.ledger.event(pid,'agent','Frozen task ready for Claude Code through local files; Copilot retrieves missing evidence only' if doc.get('agent_transport')=='local_files' else 'Frozen task ready for external agent analysis')
+            self.ledger.event(pid,'agent','Frozen metadata task ready for Claude Code; approved retrieval and private local verification remain gated' if doc.get('agent_transport')=='local_files' else 'Frozen task ready for external agent analysis')
             return
         if self.provider and not strict and doc['llm']['status']=='NOT_CONFIGURED':
             try:
@@ -1144,7 +1181,7 @@ class Coordinator:
             self.checkpoint(doc)
             args=(p,doc['authorization']['seed'],doc['authorization']['max_cases_per_program'])
             options={'min_records_per_logic':doc['logic_validation_min_records']} if doc.get('logic_validation_min_records') else {}
-            if doc.get('fixture_contract_version')==4:options['fixture_contract_version']=4
+            if doc.get('fixture_contract_version') in (4,5):options['fixture_contract_version']=doc['fixture_contract_version']
             suite=plan_cases(*args,**options)
             self.checkpoint(doc)
             expected_path=runroot/name/'expected.json';write_new(expected_path,encode(suite));self.register(doc,f'synthetic/{run_id}/{name}/expected.json')
@@ -1157,7 +1194,7 @@ class Coordinator:
             adversarial=adversarial_review(p,code,suite,checkpoint=lambda:self.checkpoint(doc,persist=False));self.checkpoint(doc)
             result['adversarial']=adversarial
             unit_result=None
-            if doc.get('fixture_contract_version')==4:
+            if doc.get('fixture_contract_version') in (4,5):
                 from .unit_evidence import generate_unit_tests, run_unit_tests
                 script=generate_unit_tests(p,suite,sha(code))
                 unit_relative=f'tests/{run_id}/{name}/test_generated.py'
@@ -1202,20 +1239,23 @@ class Coordinator:
         if doc.get('logic_validation_min_records'):
             unsupported=len(doc['analysis']['blockers'])
             summary={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'programs':logic_summaries,'unsupported_obligations':unsupported,'complete':bool(logic_summaries) and not unsupported and all(s.get('complete') for s in logic_summaries),'basis':'SOURCE_DERIVED_EXPECTED','observed_legacy_parity':False}
-            if doc.get('fixture_contract_version')==4:
+            if doc.get('fixture_contract_version') in (4,5):
                 if doc.get('cics_contract_version')==1:
                     summary['screen_layouts']=[{'screen_id':ident,'coverage':value['coverage'],'target_matched':not value['differences'],
                         'adversarial_passed':value['adversarial']['passed'],'unit_test_count':value['unit_tests']['tests_run'],
                         'local_layout_passed':value['passed'] and value['adversarial']['passed'] and value['unit_tests']['passed'],
                         'native_controller_verified':False,'http_evidence':'target/'+run_id+'/online/verification.json'} for ident,value in run.get('screens',{}).items()]
-                summary.update(fixture_contract_version=4,seed=doc['authorization']['seed'],jobs=job_validation,
+                summary.update(fixture_contract_version=doc['fixture_contract_version'],seed=doc['authorization']['seed'],jobs=job_validation,
                                unit_test_count=sum(r.get('unit_tests',{}).get('tests_run',0) for r in run['programs'].values())+sum(r.get('unit_tests',{}).get('tests_run',0) for r in run.get('screens',{}).values()))
                 summary['complete']=summary['complete'] and (not doc['jobs'] or bool(job_validation and job_validation['complete']))
+            if doc.get('fixture_contract_version')==5:
+                summary.update(risk_minimum=128,risk_qualified_logic=sum(len(s.get('validation_policy',{}).get('risk_inputs',[])) for s in logic_summaries))
             relative=f'synthetic/{run_id}/logic-validation.json';write_new(output_path(self.root,pid,relative),encode(summary));self.register(doc,relative)
             doc['logic_validation']={'minimum_distinct_records_per_logic':doc['logic_validation_min_records'],'validated_programs':len(logic_summaries),'unsupported_obligations':unsupported,'complete':summary['complete'],'evidence':relative}
             if doc.get('cics_contract_version')==1:doc['logic_validation']['screen_layouts']=summary.get('screen_layouts',[])
-            if doc.get('fixture_contract_version')==4:
-                doc['logic_validation'].update(fixture_contract_version=4,seed=doc['authorization']['seed'],unit_test_count=summary['unit_test_count'],job_cases=result.get('integration_cases') if job_validation else None)
+            if doc.get('fixture_contract_version') in (4,5):
+                doc['logic_validation'].update(fixture_contract_version=doc['fixture_contract_version'],seed=doc['authorization']['seed'],unit_test_count=summary['unit_test_count'],job_cases=result.get('integration_cases') if job_validation else None)
+            if doc.get('fixture_contract_version')==5:doc['logic_validation'].update(risk_minimum=summary['risk_minimum'],risk_qualified_logic=summary['risk_qualified_logic'])
             if not summary['complete']:doc['blockers'].append({'kind':'logic_validation_gap','message':'Every applicable source logic item requires distinct records and reproducible target evidence; unsupported, unreachable or undersampled obligations remain unverified'})
         if doc.get('transactions'):
             from .online import deliver

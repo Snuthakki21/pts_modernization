@@ -14,9 +14,15 @@ def comparisons(node):
 
 
 def plan_cases(program, seed=21, budget=256, min_records_per_logic=0, fixture_contract_version=None):
-    """Replay historical suites; new intake pins v4 and its runtime-generated seed."""
+    """Replay frozen historical policies; new intake pins risk-qualified v5."""
     require(fixture_contract_version is None or type(fixture_contract_version) is int and
-            fixture_contract_version in (1,3,4), 'Unsupported fixture contract version')
+            fixture_contract_version in (1,3,4,5), 'Unsupported fixture contract version')
+    if fixture_contract_version == 5:
+        require(type(min_records_per_logic) is int and min_records_per_logic == 64,
+                'V5 requires a base floor of 64 distinct randomized records per logic')
+        require(type(seed) is int and 0 <= seed < 2**63, 'V5 seed must be an unsigned 63-bit integer')
+        require(type(budget) is int and 1 <= budget <= 4096, 'V5 case budget must be between 1 and 4096')
+        return _plan_cases_v3(program, seed, budget, min_records_per_logic, version=5)
     if fixture_contract_version == 4:
         require(type(min_records_per_logic) is int and min_records_per_logic == 20,
                 'V4 requires at least 20 distinct randomized records per logic')
@@ -143,7 +149,7 @@ def _domain_options(spec,minimum,seed):
     return list(dict.fromkeys(values))
 
 
-def _random_domain_options(spec, count, rng):
+def _random_domain_options(spec, count, rng, alphabet=' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'):
     """Bounded seeded values with no duplicate padding and no global RNG mutation."""
     if spec['type']=='integer':
         size=spec['max']+1
@@ -154,7 +160,6 @@ def _random_domain_options(spec, count, rng):
             if value not in values:values.add(value);result.append(value)
             if len(result)>=count:break
         return result
-    alphabet=' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     if spec['width']==1:return rng.sample(list(alphabet),min(count,len(alphabet)))
     values=set();result=[]
     for _ in range(count*8):
@@ -164,7 +169,37 @@ def _random_domain_options(spec, count, rng):
     return result
 
 
-def _select_source_mutation_witnesses(program, candidates, selected, select):
+def validation_policy(program, minimum=64):
+    """Source IR risk facts, not a model assertion or a new semantics adapter."""
+    require(minimum == 64 and type(minimum) is int, 'V5 base floor must be 64')
+    thresholds = {}; risks = []; written = set()
+    linked = {name for relation in program.get('relationships', [])
+              if program['fields'][relation['left']]['group'] != program['fields'][relation['right']]['group']
+              for name in (relation['left'], relation['right'])}
+    for rule in program['rules']:
+        fields = _logic_fields(rule['predicate']); reasons = []
+        if rule['predicate'].get('op') in ('AND', 'OR'): reasons.append('compound_predicate')
+        if fields & linked: reasons.append('cross_layout_compared_key')
+        if fields & written: reasons.append('prior_effect_changes_predicate_input')
+        thresholds[rule['id']] = 128 if reasons else minimum
+        if reasons:
+            risks.append({'rule_id': rule['id'], 'required': 128, 'reasons': reasons,
+                          'source_refs': list(rule.get('source_refs', [])),
+                          'source_path': program.get('path'), 'source_hash': program['source_hash'],
+                          'source_start': rule.get('source_start'), 'source_end': rule.get('source_end')})
+        written.update(effect['field'] for arm in ('then', 'else') for effect in rule[arm])
+    return {'contract_version': 5, 'base_minimum': minimum, 'risk_minimum': 128,
+            'requirements_per_logic': thresholds, 'risk_inputs': risks,
+            'qualification': 'SOURCE_IR_COMPOUND_PREDICATES_CROSS_LAYOUT_KEYS_PRIOR_EFFECTS',
+            'candidate_cap': 10000, 'process_case_cap': 4096}
+
+
+def _boolean_nodes(node):
+    if not isinstance(node, dict) or node.get('op') not in ('AND', 'OR'): return []
+    return [node] + _boolean_nodes(node['left']) + _boolean_nodes(node['right'])
+
+
+def _select_source_mutation_witnesses(program, candidates, selected, select, boolean_witnesses=False):
     """Keep meaningful interactions without executing every optional candidate.
 
     Selection uses source IR only. Frozen expected results remain untouched and
@@ -179,6 +214,13 @@ def _select_source_mutation_witnesses(program, candidates, selected, select):
         for key,case in valid.items():
             if key not in selected and differs(case):select(key);return
     for index,rule in enumerate(program['rules']):
+        if boolean_witnesses:
+            for offset, _ in enumerate(_boolean_nodes(rule['predicate'])):
+                changed = copy.deepcopy(rule['predicate']); connector = _boolean_nodes(changed)[offset]
+                connector['op'] = 'OR' if connector['op'] == 'AND' else 'AND'
+                witness(lambda case, changed=changed, rule=rule:
+                        predicate(changed, case['logic_inputs'][rule['id']]) !=
+                        predicate(rule['predicate'], case['logic_inputs'][rule['id']]))
         for offset,_ in enumerate(comparisons(rule['predicate'])):
             changed=copy.deepcopy(rule['predicate'])
             relation=comparisons(changed)[offset];relation['op']=boundaries[relation['op']]
@@ -202,6 +244,9 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
     baseline=_plan_cases_legacy(program,seed,min(10000,max(256,budget*4)),max_budget=10000)
     program={**program,'fields':dict(sorted(program['fields'].items()))}
     base={name:spec['default'] for name,spec in program['fields'].items()}
+    policy = validation_policy(program, minimum) if version == 5 else None
+    requirements = policy['requirements_per_logic'] if policy else {rule['id']: minimum for rule in program['rules']}
+    generation_goal = max([minimum, *requirements.values()])
     candidates={};mandatory=set()
     def add(record,reason,required=False,randomized=False):
         key=sha(encode(record))
@@ -209,7 +254,7 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
         if key in candidates:
             if randomized:candidates[key]['randomized']=True
             return
-        if version==4 and len(candidates)>=10000:return
+        if version>=4 and len(candidates)>=10000:return
         expected=run_reference(program,record);groups={}
         if isinstance(record,dict):
             for name,value in record.items():
@@ -231,18 +276,26 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
                          'logic_inputs':logic_inputs,
                          'logic_input_hashes':{rid:sha(encode(values)) for rid,values in logic_inputs.items()},
                          'correlations':correlations}
-        if version==4:candidates[key]['randomized']=randomized
+        if version>=4:candidates[key]['randomized']=randomized
     for case in baseline['cases']:
         add(case['record'],case['reason'],case['reason']!='Source-predicate interaction witness')
-    domains={name:_domain_options(spec,minimum,seed) for name,spec in program['fields'].items()}
+    if version == 5:
+        for name, spec in program['fields'].items():
+            values = [0, spec['max']] if spec['type'] == 'integer' else [
+                ' ' * spec['width'], '0' * spec['width'], '9' * spec['width'],
+                'A'.ljust(spec['width']), 'A'.rjust(spec['width'])]
+            for value in values:
+                add({**base, name: value}, 'Mandatory source-valid layout endpoint: ' + name, required=True)
+    domains={name:_domain_options(spec,generation_goal,seed) for name,spec in program['fields'].items()}
     all_fields=sorted(set().union(*(_logic_fields(rule['predicate']) for rule in program['rules']))) if program['rules'] else []
-    if version==4:
+    if version>=4:
         rng=random.Random(seed)
-        random_domains={name:_random_domain_options(program['fields'][name],minimum*4,rng)
+        alphabet = ''.join(chr(i) for i in range(32, 127)) if version == 5 else ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+        random_domains={name:_random_domain_options(program['fields'][name],generation_goal*4,rng,alphabet)
                         for name in program['fields']}
         # Vary every layout input together so large rule inventories
         # share useful executions instead of allocating twenty rows per rule.
-        for index in range(minimum*4):
+        for index in range(generation_goal*4):
             # Reshuffle each small domain on its next cycle; equal-sized fields
             # must not lock into the same ten pairs when their joint domain is 100.
             for values in random_domains.values():
@@ -258,7 +311,7 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
             if a['type']=='integer':shared={**a,'max':min(a['max'],b['max'])}
             elif a['width']==b['width']:shared=a
             else:continue
-            values=_random_domain_options(shared,minimum*2,rng)
+            values=_random_domain_options(shared,generation_goal*2,rng,alphabet)
             for index,value in enumerate(values):
                 record={**base,left:value,right:value}
                 add(record,'Seeded randomized linked-key match',randomized=True)
@@ -299,37 +352,38 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
     # interactions. Mandatory invalid/layout obligations remain explicit.
     for key,case in candidates.items():
         if any((trace['rule_id'],trace['branch']) not in observed for trace in case['expected'].get('trace',[])):select(key)
-    if version==4:
+    if version>=4:
         for key,case in candidates.items():
             if case.get('randomized') and (len(random_records)<minimum or any(
-                    len(random_counts[rid])<minimum and fingerprint not in random_counts[rid]
+                    len(random_counts[rid])<requirements[rid] and fingerprint not in random_counts[rid]
                     for rid,fingerprint in case['logic_input_hashes'].items())):select(key)
     for key,case in candidates.items():
-        if any(len(counts[rid])<minimum and fingerprint not in counts[rid]
+        if any(len(counts[rid])<requirements[rid] and fingerprint not in counts[rid]
                for rid,fingerprint in case['logic_input_hashes'].items()):select(key)
     for key in candidates:
         if key in mandatory:select(key)
-    if version==4:_select_source_mutation_witnesses(program,candidates,selected,select)
+    if version>=4:_select_source_mutation_witnesses(program,candidates,selected,select,boolean_witnesses=version==5)
     else:
         for key in candidates:select(key)
     gaps=[{'rule_id':rid,'branch':branch,'status':'unknown_or_unprovable',
            'reason':'No source-derived witness; the branch may be unreachable or need a reviewed semantic adapter. No verification credit.'}
           for rid,branches in rules.items() for branch,witnesses in branches.items() if not witnesses]
     record_gaps=[]
-    for rid,fingerprints in (random_counts if version==4 else counts).items():
-        if len(fingerprints)>=minimum:continue
+    for rid,fingerprints in (random_counts if version>=4 else counts).items():
+        required_minimum = requirements[rid]
+        if len(fingerprints)>=required_minimum:continue
         fields=sorted(_logic_fields(next(rule['predicate'] for rule in program['rules'] if rule['id']==rid)))
         finite_domain=1
         for name in fields:
             spec=program['fields'][name]
             if spec['type']!='integer':finite_domain=None;break
             finite_domain *= spec['max']+1
-            if finite_domain>=minimum:break
+            if finite_domain>=required_minimum:break
         available={case['logic_input_hashes'][rid] for case in candidates.values() if rid in case['logic_input_hashes']
                    and (version==3 or case.get('randomized'))}
-        limited=finite_domain is not None and finite_domain<minimum
-        status='limited_input_domain' if limited else 'budget_exhausted' if len(available)>=minimum else 'bounded_generation_exhausted'
-        record_gaps.append({'rule_id':rid,'required':minimum,'observed':len(fingerprints),
+        limited=finite_domain is not None and finite_domain<required_minimum
+        status='limited_input_domain' if limited else 'budget_exhausted' if len(available)>=required_minimum else 'bounded_generation_exhausted'
+        record_gaps.append({'rule_id':rid,'required':required_minimum,'observed':len(fingerprints),
                             'status':status,'multiplicity_applicable':not limited,
                             'proven_input_domain_size':finite_domain if limited else None,
                             'reason':'The source predicate has fewer distinct valid input states than the requested minimum; duplicate or unused-field padding cannot count. Review the multiplicity exception explicitly.' if limited else 'The configured budget omitted available distinct source logic records.' if status=='budget_exhausted' else 'Bounded generation cannot prove the required distinct executed logic states; prior assignments or unreachable logic may constrain them. Retain the gap.'})
@@ -337,6 +391,10 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
     obligation_gaps += [{'record_hash':key,'reason':case['reason'],'status':'budget_exhausted',
                          'explanation':'Required source boundary or intentional input-negative case omitted; no verification credit.'}
                         for key,case in candidates.items() if key in mandatory and key not in selected]
+    if version == 5:
+        obligation_gaps += [{'record_hash': key, 'status': 'candidate_cap_exhausted',
+                            'reason': 'Mandatory source boundary or input-negative state exceeded the 10000-candidate cap; no verification credit.'}
+                           for key in sorted(mandatory - candidates.keys())]
     correlation_validation=[];correlation_gaps=[]
     for relationship in program.get('relationships',[]):
         left,right=relationship['left'],relationship['right']
@@ -363,12 +421,12 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
               'exhaustive':False,
               'claim':'At least the configured distinct valid source predicate input states per applicable supported logic, with source boundaries, input negatives and linked layout-group keys. Missing/duplicate/empty dataset I/O semantics require their own reviewed adapter; no observed legacy parity.'}
     coverage['logic_validation']={'contract_version':version,'minimum_distinct_records_per_logic':minimum,
-                                  'applicable_logic_count':len(rules),'logic_meeting_minimum':sum(len(values)>=minimum for values in counts.values()),
+                                  'applicable_logic_count':len(rules),'logic_meeting_minimum':sum(len(values)>=requirements[rid] for rid,values in counts.items()),
                                   'distinct_logic_records':sum(len(values) for values in counts.values()),
                                   'gaps':len(record_gaps),'complete':not record_gaps and not program['blockers'],
                                   'distinctness_basis':'SOURCE_PREDICATE_INPUT_STATE_AT_EXECUTION; unused fields and duplicate records do not count',
                                   'records_per_logic':coverage['record_counts']}
-    if version==4:
+    if version>=4:
         valid_records={sha(encode(case['record'])) for case in cases if not case['intentional_invalid']}
         technical_complete=len(random_records)>=minimum and not program['blockers']
         technical_base={'required':minimum,'distinct_valid_records':len(valid_records),
@@ -393,7 +451,7 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
                     'observed':len(random_records),
                     'status':'source_blocked' if program['blockers'] else 'limited_input_domain' if limited else 'budget_exhausted' if available>=minimum else 'bounded_generation_exhausted',
                     'proven_input_domain_size':domain_size if limited else None,
-                    'reason':'Twenty distinct valid randomized complete records are required for layout and terminal behavior; duplicate padding and unsupported source receive no credit.'})
+                    'reason':f'{minimum} distinct valid randomized complete records are required for layout and terminal behavior; duplicate padding and unsupported source receive no credit.' if version==5 else 'Twenty distinct valid randomized complete records are required for layout and terminal behavior; duplicate padding and unsupported source receive no credit.'})
         coverage['technical_record_count_gaps']=technical_gaps
         coverage['complete']=coverage['complete'] and technical_complete
         coverage['logic_validation']['complete']=coverage['complete']
@@ -403,13 +461,30 @@ def _plan_cases_v3(program,seed,budget,minimum,version=3):
         coverage['randomized_record_hashes']={rid:sorted(values) for rid,values in random_counts.items()}
         coverage['logic_validation'].update(
             randomized_records_per_logic=coverage['randomized_record_counts'],
-            logic_meeting_randomized_minimum=sum(len(values)>=minimum for values in random_counts.values()),
+            logic_meeting_randomized_minimum=sum(len(values)>=requirements[rid] for rid,values in random_counts.items()),
             generation='RUNTIME_SEEDED_PSEUDORANDOM_WITH_MANDATORY_SOURCE_BOUNDARIES',
             replay_seed=seed)
         coverage['claim']='At least 20 distinct valid randomized source predicate states per supported logic, plus mandatory boundaries and invalid inputs. Limited, unreachable and undersampled states remain explicit gaps; no exhaustive or observed legacy parity claim.'
+    if version == 5:
+        coverage['validation_policy'] = policy
+        coverage['logic_validation']['logic_meeting_minimum'] = sum(
+            len(values) >= requirements[rid] for rid, values in random_counts.items())
+        coverage['requirements_per_logic'] = requirements
+        coverage['positive_negative_witnesses'] = {rid: {
+            'true_cases': len(branches['true']), 'false_cases': len(branches['false']),
+            'basis': 'SOURCE_VALID_PREDICATE_OUTCOMES; NOT_INVALID_INPUT_COUNTS'}
+            for rid, branches in rules.items()}
+        coverage['logic_validation'].update(validation_policy=policy,
+            requirements_per_logic=requirements,
+            positive_negative_witnesses=coverage['positive_negative_witnesses'])
+        coverage['claim'] = ('Base 64 distinct valid randomized source predicate states per supported logic; '
+            '128 for recorded source IR risks, plus mandatory positive/negative outcomes, source/layout '
+            'boundaries, strict invalid inputs and actual target mutation witnesses. Finite-domain, '
+            'unreachable, budget and unsupported obligations remain named gaps; no exhaustive/native parity.')
     contract={'source':program.get('semantic_hash',program['source_hash']),'seed':seed,
               'rules':program['rules'],'fields':program['fields'],'target_contract_version':program.get('target_contract_version',1),
               'fixture_contract_version':version,'min_records_per_logic':minimum,'budget':budget}
+    if policy: contract['validation_policy'] = policy
     return {'version':version,'program':program['name'],'source_hash':program['source_hash'],'seed':seed,
             'evidence_basis':'SOURCE_DERIVED_EXPECTED','generator_version':'source-subset-'+str(version),
             'cases':cases,'coverage':coverage,'contract_hash':sha(encode(contract))}
@@ -472,6 +547,13 @@ def adversarial_review(program, code, suite, checkpoint=None):
         # Swap the whole decision, including its trace, without changing oracle IR.
         branch.body,branch.orelse=branch.orelse,branch.body
         record(mutant,rule['id'],'predicate','reverse whole decision')
+        if suite.get('version') == 5:
+            connectors = [n for n in ast.walk(rules[index].test) if isinstance(n, ast.BoolOp)]
+            for offset, connector in enumerate(connectors):
+                mutant=copy.deepcopy(tree);branch=rule_nodes(mutant,program)[index]
+                changed=[n for n in ast.walk(branch.test) if isinstance(n,ast.BoolOp)][offset]
+                changed.op=ast.Or() if isinstance(connector.op,ast.And) else ast.And()
+                record(mutant,rule['id'],'logical_operator',f'AND/OR connector {offset+1}')
         relations=[n for n in ast.walk(rules[index].test) if isinstance(n,ast.Compare)]
         for offset,relation in enumerate(relations):
             mutant=copy.deepcopy(tree);branch=rule_nodes(mutant,program)[index]

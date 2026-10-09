@@ -12,33 +12,60 @@ import test_workstation_setup as workstation_tests
 class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = workstation_tests.WorkstationApiTests.asyncSetUp
     request = workstation_tests.WorkstationApiTests.request
-    def choices(self, mode='create', copilot=True):
-        return {'copilot':copilot,'zowe':{'mode':mode,'host':'zosmf.example.test','port':443,
+    def choices(self, mode='create', claude=True):
+        return {'claude':claude,'zowe':{'mode':mode,'host':'zosmf.example.test','port':443,
                                          'config_file':None,'schema_file':None}}
 
     async def configure(self, choices=None, **settings):
         return await self.request('/api/setup/workstation', 'POST', {
             'settings':{'source_mode':'upload','zowe_profile':'factory_base',
-                        'zowe_zosmf_profile':'factory_zosmf',**settings},
+                        'zowe_zosmf_profile':'factory_zosmf','db2_metadata_url':'https://approved.test/mcp',**settings},
             'connections':choices or self.choices()})
 
-    async def test_one_save_prepares_profiles_and_only_copilot_retrieval_mcp(self):
+    async def test_one_save_prepares_profiles_and_only_claude_retrieval_mcp(self):
         status, result = await self.configure()
         self.assertEqual(status,200)
         config=json.loads((self.root/'zowe.config.json').read_bytes())
         self.assertEqual(config['profiles']['factory_base']['properties']['host'],'zosmf.example.test')
         self.assertEqual(config['profiles']['factory_base']['secure'],['user','password'])
         self.assertTrue(config['profiles']['factory_zosmf']['properties']['rejectUnauthorized'])
-        mcp=json.loads((self.root/'.vscode/mcp.json').read_bytes())
-        bridge=mcp['servers']['workbench-retrieval']
-        self.assertEqual(bridge['args'][-2:],['--role','retrieval'])
-        self.assertTrue(Path(bridge['command']).is_absolute())
+        mcp=json.loads((self.root/'.mcp.json').read_bytes())
+        self.assertEqual(set(mcp['mcpServers']),{'workbench-db2'})
+        self.assertEqual(mcp['mcpServers']['workbench-db2']['url'],'https://approved.test/mcp')
+        self.assertNotIn('workbench-retrieval',mcp['mcpServers'])
+        self.assertFalse((self.root/'.vscode/mcp.json').exists())
         self.assertFalse((self.root/'.claude/mcp.json').exists())
         self.assertEqual(result['connection_setup']['connectivity'],'UNVERIFIED')
-        self.assertEqual(result['connection_setup']['claude_mcp_servers'],0)
+        self.assertEqual(result['connection_setup']['claude_mcp_servers'],1)
         self.assertEqual(result['connection_setup']['status'],'ACTION_REQUIRED')
         _, reloaded=await self.request('/api/setup/workstation')
         self.assertEqual(reloaded['connection_setup']['choices'],result['connection_setup']['choices'])
+
+    async def test_explicit_save_migrates_v1_state_without_changing_vscode_bytes(self):
+        from workbench.domain import sha,encode
+        await self.configure()
+        legacy=self.root/'.vscode/mcp.json';legacy.parent.mkdir()
+        raw=b'{/* old client */"servers":{"workbench-retrieval":{"type":"stdio","args":["--role","retrieval"]}},}'
+        legacy.write_bytes(raw)
+        choices=self.choices();choices['copilot']=choices.pop('claude')
+        state={'version':1,'choices':choices,'managed':{'workbench-retrieval':sha(encode({'type':'stdio','args':['--role','retrieval']}))}}
+        (self.root/'.migration/connections.json').write_bytes(encode(state))
+        _,view=await self.request('/api/setup/workstation')
+        self.assertTrue(view['connection_setup']['choices']['claude'])
+        self.assertEqual(legacy.read_bytes(),raw)
+        status,view=await self.configure();self.assertEqual(status,200)
+        self.assertEqual(legacy.read_bytes(),raw)
+        self.assertEqual(json.loads((self.root/'.migration/connections.json').read_bytes())['version'],2)
+        self.assertEqual(view['workflow']['claude_mcp_servers'],1)
+
+    async def test_oauth_binding_has_no_bearer_header_and_disabled_claude_count_is_zero(self):
+        choices=self.choices();choices['db2_auth']='oauth'
+        status,view=await self.configure(choices);self.assertEqual(status,200)
+        self.assertNotIn('headers',json.loads((self.root/'.mcp.json').read_bytes())['mcpServers']['workbench-db2'])
+        choices['claude']=False
+        status,view=await self.configure(choices);self.assertEqual(status,200)
+        self.assertEqual(view['workflow']['claude_mcp_servers'],0)
+        self.assertEqual(json.loads((self.root/'.mcp.json').read_bytes())['mcpServers'],{})
 
     async def test_twenty_runtime_randomized_profiles_round_trip_with_existing_settings(self):
         rng=random.Random(secrets.randbits(63)); witnesses=set()
@@ -53,24 +80,24 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(witnesses),20)
         self.assertEqual(len(config['profiles']),40)
 
-    async def test_existing_approved_jsonc_servers_and_secret_placeholders_are_preserved(self):
-        p=self.root/'.vscode/mcp.json';p.parent.mkdir()
-        p.write_text('{// supplied organization binding\n"servers":{"approved":{"type":"http","url":"https://approved.test/mcp","headers":{"X-Private":"keep-private"},},},"inputs":[],}',encoding='utf-8')
-        status, result=await self.configure()
+    async def test_existing_approved_servers_and_private_placeholders_are_preserved(self):
+        p=self.root/'.mcp.json'
+        p.write_text('{"mcpServers":{"approved":{"type":"http","url":"https://approved.test/mcp","headers":{"X-Private":"keep-private"}}}}',encoding='utf-8')
+        status,result=await self.configure()
         self.assertEqual(status,200)
-        self.assertEqual(json.loads(p.read_bytes())['servers']['approved']['headers']['X-Private'],'keep-private')
+        self.assertEqual(json.loads(p.read_bytes())['mcpServers']['approved']['headers']['X-Private'],'keep-private')
         self.assertNotIn('keep-private',json.dumps(result))
 
     async def test_rejected_invalid_config_preserves_all_prior_files(self):
-        await self.configure();files=[self.root/'.migration/workstation.json',self.root/'.migration/connections.json',self.root/'zowe.config.json',self.root/'.vscode/mcp.json']
+        await self.configure();files=[self.root/'.migration/workstation.json',self.root/'.migration/connections.json',self.root/'zowe.config.json',self.root/'.mcp.json']
         before={p:p.read_bytes() for p in files};choices=self.choices();choices['zowe']['port']=True
         status,_=await self.configure(choices)
         self.assertEqual(status,400)
         self.assertEqual({p:p.read_bytes() for p in files},before)
 
     async def test_conflicting_managed_server_is_preserved_without_partial_profile_write(self):
-        p=self.root/'.vscode/mcp.json';p.parent.mkdir()
-        raw=b'{"servers":{"workbench-retrieval":{"type":"http","url":"https://approved.test/mcp"}}}'
+        p=self.root/'.mcp.json'
+        raw=b'{"mcpServers":{"workbench-db2":{"type":"http","url":"https://other.test/mcp"}}}'
         p.write_bytes(raw);status,_=await self.configure()
         self.assertEqual(status,400);self.assertEqual(p.read_bytes(),raw)
         self.assertFalse((self.root/'zowe.config.json').exists())
@@ -95,11 +122,11 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse((self.root/'zowe.config.json').exists())
 
     async def test_turning_off_removes_only_unchanged_managed_server(self):
-        await self.configure();p=self.root/'.vscode/mcp.json';doc=json.loads(p.read_bytes())
-        doc['servers']['approved']={'type':'http','url':'https://approved.test/mcp'};p.write_bytes(json.dumps(doc).encode())
+        await self.configure();p=self.root/'.mcp.json';doc=json.loads(p.read_bytes())
+        doc['mcpServers']['approved']={'type':'http','url':'https://approved.test/mcp'};p.write_bytes(json.dumps(doc).encode())
         choices=self.choices('off',False);choices['zowe'].update(host=None,port=None)
         status,_=await self.configure(choices,zowe_profile=None,zowe_zosmf_profile=None)
-        self.assertEqual(status,200);self.assertEqual(json.loads(p.read_bytes())['servers'],{'approved':doc['servers']['approved']})
+        self.assertEqual(status,200);self.assertEqual(json.loads(p.read_bytes())['mcpServers'],{'approved':doc['mcpServers']['approved']})
 
     async def test_setup_never_runs_a_cli_or_network_call(self):
         with patch('subprocess.Popen',side_effect=AssertionError('No CLI in setup')),patch('urllib.request.urlopen',side_effect=AssertionError('No host access')):
@@ -117,7 +144,7 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
             status,_=await self.configure()
         self.assertEqual(status,500)
         self.assertFalse((self.root/'zowe.config.json').exists())
-        self.assertFalse((self.root/'.vscode/mcp.json').exists())
+        self.assertFalse((self.root/'.mcp.json').exists())
         self.assertFalse((self.root/'.migration/workstation.json').exists())
 
     async def test_secret_and_claude_server_fields_are_rejected(self):
@@ -128,14 +155,16 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_generated_db2_binding_uses_vscode_password_prompt(self):
         status,_=await self.configure(db2_metadata_url='https://approved.test/mcp')
-        self.assertEqual(status,200);config=json.loads((self.root/'.vscode/mcp.json').read_bytes())
-        self.assertEqual(config['servers']['workbench-db2']['headers']['Authorization'],'Bearer ${input:workbenchDb2Token}')
-        self.assertTrue(config['inputs'][0]['password'])
+        self.assertEqual(status,200);config=json.loads((self.root/'.mcp.json').read_bytes())
+        self.assertEqual(config['mcpServers']['workbench-db2']['headers']['Authorization'],'Bearer ${WB_DB2_MCP_TOKEN}')
+        self.assertNotIn('inputs',config)
+        self.assertNotIn('${input:',json.dumps(config))
 
     async def test_symlink_config_destination_rejected_without_target_access(self):
-        p=self.root/'.vscode';p.symlink_to(self.export,target_is_directory=True)
+        p=self.root/'.mcp.json';target=self.export/'binding.json';target.write_text('{}');p.symlink_to(target)
         status,_=await self.configure();self.assertEqual(status,400)
-        self.assertEqual(list(self.export.iterdir()),[])
+        self.assertEqual([p.name for p in self.export.iterdir()],['binding.json'])
+        self.assertEqual(target.read_text(),'{}')
         self.assertFalse((self.root/'zowe.config.json').exists())
 
     async def test_inherited_insecure_tls_and_invalid_native_port_fail_closed(self):
@@ -149,7 +178,7 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse((self.root/'zowe.config.json').exists())
 
     async def test_broken_connector_file_does_not_hide_repairable_setup_form(self):
-        await self.configure();p=self.root/'.vscode/mcp.json';p.write_bytes(b'not valid json')
+        await self.configure();p=self.root/'.mcp.json';p.write_bytes(b'not valid json')
         status,result=await self.request('/api/setup/workstation')
         self.assertEqual(status,200)
         self.assertEqual(result['connection_setup']['status'],'ACTION_REQUIRED')
@@ -176,13 +205,14 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_connector_disabled_preserves_shared_vscode_input_references(self):
         await self.configure(db2_metadata_url='https://approved.test/mcp')
-        p=self.root/'.vscode/mcp.json';doc=json.loads(p.read_bytes())
-        doc['servers']['approved']={'type':'http','url':'https://other.test/mcp','headers':{'Authorization':'Bearer ${input:workbenchDb2Token}'}}
+        p=self.root/'.mcp.json';doc=json.loads(p.read_bytes())
+        doc['mcpServers']['approved']={'type':'http','url':'https://other.test/mcp','headers':{'Authorization':'Bearer ${WB_DB2_MCP_TOKEN}'}}
         p.write_bytes(json.dumps(doc).encode());choices=self.choices('off',False);choices['zowe'].update(host=None,port=None)
         status,_=await self.configure(choices,zowe_profile=None,zowe_zosmf_profile=None,db2_metadata_url=None)
         self.assertEqual(status,200);saved=json.loads(p.read_bytes())
-        self.assertEqual([item['id'] for item in saved['inputs']],['workbenchDb2Token'])
-        self.assertEqual(set(saved['servers']),{'approved'})
+        self.assertNotIn('inputs',saved)
+        self.assertEqual(saved['mcpServers']['approved']['headers']['Authorization'],'Bearer ${WB_DB2_MCP_TOKEN}')
+        self.assertEqual(set(saved['mcpServers']),{'approved'})
 
     async def test_turning_zowe_off_clears_saved_retrieval_aliases(self):
         await self.configure();choices=self.choices('off',False);choices['zowe'].update(host=None,port=None)
@@ -194,17 +224,17 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('WB_ZOWE_PROFILE',workstation_environment(self.root))
 
     async def test_file_changed_during_planning_is_preserved_without_any_write(self):
-        await self.configure();p=self.root/'.vscode/mcp.json';before_settings=(self.root/'.migration/workstation.json').read_bytes()
-        from workbench.connection_setup import _copilot_plan
+        await self.configure();p=self.root/'.mcp.json';before_settings=(self.root/'.migration/workstation.json').read_bytes()
+        from workbench.connection_setup import _claude_plan
         def concurrent(*args):
-            result=_copilot_plan(*args)
-            config=json.loads(p.read_bytes());config['servers']['concurrent-approved']={'type':'http','url':'https://approved.test/mcp'}
+            result=_claude_plan(*args)
+            config=json.loads(p.read_bytes());config['mcpServers']['concurrent-approved']={'type':'http','url':'https://approved.test/mcp'}
             p.write_bytes(json.dumps(config).encode())
             return result
-        with patch('workbench.connection_setup._copilot_plan',side_effect=concurrent):
+        with patch('workbench.connection_setup._claude_plan',side_effect=concurrent):
             status,_=await self.configure(source_mode='folder',source_folder=str(self.export))
         self.assertEqual(status,400)
-        self.assertIn('concurrent-approved',json.loads(p.read_bytes())['servers'])
+        self.assertIn('concurrent-approved',json.loads(p.read_bytes())['mcpServers'])
         self.assertEqual((self.root/'.migration/workstation.json').read_bytes(),before_settings)
 
     async def test_unknown_schema_dialect_is_rejected_before_publication(self):
@@ -244,19 +274,28 @@ class ConnectionSetupTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any(check['id']=='node_npm' and check['status']=='NOT_FOUND' for check in result['checks']))
 
     async def test_jsonc_empty_container_leading_commas_are_rejected_and_preserved(self):
-        p=self.root/'.vscode/mcp.json';p.parent.mkdir()
+        p=self.root/'.mcp.json'
         for raw in [b'{"servers":{},"inputs":[,]}',b'{"servers":{,}}',b'{"servers":{},"inputs":[true,,]}']:
             p.write_bytes(raw);status,_=await self.configure()
             self.assertEqual(status,400);self.assertEqual(p.read_bytes(),raw)
             self.assertFalse((self.root/'zowe.config.json').exists())
 
-    async def test_jsonc_valid_comments_trailing_commas_and_string_delimiters_preserved(self):
+    async def test_legacy_vscode_jsonc_is_preserved_while_claude_uses_strict_json(self):
         p=self.root/'.vscode/mcp.json';p.parent.mkdir()
         text='https://approved.test/a//b/*c*/?list=[,]'
-        p.write_text('{/*approved*/"servers":{"approved":{"type":"http","url":'+json.dumps(text)+',},},"inputs":[{"id":"existing","type":"promptString",},],}',encoding='utf-8')
+        raw=('{/*approved*/"servers":{"approved":{"type":"http","url":'+json.dumps(text)+',},},"inputs":[{"id":"existing","type":"promptString",},],}').encode()
+        p.write_bytes(raw)
         status,_=await self.configure();self.assertEqual(status,200)
-        doc=json.loads(p.read_bytes());self.assertEqual(doc['servers']['approved']['url'],text)
-        self.assertEqual(doc['inputs'],[{'id':'existing','type':'promptString'}])
+        self.assertEqual(p.read_bytes(),raw)
+        doc=json.loads((self.root/'.mcp.json').read_bytes())
+        self.assertEqual(set(doc['mcpServers']),{'workbench-db2'})
+
+    async def test_claude_json_preserves_unmanaged_string_delimiters(self):
+        p=self.root/'.mcp.json'
+        text='https://approved.test/a//b/*c*/?list=[,]'
+        p.write_text(json.dumps({'mcpServers':{'approved':{'type':'http','url':text}}}),encoding='utf-8')
+        status,_=await self.configure();self.assertEqual(status,200)
+        self.assertEqual(json.loads(p.read_bytes())['mcpServers']['approved']['url'],text)
 
     async def test_exact_import_preserves_supplied_local_schema_filename_binding(self):
         config=self.export/'selected.json';schema=self.export/'selected-schema.json'
@@ -291,8 +330,8 @@ class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
     configure = ConnectionSetupTests.configure
     async def test_transaction_markdown_uses_validated_choices_and_no_private_bindings(self):
         from workbench.domain import sha
-        path = self.root / '.vscode/mcp.json';path.parent.mkdir()
-        path.write_bytes(b'{"servers":{"approved":{"type":"http","url":"https://approved.test/mcp","headers":{"X-Private":"PRIVATE_BINDING_SENTINEL"}}}}')
+        path = self.root / '.mcp.json'
+        path.write_bytes(b'{"mcpServers":{"approved":{"type":"http","url":"https://approved.test/mcp","headers":{"X-Private":"PRIVATE_BINDING_SENTINEL"}}}}')
         status, view = await self.configure()
         self.assertEqual(status, 200)
         instructions = view['instructions'];raw = Path(instructions['markdown_path']).read_bytes()
@@ -308,7 +347,7 @@ class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
         from workbench.domain import atomic_bytes
         await self.configure()
         names = ['.migration/workstation.json', '.migration/workstation.md', '.migration/connections.json',
-                 'zowe.config.json', '.vscode/mcp.json']
+                 'zowe.config.json', '.mcp.json']
         before = {self.root / name: (self.root / name).read_bytes() for name in names}
         md = self.root / '.migration/workstation.md'
         def fail(path, raw):
@@ -321,16 +360,16 @@ class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({p: p.read_bytes() for p in before}, before)
 
     async def test_companion_concurrency_blocks_before_any_other_destination_is_written(self):
-        from workbench.connection_setup import _copilot_plan
+        from workbench.connection_setup import _claude_plan
         await self.configure();md = self.root / '.migration/workstation.md'
         before = {self.root / name: (self.root / name).read_bytes() for name in
-                  ['.migration/workstation.json', '.migration/connections.json', 'zowe.config.json', '.vscode/mcp.json']}
+                  ['.migration/workstation.json', '.migration/connections.json', 'zowe.config.json', '.mcp.json']}
         def concurrent(*args):
-            result = _copilot_plan(*args)
+            result = _claude_plan(*args)
             md.write_bytes(b'fictional concurrent companion edit')
             return result
         choices = self.choices();choices['zowe']['host'] = 'changed.example.test'
-        with patch('workbench.connection_setup._copilot_plan', side_effect=concurrent):
+        with patch('workbench.connection_setup._claude_plan', side_effect=concurrent):
             status, _ = await self.configure(choices)
         self.assertEqual(status, 400)
         self.assertEqual(md.read_bytes(), b'fictional concurrent companion edit')
@@ -356,7 +395,7 @@ class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_late_valid_profile_or_approved_mcp_binding_edit_never_reports_ready(self):
         from workbench.domain import atomic_bytes, encode
-        for index, relative in enumerate(('zowe.config.json', '.vscode/mcp.json', '.migration/connections.json')):
+        for index, relative in enumerate(('zowe.config.json', '.mcp.json', '.migration/connections.json')):
             with self.subTest(relative=relative):
                 status, _ = await self.configure();self.assertEqual(status, 200)
                 path = self.root / relative;md = self.root / '.migration/workstation.md';observed = {}
@@ -365,8 +404,8 @@ class ConnectionMarkdownTests(unittest.IsolatedAsyncioTestCase):
                     if Path(destination) == md:
                         current = json.loads(path.read_bytes())
                         if relative == 'zowe.config.json':current['profiles']['factory_base']['properties']['host'] = 'fictional-concurrent.test'
-                        elif relative == '.vscode/mcp.json':current['servers']['fictional-approved'] = {'type':'http','url':'https://fictional-approved.test/mcp'}
-                        else:current['choices']['copilot'] = False
+                        elif relative == '.mcp.json':current['mcpServers']['fictional-approved'] = {'type':'http','url':'https://fictional-approved.test/mcp'}
+                        else:current['choices']['claude'] = False
                         observed['raw'] = encode(current);path.write_bytes(observed['raw'])
                 choices = self.choices();choices['zowe']['host'] = 'fictional-requested-'+str(index)+'.test'
                 with patch('workbench.connection_setup.atomic_bytes', side_effect=change):

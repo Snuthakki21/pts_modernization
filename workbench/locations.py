@@ -13,23 +13,26 @@ def input_locations(workspace):
     else:document={'schema_version':1,'locations':[]}
 
     require(isinstance(document,dict) and set(document)=={'schema_version','locations'} and document['schema_version']==1,'Invalid input location configuration')
-    locations=document['locations'];require(isinstance(locations,list) and len(locations)<=2,'Configure WEDLX and TranRepository explicitly')
+    locations=document['locations'];require(isinstance(locations,list) and len(locations)<=2,'Configure WEBELX and TranRepository explicitly')
     # Form paths supply explicit mounted-folder bindings for future processes;
     # retain every existing exact logical-id/file binding without rewriting it.
     from .setup import load_workstation_settings
     settings=load_workstation_settings(workspace)
-    overrides={name:settings[field] for name,field in (('WEDLX','wedlx_folder'),('TranRepository','tran_repository_folder')) if settings[field]}
+    primary='WEDLX' if any(isinstance(item,dict) and item.get('name')=='WEDLX' for item in locations) else 'WEBELX'
+    overrides={name:settings[field] for name,field in ((primary,'wedlx_folder'),('TranRepository','tran_repository_folder')) if settings[field]}
     locations=[dict(item) if isinstance(item,dict) else item for item in locations]
     for name,path in overrides.items():
         matches=[item for item in locations if isinstance(item,dict) and item.get('name')==name]
         if matches:
             for item in matches:item['path']=path
         else:locations.append({'name':name,'path':path,'bindings':[]})
-    require(len(locations)<=2,'Configure WEDLX and TranRepository explicitly')
+    require(len(locations)<=2,'Configure WEBELX and TranRepository explicitly')
+    require(not ({'WEBELX','WEDLX'} <= {item.get('name') for item in locations if isinstance(item,dict)}),
+            'WEBELX and its historical WEDLX alias cannot name separate locations')
     result={}
     for item in locations:
         require(isinstance(item,dict) and set(item)=={'name','path','bindings'},'Location requires name, path and bindings')
-        name=item['name'];require(name in ('WEDLX','TranRepository') and name not in result,'Unknown or duplicate input location')
+        name=item['name'];require(name in ('WEBELX','WEDLX','TranRepository') and name not in result,'Unknown or duplicate input location')
         require(isinstance(item['path'],str) and item['path'],'Provide the actual mounted folder path')
         folder=Path(item['path']).absolute()
         require(not any(path_is_link(p) for p in (folder,*folder.parents)),'Input locations must not use symlinks')

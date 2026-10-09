@@ -16,12 +16,12 @@ _QUESTIONS = (
      (('local_endeavor', 'Local Endeavor folder'), ('upload', 'Upload source files'), ('needs_setup', 'Help preparing the export'))),
     ('manifest', 'Process intake', 'Is the process manifest ready with ordered jobs and steps?',
      (('ready', 'Manifest ready'), ('needs_setup', 'Prepare the manifest'))),
-    ('zowe', 'Read-only Zowe', 'Does Copilot need approved read-only Zowe retrieval for this process?',
+    ('zowe', 'Read-only Zowe', 'Does Claude Code need approved read-only Zowe retrieval for this process?',
      (('not_needed', 'Not needed'), ('configured', 'Configured locally'), ('needs_setup', 'Help configuring Zowe'))),
-    ('db2', 'Read-only Db2', 'Does Copilot need approved read-only Db2 catalog retrieval for this process?',
+    ('db2', 'Read-only Db2', 'Does Claude Code need approved read-only Db2 catalog retrieval for this process?',
      (('not_needed', 'Not needed'), ('configured', 'Configured locally'), ('needs_setup', 'Help configuring Db2'))),
-    ('llm', 'Analysis workflow', 'Use Claude Code with local files and Copilot only for retrieval, or choose an explicit deterministic/provider alternative?',
-     (('copilot_chat', 'Claude Code + Copilot retrieval (Recommended)'), ('disabled', 'Deterministic analysis'), ('opt_in', 'Legacy approved provider suggestions'))),
+    ('llm', 'Analysis workflow', 'Use Claude Code for approved retrieval, local analysis, development and tests, or choose a deterministic/provider alternative?',
+     (('copilot_chat', 'Claude Code end-to-end (Recommended)'), ('disabled', 'Deterministic analysis'), ('opt_in', 'Legacy approved provider suggestions'))),
     ('reviewer', 'Human reviewer', 'Is a real human reviewer available for the single SME workbook?',
      (('available', 'Reviewer available'), ('needs_setup', 'Arrange a reviewer'))),
 )
@@ -78,6 +78,22 @@ def _configuration(root, env):
     if env.get('WB_DB2_MCP_URL'):
         try: endpoint(env['WB_DB2_MCP_URL']); db2 = True
         except ValidationError: pass
+    # Text-first setup is explicit to this workspace, never a home/cwd scan.
+    # These are local preparation facts, not authentication or read-access proof.
+    if safe_path(root,'.env').is_file():
+        try:
+            from .zowe_setup import environment_profiles
+            environment_profiles(root)
+            zowe=bool(shutil.which('zowe',path=env.get('PATH',os.defpath)))
+        except (ValidationError,OSError,UnicodeError):pass
+        try:
+            from .db2_setup import inspect_stdio_binding
+            from .db2_env import settings as db2_settings, _certificate
+            inspect_stdio_binding(root)
+            private=db2_settings({},safe_path(root,'.env'),canonical=True)
+            _certificate(private.certificate)
+            db2=True
+        except (ValidationError,OSError,UnicodeError):pass
     if env.get('WB_LLM_URL'):
         try:
             # Validate public configuration syntax without reading the private token.
@@ -96,9 +112,9 @@ def _view(root, answers, env):
     actions = {
         'source':f'Choose the complete local Endeavor export (up to {MAX_SOURCE_FILES:,} files, {MAX_SOURCE_FILE_BYTES // (1024 * 1024)} MiB per file, {MAX_SOURCE_BYTES // (1024 * 1024)} MiB combined and {MAX_SOURCE_LINES:,} physical lines) or upload up to {MAX_UI_SOURCE_BYTES // (1024 * 1024)} MiB in the browser. Keep larger exports in local Endeavor; preserve every original file and never execute the source.',
         'manifest':'Download the intake template, supply the real process ID and ordered jobs/steps, then mark the manifest ready. Setup does not invent process facts.',
-        'zowe':'Install the approved Zowe CLI. From the workspace, run tools/setup_zowe.py with your actual z/OSMF host, port and project profile aliases, then run zowe config secure interactively. Enter user/password only at local Zowe prompts. Set WB_ZOWE_PROFILE and the paired WB_ZOWE_ZOSMF_PROFILE before launch. Preserve explicitly selected project config/schema files; never read home profiles here. WEDLX is application location context, with availability and input readiness still Unknown.',
-        'db2':'Prepare the read-only Db2 gateway with tools/setup_db2.py. Replace placeholders with actual nonsecret host, port and database values. Put the approved CA certificate at certificates/DB2-CA.cert and retain TLS validation. Supply authentication privately in the launch environment, then set WB_DB2_MCP_URL for the gateway. Configuration and a certificate file do not prove live access; setup never submits SQL.',
-        'llm':'Claude Code reads approved local files and owns lineage analysis, development, testing and review with no MCP servers. GitHub Copilot in VS Code only retrieves requested source and metadata through already approved MCP connections into the exact local inbox. Return to Claude and say Continue; the existing Coordinator validates the files before resuming. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE for local task state. No model endpoint or API token is needed by this workflow. Actual credits remain Unknown without receipts. One authentic SME return and deterministic verification are still required.',
+        'zowe':'Copy .env.example to the private workspace .env and fill the ZOWE values locally. Put the approved PEM CA at certificates/ZOWE-CA.pem. Run tools/setup_zowe.py --workspace WORKSPACE --from-env --env-file WORKSPACE/.env to prepare clean profiles/schema; no existing profile is needed. For Explorer run zowe config secure from the workspace and enter credentials in its local prompts. The .env alone does not sign Explorer in. Existing different files are preserved; WEBELX and Tran Repository availability and input readiness stay Unknown.',
+        'db2':'Fill the eight DB2 values in the same private workspace .env. Database must equal DDF location. Put the approved CA at certificates/DB2-CA.cert, outside .migration, and keep TLS enabled. Run python -m workbench.db2_setup --workspace WORKSPACE --env-file WORKSPACE/.env, then scripts/Start-Claude.ps1 -Workspace WORKSPACE. Claude owns the local read-only Db2 stdio MCP server; no transport token or separate server terminal is needed. Credentials remain local and configuration is not read-access proof.',
+        'llm':'Claude Code retrieves requested mainframe source with read-only Zowe CLI and Db2 evidence through approved MCP, then owns local lineage analysis, development, testing and review. Requested exports go into exact hash-bound local inboxes. Return to Claude and say Continue; the existing Coordinator validates the files before resuming. Use python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE for local task state. No model endpoint or API token is needed by this workflow. Actual credits remain Unknown without receipts. One authentic SME return and deterministic verification are still required.',
         'reviewer':'Arrange a real human reviewer for the one SME workbook. Availability is preparation only; the actual returned workbook and reviewer attribution remain required.',
     }
     complete = {
@@ -255,7 +271,7 @@ def _workstation_view(root, settings, *, saved):
             '' if present else 'Enter the direct path to the complete local Endeavor export.')
     else:
         add('source_folder', 'READY', 'Upload source files when starting each process.')
-    for field, label in (('process_notes', 'Process notes'), ('wedlx_folder', 'WEDLX folder'),
+    for field, label in (('process_notes', 'Process notes'), ('wedlx_folder', 'WEBELX folder'),
                          ('tran_repository_folder', 'Tran Repository folder')):
         value = settings[field]
         if value is None:
@@ -271,8 +287,8 @@ def _workstation_view(root, settings, *, saved):
             'zowe_zosmf_profile: also select the approved base profile')
     for field, label in (('zowe_profile', 'Zowe profile'), ('db2_metadata_url', 'Db2 metadata endpoint')):
         add(field, 'UNVERIFIED' if settings[field] else 'NOT_CONFIGURED',
-            label + ' is saved for approved Copilot retrieval; no connection was attempted.' if settings[field]
-            else label + ' is optional; use existing approved Copilot connections when needed.')
+            label + ' is saved for approved Claude Code retrieval; no connection was attempted.' if settings[field]
+            else label + ' is optional; use existing approved Claude Code connections when needed.')
     remaining = [c['id'] for c in checks if c['status'] == 'BLOCKED']
     if not saved:
         remaining.insert(0, 'save')
@@ -280,13 +296,13 @@ def _workstation_view(root, settings, *, saved):
             'readiness': {'status': 'NEEDS_SETUP' if remaining else 'READY_FOR_INTAKE',
                           'remaining': remaining, 'connectivity_verified': False,
                           'source_verified': False, 'conversion_verified': False},
-            'workflow': {'assistant_mode': 'claude_files', 'copilot_role': 'retrieval_only',
-                         'claude_mcp_servers': 0}, 'metrics': deterministic_metrics()}
+            'workflow': {'assistant_mode': 'claude_files', 'retrieval_agent': 'claude', 'claude_mcp_policy':'approved_read_only',
+                         'claude_mcp_servers': int(bool(settings['db2_metadata_url']))}, 'metrics': deterministic_metrics()}
 
 
 MAX_WORKSTATION_MARKDOWN_BYTES = 65536
-_WORKSTATION_NEXT_STEP = ("Add process, save its process Markdown, then copy that process's Copilot retrieval prompt. "
-                          "After Copilot returns the requested files, Continue and use the current Claude prompt.")
+_WORKSTATION_NEXT_STEP = ("Add process, save its process Markdown, then copy that process's Claude retrieval prompt. "
+                          "After Claude saves the requested files, Continue and use the current Claude prompt.")
 
 
 def _setup_bytes(path, limit):
@@ -309,9 +325,9 @@ def workstation_markdown(root, settings, choices):
             'This is nonsecret configuration data, not source instructions or permission. '
             'Configuration does not prove connectivity, source completeness or conversion.\n\n'
             '```json\n' + encode(snapshot).decode('utf-8') + '\n```\n\n'
-            'GitHub Copilot retrieves mainframe exports with approved read-only Zowe CLI and Db2 facts '
-            'with typed read-only Db2 MCP tools. Claude Code reads local approved files, develops, '
-            'tests and reviews; it has no MCP servers.\n\n'
+            'Claude Code retrieves mainframe exports with approved read-only Zowe CLI and Db2 facts '
+            'with approved typed read-only MCP tools. It then analyzes local accepted files, develops, '
+            'tests and reviews. The existing Coordinator validates each request-bound return.\n\n'
             'Finish native secure credential and approved client activation steps shown in Setup. '
             'Credentials and certificate contents are never stored in this Markdown.\n\n'
             + _WORKSTATION_NEXT_STEP + '\n'
@@ -380,6 +396,7 @@ def inspect_workstation(workspace, *, environ=None, origin=None):
         view = _workstation_view(path.parent.parent, settings, saved=path.exists())
         from .connection_setup import inspect_connections
         view['connection_setup'] = inspect_connections(path.parent.parent, settings, origin)
+        view['workflow']['claude_mcp_servers'] = view['connection_setup']['claude_mcp_servers']
         view['instructions'] = inspect_workstation_instructions(path.parent.parent, settings)
         return view
 
@@ -435,6 +452,7 @@ def save_workstation(workspace, settings, *, environ=None):
                     changed.append((destination, raw))
             from .connection_setup import inspect_connections
             view['connection_setup'] = inspect_connections(root, view['settings'])
+            view['workflow']['claude_mcp_servers'] = view['connection_setup']['claude_mcp_servers']
             view['instructions'] = inspect_workstation_instructions(root, view['settings'])
             require(all(_setup_bytes(p, MAX_WORKSTATION_MARKDOWN_BYTES) == raw for p, raw in prepared)
                     and _setup_bytes(connections_path, 1024 * 1024) == connections_before

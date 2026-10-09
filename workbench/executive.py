@@ -148,7 +148,9 @@ def render_executive(model):
     validation_html=''
     if validation:
         validation_html='<h2>Logic validation records</h2><p>Minimum '+esc(number(validation.get('minimum_distinct_records_per_logic')))+' distinct valid source-predicate input states per supported logic item. '+esc(number(validation.get('logic_meeting_minimum')))+' of '+esc(number(validation.get('known_supported_logic',validation.get('applicable_logic_count'))))+' known items meet the minimum; '+esc(number(validation.get('known_logic_missing_minimum')))+' do not. Unknown legacy logic count: Unknown.</p><p class="boundary">Duplicate records and unused-field padding do not count. Unsupported behavior and cross-file/native I/O gaps remain unresolved. Finite synthetic tests do not establish complete conversion or observed mainframe parity.</p>'
-    if validation and validation.get('fixture_contract_version')==4:
+    if validation and validation.get('fixture_contract_version')==5:
+        validation_html+='<p>Base floor: 64 randomized distinct source states. Recorded source risks require 128 states for '+esc(number(validation.get('risk_qualified_logic')))+' logic items. Each reachable decision outcome, boundary, invalid-input guard and actual target mutation also needs evidence; counts cannot replace these obligations.</p>'
+    if validation and validation.get('fixture_contract_version') in (4,5):
         validation_html+='<p>Recorded random seed: '+esc(str(validation.get('seed','Unknown')))+' · Executed generated unit tests: '+esc(number(validation.get('unit_test_count')))+' · Job integration cases: '+esc(number(validation.get('job_cases')))+'.</p>'
     return '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

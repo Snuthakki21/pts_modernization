@@ -1,0 +1,630 @@
+{
+  "schema_version": 1,
+  "kind": "WORKBENCH_TEXT_ONLY_SKILL_PACK",
+  "index_url": "https://github.com/quemsah/awesome-claude-plugins",
+  "mode": "curated_markdown_instructions",
+  "runtime_installed": false,
+  "permission_grants": [],
+  "load_policy": "Load only the relevant bounded skills; explicit style skills never replace the granular operator guide. Repository and human instructions override upstream ideas.",
+  "official_skill_contract": "https://code.claude.com/docs/en/skills",
+  "retained_skills": [
+    "mainframe-discovery",
+    "mainframe-semantics",
+    "mainframe-target",
+    "mainframe-assurance"
+  ],
+  "packages": [
+    {
+      "name": "superpowers",
+      "requested_origin": "obra/superpowers",
+      "upstream_commit": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/systematic-debugging/SKILL.md",
+        "url": "https://github.com/obra/superpowers/blob/8ca22dba9a94f28898bbce59f2537ff4d87c747d/skills/systematic-debugging/SKILL.md",
+        "sha256": "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/superpowers/SKILL.md",
+          "sha256": "b02a722e62d40b09f223c88243915ce38caaa06b05f60d302c98d0be6b0a80d6",
+          "bytes": 2066
+        },
+        {
+          "path": ".claude/skills/superpowers/LICENSE.md",
+          "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+          "bytes": 1070
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3136
+    },
+    {
+      "name": "matt-pocock",
+      "requested_origin": "mattpocock/skills",
+      "upstream_commit": "b0618bc436ad893b3c5e84e55fba86586d34a404",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/engineering/code-review/SKILL.md",
+        "url": "https://github.com/mattpocock/skills/blob/b0618bc436ad893b3c5e84e55fba86586d34a404/skills/engineering/code-review/SKILL.md",
+        "sha256": "09eb147f793e4647949edd32dbad278f0554dfb56e0d46b699cd4c2c55bf0357"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/matt-pocock/SKILL.md",
+          "sha256": "58f3677de0f093d15991221653b7e8ebe1e3f77d1b19875084384b6fc8fa246b",
+          "bytes": 2362
+        },
+        {
+          "path": ".claude/skills/matt-pocock/LICENSE.md",
+          "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+          "bytes": 1068
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3430
+    },
+    {
+      "name": "ecc",
+      "requested_origin": "affaan-m/ECC",
+      "upstream_commit": "ef648e01899ba3e8dc6371642deaaf64b4477775",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/python-testing/SKILL.md",
+        "url": "https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/skills/python-testing/SKILL.md",
+        "sha256": "b9f7a158dae3b6c06c9c75ffe84e27a1edc86092d2afdcb39e96fc2569902eb7"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "326146379f01bb137c0a5d3c54770c1aa31076705c8b88a7f6b26a460f6221b2",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/ecc/SKILL.md",
+          "sha256": "1d02c988c9f29bab21f62358ea0f4c6e850051bfeefa88839dca03406f1d2eaa",
+          "bytes": 2478
+        },
+        {
+          "path": ".claude/skills/ecc/LICENSE.md",
+          "sha256": "326146379f01bb137c0a5d3c54770c1aa31076705c8b88a7f6b26a460f6221b2",
+          "bytes": 1071
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3549
+    },
+    {
+      "name": "karpathy-guidelines",
+      "requested_origin": "multica-ai/andrej-karpathy-skills",
+      "upstream_commit": "2c606141936f1eeef17fa3043a72095b4765b9c2",
+      "mode": "independently_authored_adapter",
+      "source": {
+        "path": "skills/karpathy-guidelines/SKILL.md",
+        "url": "https://github.com/multica-ai/andrej-karpathy-skills/blob/2c606141936f1eeef17fa3043a72095b4765b9c2/skills/karpathy-guidelines/SKILL.md",
+        "sha256": "6e22cc54cb02a5e98ae42d06d9d7292db0c1b43894831b32879beb0166b2aea7"
+      },
+      "license": {
+        "spdx": "NOASSERTION",
+        "source_path": null,
+        "sha256": null,
+        "redistributed_upstream_text": false,
+        "qualification": "Upstream frontmatter declares MIT; no complete license notice detected. Public guidance is independently authored; no upstream instruction text copied."
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/karpathy-guidelines/SKILL.md",
+          "sha256": "3870daeb0b9f3ad577cb6853fb508153141e5dc704a30112693b640928637fe9",
+          "bytes": 2449
+        }
+      ],
+      "file_count": 1,
+      "installed_bytes": 2449
+    },
+    {
+      "name": "anthropic-testing",
+      "requested_origin": "anthropics/skills",
+      "upstream_commit": "683bc88e56f3e09ba94f7055977f3d3aa499f202",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/webapp-testing/SKILL.md",
+        "url": "https://github.com/anthropics/skills/blob/683bc88e56f3e09ba94f7055977f3d3aa499f202/skills/webapp-testing/SKILL.md",
+        "sha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "source_path": "skills/webapp-testing/LICENSE.txt",
+        "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/anthropic-testing/SKILL.md",
+          "sha256": "717f6db06e32e7d7f6847b91ba54f55e6f2709c2a09b259d393de6bbeff7aab8",
+          "bytes": 2482
+        },
+        {
+          "path": ".claude/skills/anthropic-testing/LICENSE.md",
+          "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362",
+          "bytes": 11345
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 13827
+    },
+    {
+      "name": "ponytail",
+      "requested_origin": "DietrichGebert/ponytail",
+      "upstream_commit": "9cc65d03aa2da1db7121b912d03596409ee340b8",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/ponytail/SKILL.md",
+        "url": "https://github.com/DietrichGebert/ponytail/blob/9cc65d03aa2da1db7121b912d03596409ee340b8/skills/ponytail/SKILL.md",
+        "sha256": "ba68ff26239c3c3b05b2a9a47ee0d9a6b93a69639a2555ec87a5d44bffaf2f0c"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/ponytail/SKILL.md",
+          "sha256": "6497283dc58bb2747aa8fa9c747525e8c8d1e3caf09b2a985fa29722e54b8660",
+          "bytes": 2377
+        },
+        {
+          "path": ".claude/skills/ponytail/LICENSE.md",
+          "sha256": "fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab",
+          "bytes": 1071
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3448
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "requested_origin": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "upstream_commit": "1a2c459b35f26116fd165b0a0f30597f252749ff",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": ".claude/skills/ui-ux-pro-max/SKILL.md",
+        "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/1a2c459b35f26116fd165b0a0f30597f252749ff/.claude/skills/ui-ux-pro-max/SKILL.md",
+        "sha256": "ea087c341bfb5b23195c7302027268ede86da802554c18a5c4896a6017b439f9"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "738f69dfa83db5c347c678fb9d90e560877059f0de93a327c39001bff92dc014",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/ui-ux-pro-max/SKILL.md",
+          "sha256": "4c5a5faa385203e47caaea70ca66e7af34cf6d43414376c544a1fe849e0ad67a",
+          "bytes": 2487
+        },
+        {
+          "path": ".claude/skills/ui-ux-pro-max/LICENSE.md",
+          "sha256": "738f69dfa83db5c347c678fb9d90e560877059f0de93a327c39001bff92dc014",
+          "bytes": 1075
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3562
+    },
+    {
+      "name": "caveman",
+      "requested_origin": "JuliusBrussee/caveman",
+      "upstream_commit": "2e08b9177c07bb7249a8a2d1a6758e5db281d002",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/caveman/SKILL.md",
+        "url": "https://github.com/JuliusBrussee/caveman/blob/2e08b9177c07bb7249a8a2d1a6758e5db281d002/skills/caveman/SKILL.md",
+        "sha256": "415d43518f2b1a9498c15a445d4657117b129ee5e81b19454ce348439cc6672b"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "source_path": "LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/caveman/SKILL.md",
+          "sha256": "4192ca461dfacfb67eac071932b3a8ad58b79f492c60b7b0a845ea7f3836f1e4",
+          "bytes": 2056
+        },
+        {
+          "path": ".claude/skills/caveman/LICENSE.md",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 13414
+    },
+    {
+      "name": "agent-engineering",
+      "requested_origin": "addyosmani/agent-skills",
+      "upstream_commit": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/source-driven-development/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/1401c8b8030e023baeebb31781a6653fe8e93026/skills/source-driven-development/SKILL.md",
+        "sha256": "c59faf851377f0eeda45306398d16eb96d77ab1c2fd3e1a7fb58e9a0af33c1e9"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "6f202f8bd568cd730dbb2b0d1f8e243bc74c2fa1f64dbce9b2c7ea08bd5c9fd7",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/agent-engineering/SKILL.md",
+          "sha256": "73ca46f9c9be6d613823557e0a246d298b90d91c6291abb7433ea2e12dc8090c",
+          "bytes": 2352
+        },
+        {
+          "path": ".claude/skills/agent-engineering/LICENSE.md",
+          "sha256": "6f202f8bd568cd730dbb2b0d1f8e243bc74c2fa1f64dbce9b2c7ea08bd5c9fd7",
+          "bytes": 1068
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3420
+    },
+    {
+      "name": "taste",
+      "requested_origin": "Leonxlnx/taste-skill",
+      "upstream_commit": "18dfc928b135629e0eddfdd445a06400d04ed439",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/taste-skill/SKILL.md",
+        "url": "https://github.com/Leonxlnx/taste-skill/blob/18dfc928b135629e0eddfdd445a06400d04ed439/skills/taste-skill/SKILL.md",
+        "sha256": "aa194351b246b8b4799099d4ed7b033d29eab6e6e3d58d8d2172978be7b3ec89"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "4575a543ab88dad12ccea7d97e563d0bce5b448b06072e65d3264497dad326df",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/taste/SKILL.md",
+          "sha256": "11990864cd502931fe636ddbf237631e217b6b88bd239500487bba58b4e830b7",
+          "bytes": 2257
+        },
+        {
+          "path": ".claude/skills/taste/LICENSE.md",
+          "sha256": "4575a543ab88dad12ccea7d97e563d0bce5b448b06072e65d3264497dad326df",
+          "bytes": 1065
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3322
+    },
+    {
+      "name": "understand-anything",
+      "requested_origin": "Egonex-AI/Understand-Anything",
+      "upstream_commit": "790b157028637b626c8666fa7fa28248944b900c",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "understand-anything-plugin/skills/understand-explain/SKILL.md",
+        "url": "https://github.com/Egonex-AI/Understand-Anything/blob/790b157028637b626c8666fa7fa28248944b900c/understand-anything-plugin/skills/understand-explain/SKILL.md",
+        "sha256": "661389c81c9133e6cdc99ba033678300ba7a7a377031396b259a23dad39496fe"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "24c4b35344840f1abaf3a3a4a44f5e29ee0e73b6bf25e42ef108e0afebd402bc",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/understand-anything/SKILL.md",
+          "sha256": "8303bf03ac2c5ade4ca32633f4344c205fcfa0f9afe42d8989e3ca39603d18d2",
+          "bytes": 2415
+        },
+        {
+          "path": ".claude/skills/understand-anything/LICENSE.md",
+          "sha256": "24c4b35344840f1abaf3a3a4a44f5e29ee0e73b6bf25e42ef108e0afebd402bc",
+          "bytes": 1111
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3526
+    },
+    {
+      "name": "impeccable",
+      "requested_origin": "pbakaus/impeccable",
+      "upstream_commit": "c5ae03ee855256b8ea042f3bbd415e5c7ea7aca8",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": ".claude/skills/impeccable/SKILL.md",
+        "url": "https://github.com/pbakaus/impeccable/blob/c5ae03ee855256b8ea042f3bbd415e5c7ea7aca8/.claude/skills/impeccable/SKILL.md",
+        "sha256": "56e22123a1fb9ab2dad0fa3a05ed1af54b3db2bee14822d8f2ece573ffa9ee0a"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "source_path": "LICENSE",
+        "sha256": "02bb8c3b4e70190e3986c0404ad2fd8d639b4f534252d82379cc1b502b6d1812",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/impeccable/SKILL.md",
+          "sha256": "b0c735e6866fd12f8916810aed046dcfec73438cba44e0b89155008bef2de63e",
+          "bytes": 2363
+        },
+        {
+          "path": ".claude/skills/impeccable/LICENSE.md",
+          "sha256": "02bb8c3b4e70190e3986c0404ad2fd8d639b4f534252d82379cc1b502b6d1812",
+          "bytes": 10766
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 13129
+    },
+    {
+      "name": "headroom",
+      "requested_origin": "headroomlabs-ai/headroom",
+      "upstream_commit": "17abee2721c1946bc8903d623bec91ff6e531c17",
+      "mode": "independently_authored_adapter",
+      "source": {
+        "path": "README.md",
+        "url": "https://github.com/headroomlabs-ai/headroom/blob/17abee2721c1946bc8903d623bec91ff6e531c17/README.md",
+        "sha256": "43afbeb62c9a9a23eb25510611d55a38435f283449890816d6c743ba8e411cc0"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "source_path": "LICENSE",
+        "sha256": "f14dd440c8e3152b4d4d324615de8251ddb011dc81f484daad0b6902093539cc",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/headroom/SKILL.md",
+          "sha256": "64806d07a8497b11dde366782d5742e6cabd92d450bb2d748db1d5ea099a32f3",
+          "bytes": 2314
+        },
+        {
+          "path": ".claude/skills/headroom/LICENSE.md",
+          "sha256": "f14dd440c8e3152b4d4d324615de8251ddb011dc81f484daad0b6902093539cc",
+          "bytes": 10770
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 13084,
+      "qualification": "No upstream SKILL.md exists at this pin; local context-selection adapter only, not Headroom compression."
+    },
+    {
+      "name": "i-have-adhd",
+      "requested_origin": "ayghri/i-have-adhd",
+      "upstream_commit": "723af7d9afaf43eb871dbcce6129e2bf80de90d5",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/i-have-adhd/SKILL.md",
+        "url": "https://github.com/ayghri/i-have-adhd/blob/723af7d9afaf43eb871dbcce6129e2bf80de90d5/skills/i-have-adhd/SKILL.md",
+        "sha256": "88955c019bbb1419ff4b49dbb1f80a867467de6233d7865af2e06a7d7b76c7d3"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "8acbb618089b738404f76ac60fca1aaa995d9a87995eddf95f0b777acd7f7d2c",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/i-have-adhd/SKILL.md",
+          "sha256": "2c2ea6e4bf766b0dce30d10715bcc661b0e01d7b53e433bb35713936abd71a9b",
+          "bytes": 2219
+        },
+        {
+          "path": ".claude/skills/i-have-adhd/LICENSE.md",
+          "sha256": "8acbb618089b738404f76ac60fca1aaa995d9a87995eddf95f0b777acd7f7d2c",
+          "bytes": 1069
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3288
+    },
+    {
+      "name": "oh-my-claudecode",
+      "requested_origin": "Yeachan-Heo/oh-my-claudecode",
+      "upstream_commit": "454bae017356ed1d056182cd929b6eb6cf6143ad",
+      "mode": "adapted_upstream_subset",
+      "source": {
+        "path": "skills/verify/SKILL.md",
+        "url": "https://github.com/Yeachan-Heo/oh-my-claudecode/blob/454bae017356ed1d056182cd929b6eb6cf6143ad/skills/verify/SKILL.md",
+        "sha256": "6cd36805efb8bf6b85b2f249041dfa6941354322a8716dc7b898c84c154a024c"
+      },
+      "license": {
+        "spdx": "MIT",
+        "source_path": "LICENSE",
+        "sha256": "1d2b966f93feaa8928a57a69868388ee9016c86a341299fc5261ded44249af79",
+        "redistributed_upstream_text": true
+      },
+      "excluded": [
+        "executables",
+        "installers",
+        "MCP servers",
+        "proxies",
+        "hooks",
+        "background services",
+        "telemetry",
+        "automatic publishing"
+      ],
+      "files": [
+        {
+          "path": ".claude/skills/oh-my-claudecode/SKILL.md",
+          "sha256": "e2fbc6b553301e9b2fd5f8069385ea7c0df13d71d3afcdc7f5f28ceecf97e60f",
+          "bytes": 2279
+        },
+        {
+          "path": ".claude/skills/oh-my-claudecode/LICENSE.md",
+          "sha256": "1d2b966f93feaa8928a57a69868388ee9016c86a341299fc5261ded44249af79",
+          "bytes": 1068
+        }
+      ],
+      "file_count": 2,
+      "installed_bytes": 3347
+    }
+  ]
+}

@@ -25,7 +25,7 @@ frontend/dist/
 /mcp.json
 /.mcp.json
 /.vscode/mcp.json
-certificates/*.cert
+certificates/*
 knowledge/inventory-baseline.json
 knowledge/input-locations.json
 !examples/Endeavor/
@@ -41,3 +41,8 @@ knowledge/input-locations.json
 /pip.conf
 /pip.ini
 /NuGet.Config
+
+# Local Claude trust, permissions and credentials never enter the public repo
+/.claude/settings.local.json
+/.claude/CLAUDE.md
+/AGENTS.override.md

@@ -19,9 +19,9 @@ export function FactoryAssurance({view}:{view:{process_id?:string;validation?:Va
    <div><dt>Job integration cases</dt><dd>{validation.job_cases===null?'Not recorded':validation.job_cases}</dd></div>
    <div><dt>Fixture contract</dt><dd>{validation.fixture_contract_version}</dd></div>
   </dl>
-  <p>Expected results are frozen before target execution. Validation requires actual comparisons and adversarial checks; it does not establish observed mainframe parity.</p>
+  <p>{validation.fixture_contract_version===5&&<>This contract requires a base floor of 64 distinct valid states per supported logic, or 128 for recorded compound predicates, cross-layout compared keys and prior effects that change predicate inputs. Actual per-rule requirements and deficits are in the validation evidence. </>}Expected results are frozen before target execution. Validation requires actual comparisons and adversarial checks; it does not establish observed mainframe parity.</p>
   <details><summary>Replay and validation evidence</summary>
-   <p>{validation.fixture_contract_version===4?'Synthetic values are generated at runtime from a recorded random seed. Replay uses that same seed and frozen expectations.':'This process preserves its historical fixture contract and frozen expectations.'}</p>
+   <p>{validation.fixture_contract_version>=4?'Synthetic values are generated at runtime from a recorded random seed. Replay uses that same seed and frozen expectations.':'This process preserves its historical fixture contract and frozen expectations.'}</p>
    <p>Recorded seed: <code>{validation.seed??'Not recorded'}</code></p>
    {validation.evidence&&view.process_id?<a className="download" href={artifactUrl(view.process_id,validation.evidence)}>Download validation evidence</a>:<p>No validation evidence artifact is available yet.</p>}
   </details>

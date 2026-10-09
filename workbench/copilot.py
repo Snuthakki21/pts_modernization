@@ -1,4 +1,4 @@
-"""Bounded GitHub Copilot Chat handoffs; no model endpoint or executable authority.
+"""Bounded agent analysis tasks; historical Copilot module name is retained.
 
 The IDE agent reads source evidence through local tools and submits suggestions.
 This module validates that return against the immutable process lineage. A return
@@ -20,31 +20,52 @@ MAX_ADAPTER_TASKS = 50
 HASH = re.compile(r'^[0-9a-f]{64}$')
 
 
-def unknown_usage():
-    """Copilot Chat does not expose observed token counters to this bridge."""
-    return {'status': 'UNKNOWN', 'source': 'github_copilot_chat_not_observed',
+def opaque_reference(kind, value):
+    """Stable model identity; the private label is never carried with it."""
+    return kind+'_'+sha(value)
+
+
+def model_requirements(doc):
+    """Expose saved scope bindings, never the private rendered source details."""
+    selection=doc.get('requirements')
+    if not selection:return None
+    return {'sha256':doc['artifact_hashes'][doc['requirements_artifact']],
+            'revision':selection['revision'],'catalog_hash':selection['catalog_hash'],
+            'source_snapshot':selection['source_snapshot'],
+            'excluded_count':len(selection['excluded_ids']),
+            'excluded_references':[opaque_reference('UNIT',unit) for unit in selection['excluded_ids']],
+            'selection_default':'YES','authority':'Saved operator scope; consumed privately by Coordinator.',
+            'no_reason':'Not converted because selected No in requirements.',
+            'private_contents_allowed':False}
+
+
+def unknown_usage(source='github_copilot_chat_not_observed'):
+    """No host counters are observed; the default preserves historical bytes."""
+    return {'status': 'UNKNOWN', 'source': source,
             'input_tokens': None, 'output_tokens': None, 'usage_complete': False}
 
 
 def _source_inventory(doc, source_files):
     require(isinstance(source_files, dict) and 0 < len(source_files) <= MAX_SOURCE_FILES,
-            'Copilot handoff requires the frozen source inventory')
+            'Agent task requires the frozen source inventory')
     frozen = doc.get('source_files')
     require(isinstance(frozen, dict) and set(frozen) == set(source_files),
-            'Copilot source inventory differs from the process snapshot')
+            'Agent source inventory differs from the process snapshot')
     result = {}
     for path, text in sorted(source_files.items()):
         require(isinstance(path, str) and isinstance(text, str), 'Source paths and text are required')
         parts = PurePosixPath(path)
         require(path and not parts.is_absolute() and '..' not in parts.parts and '\\' not in path,
                 'Invalid process source path')
-        require(sha(text) == frozen[path], 'Copilot source snapshot changed: ' + path)
+        require(sha(text) == frozen[path], 'Agent source snapshot changed: ' + path)
         result[path] = {'source_hash': frozen[path], 'line_count': source_line_count(text)}
     return result
 
 
 def source_excerpt(doc, source_files, path, start_line=1, end_line=None):
     """Return only an explicit, bounded range from the verified process snapshot."""
+    require(doc.get('agent_transport')!='local_files',
+            'Raw source context is private; Claude requires an explicitly approved sanitized view')
     inventory = _source_inventory(doc, source_files)
     require(isinstance(path, str) and path in inventory, 'Source file is outside this process snapshot')
     require(type(start_line) is int and start_line >= 1, 'Start line must be a positive integer')
@@ -180,7 +201,8 @@ def build_task(doc, source_files, analysis=None):
                                 'source_ref': {'path': 'frozen relative filename', 'start_line': 'positive integer', 'end_line': 'positive integer', 'source_hash': 'frozen SHA256'},
                                 'adapter_task': {'id': 'GAP ID from this task', 'implementation_plan': 'source-supported implementation/evidence or named missing evidence', 'expected_tests': ['specific tests to implement/run']},
                                 'optional_agent': {'name': 'self-reported agent name', 'model': 'self-reported model or UNKNOWN', 'session_id': 'self-reported session ID or UNKNOWN'}},
-            'usage': unknown_usage(), 'authority': 'UNVERIFIED_AGENT_SUGGESTIONS'}
+            'usage': unknown_usage('claude_host_not_observed' if doc.get('agent_transport')=='local_files'
+                                   else 'github_copilot_chat_not_observed'), 'authority': 'UNVERIFIED_AGENT_SUGGESTIONS'}
     if doc.get('process_context'):
         task['context_documents']=[{k:v for k,v in d.items() if k!='text'} for d in doc['process_context']['documents']]
         task['context_tool']='workbench_context_excerpt'
@@ -227,20 +249,76 @@ def build_task(doc, source_files, analysis=None):
                 'authority': 'UNVERIFIED_DEVELOPER_RETURN',
                 'requirement': 'Copilot must inspect actual integrated code and test/review evidence. Unresolved developer work remains visible; source-specific semantics still require Coordinator verification.'}
     if doc.get('agent_transport')=='local_files':
+        # Source text/comments/literals and analyst prose are not safe merely
+        # because they are code. Default Claude tasks carry references only;
+        # deterministic local parsers and verifiers retain the private originals.
+        task['operator_request']='Private operator context remains local; use approved metadata and evidence references.'
+        task['source_excerpts']=[{key:value for key,value in excerpt.items() if key!='text'} for excerpt in task['source_excerpts']]
+        task['context_character_count']=0
+        task['context_complete']=False
+        task['scope']['classifications']={path:{key:value for key,value in item.items() if key in {'kind','confidence','source_hash'}}
+                                          for path,item in task['scope']['classifications'].items()}
+        task['scope']['utility_findings']=[]
+        task['scope']['relationship_count']=len(task['scope']['relationships'])
+        task['scope']['relationships']=[]
+        task['scope']['jobs']=[{'job_reference':opaque_reference('JOB',job['name']),
+            'steps':[{'step_reference':opaque_reference('STEP',step['name']),
+                      'program_reference':opaque_reference('PROGRAM',step['program'])} for step in job['steps']]}
+            for job in task['scope']['jobs']]
+        for adapter in task['adapter_tasks']:
+            adapter['requirement']='Unverified '+adapter['kind']+'; use approved metadata and exact local evidence references.'
+        if 'rule_catalog' in task:
+            task['rule_catalog']={rid:{'description':'Extracted decision; private source literals are withheld.',
+                                     'source_refs':rule['source_refs']} for rid,rule in task['rule_catalog'].items()}
+        if 'context_documents' in task:
+            task['context_documents']=[{**{key:value for key,value in document.items() if key in {'sha256','source_hash','bytes','line_count'} or key=='status' and value=='UNVERIFIED_INPUT'},
+                                       'document_reference':opaque_reference('CONTEXT',document['id']+':'+document['sha256'])}
+                                      for document in task['context_documents']]
+        def refs(values):
+            result=[]
+            for ref in values:
+                if isinstance(ref,str):
+                    path,separator,span=ref.rpartition(':');bounds=re.fullmatch(r'([0-9]+)-([0-9]+)',span)
+                    require(separator and bounds and path in inventory,'Private rule reference lacks a frozen source span')
+                    ref={'path':path,'start_line':int(bounds[1]),'end_line':int(bounds[2]),'source_hash':inventory[path]['source_hash']}
+                result.append({**ref,'path':opaque_reference('SOURCE',ref['path'])})
+            return result
+        task['source_excerpts']=refs(task['source_excerpts'])
+        for adapter in task['adapter_tasks']:adapter['source_refs']=refs(adapter['source_refs'])
+        if 'rule_catalog' in task:
+            task['rule_catalog']={opaque_reference('RULE',rid):{**rule,'source_refs':refs(rule['source_refs'])}
+                                  for rid,rule in task['rule_catalog'].items()}
+        if 'program_catalog' in task:
+            task['program_catalog']={opaque_reference('PROGRAM',name):value for name,value in task['program_catalog'].items()}
+        task['lineage']['sources']={opaque_reference('SOURCE',path):value for path,value in task['lineage']['sources'].items()}
+        task['lineage'].pop('lineage_hash')
+        task['lineage']['lineage_hash']=sha(encode(task['lineage']))
+        task['lineage_hash']=task['lineage']['lineage_hash']
+        task['scope']['source_inventory']=task['lineage']['sources']
+        task['scope']['selected_source_files']=[opaque_reference('SOURCE',path) for path in task['scope']['selected_source_files']]
+        task['scope']['classifications']={opaque_reference('SOURCE',path):value for path,value in task['scope']['classifications'].items()}
+        if 'factory' in task:
+            task['factory']['transactions']=[{key:opaque_reference(key.upper(),value) if value is not None else None
+                                              for key,value in transaction.items()} for transaction in task['factory']['transactions']]
+        task['data_policy']={'version':1,'mode':'METADATA_AND_HASH_REFERENCES_ONLY',
+                             'source_identity_mode':'OPAQUE_HASH_REFERENCES',
+                             'source_text_allowed':False,'business_records_allowed':False,
+                             'requirement':'Raw source/comments/literals, input record dumps, private row snapshots and databases stay local. A safe source view needs explicit approved sanitization; no regex or code-only assumption establishes it.'}
         for key in ('context_tool','rule_catalog_tool','factory_tool'):task.pop(key,None)
-        if 'requirements' in task:task['requirements'].pop('tool',None)
+        if 'requirements' in task:task['requirements']=model_requirements(doc)
+        task['return_contract']['source_ref']['path']='Exact SOURCE_<hash> reference from this task; resolved privately by Coordinator'
         task['local_evidence']={'relative_to':'processes/'+doc['id'], 'source_directory':'input/sources',
             'analysis':doc.get('analysis_artifact'), 'mainframe_knowledge':'analysis/mainframe-knowledge.json',
             'context':'analysis/process-context.json' if doc.get('process_context') else None,
-            'instruction':'Read the bounded relevant spans from these local files. Full rules, classifications and blockers are in the frozen analysis. Do not configure or call MCP in Claude.'}
+            'instruction':'These are private local evidence references for deterministic parsers and tests, not permission to read raw contents into Claude. Use metadata/hash references; obtain an explicitly approved sanitized source view when semantic context is needed. Missing evidence requires an exact Coordinator retrieval request.'}
         task['kind']='LOCAL_FILE_CLAUDE_ANALYSIS_TASK'
-        task['usage']={**unknown_usage(),'source':'claude_host_not_observed'}
+        task['usage']=unknown_usage('claude_host_not_observed')
         task['host_roles']={
-            'copilot':'Retrieve requested evidence only; no development, analysis, testing or review',
-            'claude':'Analyze approved local files, develop, test and review without any MCP integration',
+            'retrieval':'Claude Code retrieves only named evidence through approved Db2 MCP and read-only Zowe CLI into the exact request inbox',
+            'claude':'Analyze accepted local files, develop, test and review; approved MCP access never bypasses Coordinator acceptance or human gates',
             'transport':'python -m workbench.runner agent PROCESS_ID --workspace WORKSPACE; local files and the existing Coordinator only'}
-        task['requested_analysis']='Claude reads frozen local source/context and requirements, performs evidence-backed analysis, implementation, randomized tests and independent review. Request missing source through runner agent --request-file; provide its Copilot retrieval prompt and exact inbox. On Continue validate and import those files before reassessing. Refresh after tested code changes, then submit the current task-bound analysis through runner agent --analysis-file. Never configure MCP in Claude or infer SME answers.'
-        if 'continuation' in task:task['continuation']['next_action']='Continue through the local-file runner. Copilot retrieves missing files only; Claude owns analysis, coding, testing and review.'
+        task['requested_analysis']='Claude uses approved metadata/hash references and explicitly approved sanitized source context for evidence-backed analysis, implementation, randomized tests and independent review. Invoke existing deterministic local parsers/tests for private source and records without printing their contents. Missing unapproved context remains a named gap. Request missing source through runner agent --request-file; use its approved read-only Db2 MCP and Zowe CLI retrieval route and exact inbox. Continue validates and imports those files before reassessing. Refresh after tested code changes, then submit current task-bound analysis through runner agent --analysis-file. Never expose raw source or customer records, bypass enterprise MCP restrictions, execute legacy programs, write source systems or infer SME answers.'
+        if 'continuation' in task:task['continuation']['next_action']='Continue through the existing local runner. Claude retrieves only requested evidence through approved read-only connections, then owns analysis, coding, testing and review after Coordinator acceptance.'
     task['task_hash'] = sha(encode(task))
     return task
 
@@ -259,19 +337,23 @@ def _text_list(value, label):
     return [_text(item, 2000, label, True) for item in value]
 
 
-def validate_submission(task, submitted, source_analysis=None):
+def validate_submission(task, submitted, source_analysis=None, private_source_paths=None):
     """Validate structure and lineage; this explicitly does not certify semantics."""
     require(isinstance(task, dict) and isinstance(submitted, dict), 'Agent task and analysis must be objects')
-    require(len(encode(submitted)) <= MAX_RETURN_BYTES, 'Copilot analysis exceeds 128 KB')
+    require(len(encode(submitted)) <= MAX_RETURN_BYTES, 'Agent analysis exceeds 128 KB')
     fingerprint = sha(encode({key: value for key, value in task.items() if key != 'task_hash'}))
-    require(task.get('task_hash') == fingerprint, 'Frozen Copilot task integrity failed')
+    require(task.get('task_hash') == fingerprint, 'Frozen agent task integrity failed')
     fields = {'process_id', 'task_hash', 'lineage_hash', 'summary', 'assumptions', 'questions', 'source_refs', 'adapter_tasks'}
-    require(fields <= set(submitted) <= fields | {'agent','rule_classifications','rule_classification_defaults'}, 'Invalid Copilot analysis contract; SME answers, commands and completion claims are not accepted')
+    require(fields <= set(submitted) <= fields | {'agent','rule_classifications','rule_classification_defaults'}, 'Invalid agent analysis contract; SME answers, commands and completion claims are not accepted')
     for key in ('process_id', 'task_hash', 'lineage_hash'):
-        require(submitted[key] == task[key], 'Copilot analysis does not match frozen ' + key)
+        require(submitted[key] == task[key], 'Agent analysis does not match frozen ' + key)
     analysis = {'summary': _text(submitted['summary'], 8000, 'summary', True),
                 'assumptions': _text_list(submitted['assumptions'], 'assumptions'),
                 'questions': _text_list(submitted['questions'], 'questions')}
+    opaque=(task.get('data_policy') or {}).get('source_identity_mode')=='OPAQUE_HASH_REFERENCES'
+    if opaque:
+        require(isinstance(source_analysis,dict) and sha(encode(source_analysis))==task['lineage']['analysis_hash'],
+                'Opaque source analysis differs from the frozen task')
     if 'rule_classification_defaults' in submitted:
         defaults=submitted['rule_classification_defaults']
         require(isinstance(defaults,dict) and len(defaults)<=10000,'Invalid classification defaults')
@@ -279,18 +361,27 @@ def validate_submission(task, submitted, source_analysis=None):
             require(name in task.get('program_catalog',{}) and isinstance(entry,dict) and set(entry)=={'category','reason'},'Classification default must reference a frozen program')
             require(entry['category'] in ('business_rule','technical_logic','unclassified'),'Invalid rule category')
             _text(entry['reason'],1000,'classification evidence',True)
-        analysis['rule_classification_defaults']=deepcopy(defaults)
+        if opaque:
+            require(isinstance(source_analysis,dict),'Opaque program classifications require private source analysis')
+            names={opaque_reference('PROGRAM',name):name for name in source_analysis['programs']}
+            require(set(defaults)<=set(names),'Opaque program reference differs from private source analysis')
+            analysis['rule_classification_defaults']={names[name]:deepcopy(value) for name,value in defaults.items()}
+        else:analysis['rule_classification_defaults']=deepcopy(defaults)
     if 'rule_classifications' in submitted:
         categories=submitted['rule_classifications']
         require(isinstance(categories,dict),'Invalid rule classifications')
         if source_analysis is not None:
             require(sha(encode(source_analysis))==task['lineage']['analysis_hash'],'Classification source analysis differs from task')
-        known={r['id'] for r in source_analysis['rules']} if source_analysis is not None else task.get('rule_catalog',{})
+        known={opaque_reference('RULE',r['id']) if opaque else r['id'] for r in source_analysis['rules']} if source_analysis is not None else task.get('rule_catalog',{})
         for rid,entry in categories.items():
             require(rid in known and isinstance(entry,dict) and set(entry)=={'category','reason'},'Classification must reference a frozen rule')
             require(entry['category'] in ('business_rule','technical_logic','unclassified'),'Invalid rule category')
             _text(entry['reason'],1000,'classification evidence',True)
-        analysis['rule_classifications']=deepcopy(categories)
+        if opaque:
+            require(isinstance(source_analysis,dict),'Opaque rule classifications require private source analysis')
+            names={opaque_reference('RULE',r['id']):r['id'] for r in source_analysis['rules']}
+            analysis['rule_classifications']={names[rid]:deepcopy(value) for rid,value in categories.items()}
+        else:analysis['rule_classifications']=deepcopy(categories)
     refs = submitted['source_refs']; inventory = task['lineage']['sources']
     require(isinstance(refs, list) and 0 < len(refs) <= 100, 'Provide 1 to 100 source evidence references')
     for ref in refs:
@@ -300,6 +391,12 @@ def validate_submission(task, submitted, source_analysis=None):
         require(ref['source_hash'] == info['source_hash'], 'Source reference hash does not match frozen evidence')
         require(type(ref['start_line']) is int and type(ref['end_line']) is int and
                 1 <= ref['start_line'] <= ref['end_line'] <= info['line_count'], 'Invalid source reference line range')
+    if opaque:
+        require(isinstance(private_source_paths,dict),'Opaque source references require private Coordinator binding')
+        names={opaque_reference('SOURCE',path):path for path in private_source_paths}
+        require(set(inventory)==set(names) and all(inventory[alias]['source_hash']==private_source_paths[path]
+                for alias,path in names.items()),'Opaque inventory differs from frozen private source identities')
+        refs=[{**ref,'path':names[ref['path']]} for ref in refs]
     returned = submitted['adapter_tasks']; gaps = {item['id'] for item in task['adapter_tasks']}
     require(isinstance(returned, list) and len(returned) <= len(gaps), 'Invalid adapter tasks')
     returned_ids = set()
@@ -323,4 +420,4 @@ def validate_submission(task, submitted, source_analysis=None):
                            'returned_analysis_hash': sha(encode(submitted)),
                            'validation': 'STRUCTURE_AND_FROZEN_SOURCE_LINEAGE_ONLY'},
             'usage': {**unknown_usage(), 'source':'claude_host_not_observed' if task.get('kind')=='LOCAL_FILE_CLAUDE_ANALYSIS_TASK' else 'external_agent_not_observed' if task.get('kind')=='EXTERNAL_AGENT_ANALYSIS_HANDOFF' else 'github_copilot_chat_not_observed'}, 'live_ready': False,
-            'authority': 'Unverified GitHub Copilot Chat suggestions; source evidence, actual SME answers and deterministic execution gates remain authoritative.'}
+            'authority': 'Unverified agent suggestions; source evidence, actual SME answers and deterministic execution gates remain authoritative.'}

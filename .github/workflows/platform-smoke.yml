@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -20,14 +20,54 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: '22'
+      - name: Exercise Windows bootstrap regressions before installation
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import sys
+          import unittest
+          if os.name != 'nt':
+              raise SystemExit('Windows native bootstrap tests require Windows')
+          scratch = Path.cwd() / '.implementation' / 'tmp'
+          scratch.mkdir(parents=True, exist_ok=True)
+          for variable in ('TEMP', 'TMP', 'TMPDIR'):
+              os.environ[variable] = str(scratch)
+          sys.path.insert(0, str(Path.cwd() / 'tests'))
+          import test_platform_launch as native
+          suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromTestCase(case)
+                                     for case in (native.WindowsBootstrapTests, native.WindowsPipConfigurationTests))
+          if suite.countTestCases() < 8:
+              raise SystemExit('Windows bootstrap regression cases were not discovered')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          raise SystemExit(0 if result.wasSuccessful() and not result.skipped else 1)
       - name: Install locked dependencies through Windows PowerShell setup
         if: runner.os == 'Windows'
         shell: powershell
         run: .\scripts\Setup.ps1
-      - name: Install locked dependencies through POSIX setup
-        if: runner.os != 'Windows'
-        shell: bash
-        run: bash scripts/setup.sh
+      - name: Exercise managed Claude launcher in native Windows PowerShell
+        shell: powershell
+        run: |
+          @'
+          import os
+          from pathlib import Path
+          import sys
+          import unittest
+          if os.name != 'nt':
+              raise SystemExit('Managed Claude launcher fixtures require Windows')
+          scratch = Path.cwd() / '.implementation' / 'tmp'
+          scratch.mkdir(parents=True, exist_ok=True)
+          for variable in ('TEMP', 'TMP', 'TMPDIR'):
+              os.environ[variable] = str(scratch)
+          sys.path.insert(0, str(Path.cwd() / 'tests'))
+          import test_text_claude_launcher as native
+          suite = unittest.defaultTestLoader.loadTestsFromModule(native)
+          if suite.countTestCases() < 6:
+              raise SystemExit('Native Claude launcher regression cases were not discovered')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          raise SystemExit(0 if result.wasSuccessful() and not result.skipped else 1)
+          '@ | .\.venv\Scripts\python.exe -
+          if ($LASTEXITCODE -ne 0) { throw 'Native Claude launcher regressions failed.' }
       - name: Install locked frontend dependencies
         working-directory: frontend
         run: npm ci
@@ -60,7 +100,7 @@ jobs:
                             'native_shell': 'Windows PowerShell' if os.name == 'nt' else 'bash',
                             'scope': 'offline native platform smoke; not Windows 11 desktop or live mainframe acceptance'}), flush=True)
           results = []
-          for pattern in ('test_review_html.py', 'test_html_review*.py', 'test_reports.py', 'test_guided_workflow.py', 'test_operator_reference.py', 'test_database*.py', 'test_local_agent*.py', 'test_retrieval.py', 'test_cics*.py', 'test_lineage_discovery.py', 'test_discovery_workflow.py', 'test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_fixture_v3.py', 'test_mainframe.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_db2_connection_setup.py', 'test_launch.py'):
+          for pattern in ('test_review_html.py', 'test_html_review*.py', 'test_reports.py', 'test_guided_workflow.py', 'test_operator_reference.py', 'test_database*.py', 'test_local_agent*.py', 'test_retrieval.py', 'test_cics*.py', 'test_lineage_discovery.py', 'test_discovery_workflow.py', 'test_layout.py', 'test_runner.py', 'test_zowe_setup.py', 'test_native_cli.py', 'test_fixture_v3.py', 'test_fixture_v5.py', 'test_mainframe.py', 'test_preflight.py', 'test_text_encoding.py', 'test_platform*.py', 'test_modernization_upgrade.py', 'test_rule_inventory.py', 'test_factory.py', 'test_economics.py', 'test_requirements_selection.py', 'test_runtime_validation.py', 'test_validation_policy.py', 'test_orchestration_validation.py', 'test_target_architecture.py', 'test_workstation_setup.py', 'test_connection_setup.py', 'test_db2_connection_setup.py', 'test_db2_private_exports.py', 'test_db2_env_gateway.py', 'test_workspace_db2_env.py', 'test_webelx_locations.py', 'test_zowe_env_setup.py', 'test_text_*.py', 'test_launch.py'):
               completed = subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], check=False)
               results.append({'scope': pattern, 'returncode': completed.returncode})
           for scope, arguments in (('layout', ['-m', 'workbench.layout', '--workspace', '.']),

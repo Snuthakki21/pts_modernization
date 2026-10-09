@@ -93,19 +93,20 @@ class DiscoveryWorkflowTests(unittest.TestCase):
 class CicsRetrievalWorkflowTests(unittest.TestCase):
     def test_new_packet_uses_explicit_transports_and_historical_packet_is_unchanged(self):
         from workbench.retrieval import build_request, validate_binding
+        from test_retrieval import historical_request
         doc={'id':'retrieval-audit','source_files':{}}
         needs=[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Observed columns and original DDL needed'}]
-        old=build_request(doc,needs)
+        old=historical_request(doc,needs)
         validate_binding(old,doc)
         self.assertEqual(old['schema_version'],1)
         self.assertNotIn('Mandatory transport boundary',old['copilot_prompt'])
         new=build_request({**doc,'cics_contract_version':1},needs)
         validate_binding(new,{**doc,'cics_contract_version':1})
-        self.assertEqual(new['schema_version'],2)
-        self.assertIn('Zowe CLI',new['copilot_prompt']);self.assertIn('db2_describe_table',new['copilot_prompt'])
-        self.assertIn('Claude Code has no MCP access',new['copilot_prompt'])
-        self.assertIn('Do not invent DDL',new['copilot_prompt'])
-        self.assertIn(new['return_folder'],new['copilot_prompt'])
+        self.assertEqual(new['schema_version'],3)
+        self.assertIn('Zowe CLI',new['agent_prompt']);self.assertIn('db2_describe_table',new['agent_prompt'])
+        self.assertIn('Claude Code uses only those approved MCP servers',new['agent_prompt'])
+        self.assertIn('Do not invent DDL',new['agent_prompt'])
+        self.assertIn(new['return_folder'],new['agent_prompt'])
         self.assertNotEqual(new['request_id'],old['request_id'])
 
     def test_catalog_return_validates_outer_provenance_hash_and_stays_inside_process_sources(self):
@@ -164,9 +165,10 @@ class CicsRetrievalWorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(ValidationError,'typed read-only Db2 MCP'):inspect_response(root,request)
 
     def test_schema_one_preserves_historical_transport_acceptance(self):
-        from workbench.retrieval import build_request,write_request,inspect_response
+        from workbench.retrieval import write_request,inspect_response
+        from test_retrieval import historical_request
         with tempfile.TemporaryDirectory(dir='.implementation/tmp') as temp:
-            root=Path(temp);request=build_request({'id':'historical','source_files':{}},[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Existing contract'}]);write_request(root,request)
+            root=Path(temp);request=historical_request({'id':'historical','source_files':{}},[{'kind':'db2_table','name':'APP.CUSTOMER','reason':'Existing contract'}]);write_request(root,request)
             inbox=root/request['return_folder'];raw='CREATE TABLE APP.CUSTOMER (ID CHAR(9));';path='CUSTOMER.sql';(inbox/'files'/path).write_text(raw)
             item={'need_id':request['needs'][0]['need_id'],'status':'FOUND','path':path,'sha256':sha(raw),'provenance':
                   {'origin':'zowe_cli','tool':'zowe files view ds','locator':'APP.DDL(CUSTOMER)','retrieved_at':'2026-10-07T16:00:00Z'}}

@@ -202,7 +202,9 @@ class McpBridgeTests(unittest.TestCase):
                 self.assertEqual(responses[0]['result']['serverInfo']['name'], 'workbench-copilot-retrieval')
                 packet = responses[1]['result']['structuredContent']['retrieval']
                 self.assertEqual(packet['request_id'], request['retrieval']['request_id'])
-                self.assertEqual(packet['needs'][0]['name'], 'MISSING')
+                self.assertTrue(packet['needs'][0]['name'].startswith('IDENTITY_SHA256_'))
+                self.assertNotIn('MISSING', json.dumps(packet))
+                self.assertEqual(packet['needs'][0]['metadata_identity_status'], 'UNAPPROVED_MODEL_METADATA')
                 self.assertEqual(packet['return_folder'], 'processes/'+pid+'/analysis/retrieval/'+packet['request_id']+'/inbox')
                 self.assertEqual(responses[2]['error']['code'], -32602)
                 self.assertEqual(encode(coordinator.ledger.get(pid)), before)

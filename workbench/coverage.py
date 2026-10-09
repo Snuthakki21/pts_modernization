@@ -93,10 +93,10 @@ def _program_evidence(doc, root, base, name, p, global_errors, checkpoint=None):
         require(suite.get('coverage',{}).get('min_records_per_logic',0)==doc.get('logic_validation_min_records',0),
                 'Frozen expected suite per-logic validation record minimum differs from the process contract')
         options={}
-        if doc.get('fixture_contract_version')==4:
-            require(suite.get('version')==4 and doc.get('authorization',{}).get('fixture_contract_version')==4,
+        if doc.get('fixture_contract_version') in (4,5):
+            require(suite.get('version')==doc['fixture_contract_version'] and doc.get('authorization',{}).get('fixture_contract_version')==doc['fixture_contract_version'],
                     'Frozen fixture policy differs from process authorization')
-            options['fixture_contract_version']=4
+            options['fixture_contract_version']=doc['fixture_contract_version']
         reproduced = plan_cases(p, doc.get('authorization', {}).get('seed', 21),
                                 doc.get('authorization', {}).get('max_cases_per_program', 256),
                                 suite.get('coverage',{}).get('min_records_per_logic',0),**options)
@@ -119,7 +119,7 @@ def _program_evidence(doc, root, base, name, p, global_errors, checkpoint=None):
             {'file':expected_path.relative_to(root).as_posix(), 'sha256':sha(expected_raw), 'kind':'frozen_source_expectations'},
             {'file':actual_path.relative_to(root).as_posix(), 'sha256':sha(actual_raw), 'kind':'reproduced_target_comparison'},
             {'file':copy_path.relative_to(root).as_posix(), 'sha256':sha(raw), 'kind':'executed_target_version'}]
-        if doc.get('fixture_contract_version')==4:
+        if doc.get('fixture_contract_version') in (4,5):
             from .unit_evidence import generate_unit_tests, run_unit_tests
             module=safe_path(base/'tests',run_id+'/'+name+'/test_generated.py')
             receipt=safe_path(base/'tests',run_id+'/'+name+'/unit-results.json')

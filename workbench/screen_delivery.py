@@ -41,7 +41,8 @@ if __name__ == '__main__': unittest.main()
 def suite_for(doc, screen, checkpoint=None):
     return plan_screen_cases(screen, doc['authorization']['seed'],
                              max(20, doc.get('logic_validation_min_records', 20)),
-                             min(10000, doc['authorization']['max_cases_per_program']),checkpoint=checkpoint)
+                             min(10000, doc['authorization']['max_cases_per_program']),checkpoint=checkpoint,
+                             fixture_contract_version=doc.get('fixture_contract_version',4) if doc.get('fixture_contract_version')==5 else 4)
 
 
 def controller_witness(doc, screen):

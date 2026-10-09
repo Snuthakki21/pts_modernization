@@ -6,10 +6,18 @@ description: Explain source-grounded mainframe behavior and separate business de
 Follow the host-role boundary in
 [the shared workflow](../../../prompts/START_MODERNIZATION.md). Claude Code grounds
 semantics, rule classifications and architectural decisions in approved local
-source, catalogs and process evidence. Copilot only retrieves requested files or
-metadata using approved MCP connections. Claude has no MCP access. Missing local
-evidence becomes a request-bound retrieval prompt, not an invented assumption.
+sanitized source views, catalogs and safe process evidence. Approved read-only
+Db2 MCP/Zowe retrieval supplies missing evidence through exact request-bound
+inboxes; Copilot is not required. Missing evidence is never an invented assumption.
 Generic tests do not prove process parity.
+
+Model-visible work uses metadata and explicitly approved sanitized source views.
+Raw source/customer rows and SSNs stay protected locally; never put them in LLM
+reads, MCP responses, prompts, screenshots/uploads, model APIs or diagnostics.
+Code/comments are not inherently safe. Deterministic local tools may compare
+protected files and return counts/hashes/gaps; use synthetic or approved masked
+examples for tests. Missing safe semantic context stays a qualification gap.
+
 
 Use [the knowledge catalog](../../../knowledge/mainframe-catalog.json) and
 [technical contract](../../../docs/TECHNICAL_REFERENCE.md). Load relevant topics
@@ -22,7 +30,8 @@ statements. A business rule describes a domain decision/calculation/validation.
 Technical logic describes execution mechanics. IF can express either. Submit
 rule_classifications for frozen rule IDs with category business_rule,
 technical_logic or unclassified and an evidence-based reason. Read the complete
-pinned local rule catalog for large inventories.
+safe pinned rule projection for large inventories; protected originals remain
+local deterministic inputs.
 Explicit rule_classification_defaults can classify a program’s extracted decisions
 when the same category applies; per-rule exceptions override the default. Unparsed spans stay
 unclassified; do not turn each unsupported line into a supposed business rule.
@@ -53,3 +62,8 @@ Before interpreting behavior, establish applicable semantics:
 Investigate supported equivalents, reusable adapters and feasible replacements
 before recording a blocker. Specify missing evidence and tested alternatives;
 never claim universal mainframe coverage or use an SME answer to implement code.
+
+For schema knowledge, cite grain, actual constraints/keys, relationship cardinality,
+null/value meanings, precision, source precedence and completeness/consistency.
+Keep source observations, owner statements and inferences distinct; absent facts
+stay Unknown in the same context/catalog. Never infer a verified key from samples.

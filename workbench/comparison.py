@@ -5,6 +5,8 @@ Diagnostics are frozen at report creation; filters use that same snapshot.
 """
 import html
 import json
+import re
+from bisect import bisect_left
 from .domain import encode, sha, require
 from .rule_inventory import CATEGORIES, STATUSES, _counts
 
@@ -128,7 +130,7 @@ def freeze_program_gates(doc, programs):
 
 
 def _inventory(model):
-    require(isinstance(model, dict) and model.get('schema_version') == 1, 'Unsupported accepted rule inventory schema')
+    require(isinstance(model, dict) and type(model.get('schema_version')) is int and model['schema_version'] == 1, 'Unsupported accepted rule inventory schema')
     require(isinstance(model.get('process_id'), str) and isinstance(model.get('rules'), list), 'Accepted rule inventory identity or rules are missing')
     require('comparison_contract_version' not in model or type(model['comparison_contract_version']) is int and model['comparison_contract_version'] in (1,2), 'Unsupported comparison diagnostic contract')
     rules = model['rules']; ids = set()
@@ -166,11 +168,12 @@ def _inventory(model):
         refs=program.get('rule_ids'); require(isinstance(refs,list) and all(isinstance(r,str) and r in ids for r in refs) and len(refs)==len(set(refs)), 'Accepted program rule ownership is invalid')
         require(program.get('counts')==_counts([by_id[r] for r in refs]), 'Accepted program totals differ from owned rules')
         owned.update(refs)
+    diagnostic_owners={program_key(p):p['program'] for p in model['programs']}
     diagnostics=model.get('program_gates', [])
     require(isinstance(diagnostics,list), 'Malformed frozen program gates')
     seen=set()
     for entry in diagnostics:
-        require(isinstance(entry,dict) and entry.get('key') in keys and entry['key'] not in seen and isinstance(entry.get('issues'),list), 'Malformed frozen program gate ownership')
+        require(isinstance(entry,dict) and isinstance(entry.get('key'),str) and entry['key'] in keys and entry['key'] not in seen and entry.get('program')==diagnostic_owners[entry['key']] and isinstance(entry.get('issues'),list), 'Malformed frozen program gate ownership')
         seen.add(entry['key'])
         for issue in entry['issues']:
             require(isinstance(issue,dict) and issue.get('scope') in ('program','rule') and all(isinstance(issue.get(k),str) for k in ('id','kind','program','reason','resolution'))
@@ -231,15 +234,167 @@ def _source_gaps(rule, model, *, bounded=True, include_process=True):
     return output
 
 
+
+# These are presentation qualifications, never an alternative verification oracle.
+TRACEABILITY_BASIS = ('Source logic obligations and saved operator scope are distinct. '
+                     'Links use the accepted source path, version and overlapping physical lines. '
+                     'Target spans may satisfy multiple obligations; line counts are not complexity or equivalence. '
+                     'Accepted source-derived verification does not establish observed mainframe parity.')
+
+
+def _target_spans(rule):
+    return {(t['file'],t['version'],t['start'],t['end']) for t in rule['targets']}
+
+
+def _scope_index(model):
+    """Index optional saved scope without trusting prose or guessed rule-name matches."""
+    comparison=model.get('requirements_comparison')
+    if comparison is None:return {}, None, None
+    require(isinstance(comparison,dict) and isinstance(comparison.get('items'),list),
+            'Malformed accepted requirements comparison')
+    markdown=comparison.get('markdown');revision=comparison.get('revision')
+    require(markdown is None or isinstance(markdown,str), 'Malformed accepted requirements Markdown reference')
+    require(revision is None or type(revision) is int and revision>0, 'Malformed accepted requirements revision')
+    index={};seen=set()
+    for row in comparison['items']:
+        require(isinstance(row,dict) and all(isinstance(row.get(k),str) and row[k] for k in ('id','kind','source_path','source_hash'))
+                and type(row.get('selected')) is bool and row.get('status') in ('converted_verified','no_runtime_replacement_required','unverified','excluded_by_requirements')
+                and type(row.get('start_line')) is int and type(row.get('end_line')) is int
+                and 0<row['start_line']<=row['end_line'], 'Malformed accepted scope requirement')
+        require(row['id'] not in seen, 'Duplicate accepted scope requirement identity');seen.add(row['id'])
+        index.setdefault((row['source_path'],row['source_hash']),[]).append(row)
+    for key, rows in list(index.items()):
+        rows.sort(key=lambda row:(row['start_line'],row['end_line'],row['id']))
+        ends=[];maximum=0
+        for row in rows:maximum=max(maximum,row['end_line']);ends.append(maximum)
+        index[key]=(rows,[row['start_line'] for row in rows],ends)
+    return index,markdown,revision
+
+
+def _scope_links(rule, index):
+    entry=index.get((rule['source_path'],rule['source_version']))
+    if entry is None:return []
+    rows,starts,ends=entry;first=rule['source'][0]['line'];last=rule['source'][-1]['line']
+    # Prefix maximum handles overlapping historical scope units without a full scan.
+    start=bisect_left(ends,first);stop=bisect_left(starts,last+1)
+    lines=[row['line'] for row in rule['source']];linked=[]
+    for row in rows[start:stop]:
+        witness=bisect_left(lines,row['start_line'])
+        if witness<len(lines) and lines[witness]<=row['end_line']:linked.append(row)
+    return linked
+
+
+def _traceability_summary(rules, links):
+    spans=set();requirements=set()
+    for rule in rules:
+        spans.update(_target_spans(rule));requirements.update(r['id'] for r in links[rule['id']])
+    base=counts(rules)
+    return {'source_units':base['total'],'identified_logic_units':base['total']-base['unclassified'],
+            'unclassified_obligations':base['unclassified'],'selected':base['selected'],
+            'excluded':base['excluded'],'verified_source_derived':base['verified'],
+            'unmet_selected':base['gaps'],'target_mapping_links':sum(len(r['targets']) for r in rules),
+            'unique_target_spans':len(spans),'linked_scope_requirements':len(requirements),
+            'requirements_linked_units':sum(bool(links[r['id']]) for r in rules),
+            'requirements_unlinked_units':sum(not links[r['id']] for r in rules),
+            'observed_mainframe_parity':'Unknown'}
+
+
+def _gap_class(kind):
+    if kind in ('integrity_gate','evidence_integrity'):return 'evidence_integrity'
+    if kind=='target_difference':return 'behavioral_difference'
+    if kind in ('record_count_gaps','technical_record_count_gaps','correlation_gaps','obligation_gaps','gaps','program_coverage'):
+        return 'validation_coverage'
+    if kind in ('adversarial_review','unit_tests'):return 'validation_failure'
+    if kind=='sme_unresolved':return 'human_review'
+    if kind=='requirements_dependency':return 'selection_dependency'
+    if kind in ('unclassified_source','source_semantics'):return 'source_semantics'
+    return 'recorded_obligation'
+
+
+def _qualify_gap(gap):
+    return {**gap,'classification':_gap_class(gap['kind']),'closure_evidence':[gap['resolution']],
+            'owner':'Unknown','risk':'Unknown'}
+
+
+
+def _span_is_covered(rule, linked):
+    """Physical-line coverage is linear in source lines and sorted scope links."""
+    index=0
+    for source in rule['source']:
+        line=source['line']
+        while index<len(linked) and linked[index]['end_line']<line:index+=1
+        if index==len(linked) or linked[index]['start_line']>line:return False
+    return True
+
+
+def _traceability(rule, item, linked, markdown, revision):
+    pinned=bool(isinstance(markdown,str) and re.fullmatch(r'analysis/requirements/[a-f0-9]{64}\.md',markdown) and revision)
+    selected={row['selected'] for row in linked}
+    expected=not rule.get('requirements_excluded')
+    span_complete=_span_is_covered(rule,linked)
+    selection=('Yes' if expected else 'No') if pinned and span_complete and selected=={expected} else 'Unknown'
+    links=[{'id':row['id'],'kind':row['kind'],'selected':row['selected'],'status':row['status'],
+            'source_start':row['start_line'],'source_end':row['end_line']} for row in linked[:20]]
+    explanation={
+        'converted_verified':'Accepted version-bound target mappings, tests and receipts satisfy the recorded source logic within the source-derived verification scope. The existing whole-program or separately replayed layout gates control this credit.',
+        'implemented_unverified':'Target code is recorded, but the named accepted verification obligations remain unresolved. Implementation evidence alone does not establish satisfaction.',
+        'identified':'This source obligation has no recorded target implementation; its behavior is not shown as satisfied.',
+        'blocked':'The accepted report records unresolved source, verification or integrity obligations. A candidate replacement or plan cannot establish satisfaction.',
+        'excluded_by_requirements':'Not converted because selected No in requirements. This is an explicit scope omission, not a successfully modernized requirement.'}[rule['status']]
+    if rule['status']=='identified' and rule['targets']:
+        explanation='The accepted report identifies this source obligation and retains candidate target mappings, but does not verify satisfaction.'
+    elif rule['status']=='implemented_unverified' and not rule['targets']:
+        explanation='The accepted report records an unverified candidate status, but no target mapping is available. Satisfaction remains unverified.'
+    missing=[]
+    def qualify(kind,reason,resolution):
+        missing.append({'kind':kind,'reason':reason,'resolution':resolution,'owner':'Unknown','risk':'Unknown'})
+    if not linked:qualify('scope_link_unknown','No saved scope unit is linked to this exact source version and span.',
+                          'Inspect the accepted scope receipt; historical missing requirements remain Unknown, never infer approval from default selection.')
+    elif not pinned:qualify('scope_snapshot_unknown','Linked scope units have no recorded Markdown/revision binding.',
+                           'Inspect the accepted snapshot references. Preserve historical evidence; a current flag cannot manufacture the missing pin.')
+    elif not span_complete:qualify('scope_span_incomplete','Saved scope links do not account for every recorded physical line in this source obligation.',
+                                  'Inspect the exact frozen source span and saved scope receipt. Retain the unlinked lines as Unknown; do not infer a full selection from a partial overlap.')
+    elif selected!={expected}:qualify('scope_selection_conflict','Linked saved scope selections disagree with this accepted source-unit disposition.',
+                                     'Inspect the exact source/version spans and accepted scope receipt; do not infer Yes or alter frozen evidence.')
+    if rule['status']=='implemented_unverified' and not rule['targets']:
+        qualify('target_mapping_unknown','No version-bound target mapping is recorded for the accepted candidate status.',
+                'Inspect the accepted target receipt and retain this missing mapping as unverified; a candidate label is not implementation evidence.')
+    if rule['targets'] and any('text' not in target for target in rule['targets']):
+        qualify('target_excerpt_unknown','Some target spans have version/location evidence but no recorded code excerpt.',
+                'Inspect the exact registered target version. Do not display replacement guidance as actual target code.')
+    if not rule['tests'] or not rule['evidence']:
+        qualify('verification_receipt_unknown','Complete test identifiers and verification receipt references are not recorded for this source unit.',
+                'Inspect the frozen comparison/test receipts; missing evidence cannot be replaced by prose or test counts.')
+    item['requirement']={'id':rule['source_rule_id'],'inventory_id':rule['id'],
+        'kind':'unclassified_source_obligation' if rule['category']=='unclassified' else 'source_logic_obligation',
+        'selection':selection,'selection_basis':'Saved source-bound operator scope; it is not SME approval.' if selection!='Unknown' else 'Saved operator scope binding is Unknown.',
+        'linked_requirements':links,'linked_requirement_count':len(linked),'links_complete':len(linked)<=20,
+        'markdown':markdown,'revision':revision,'source_span_complete':span_complete,'sme_approval':'Unknown'}
+    item['fulfillment']={'state':rule['status'],'explanation':explanation,'observed_mainframe_parity':'Unknown','owner':'Unknown','risk':'Unknown'}
+    item['traceability_missing']=missing
+    item['evidence_matrix']={
+        'source':{'path':rule['source_path'],'version':rule['source_version'],'start':item['source_start'],'end':item['source_end'],'excerpt_complete':item['source_excerpt_complete']},
+        'target':{'mapping_count':len(rule['targets']),'unique_span_count':len(_target_spans(rule)),
+                  'preview_complete':item['targets_complete'],'excerpt_complete':all(t.get('excerpt_available') and t['excerpt_complete'] for t in item['targets']) and item['targets_complete']},
+        'validation':{'test_count':len(rule['tests']),'evidence_count':len(rule['evidence']),
+                      'preview_complete':item['tests_complete'] and item['evidence_complete'],'basis':'source_derived'},
+        'diagnostics':{'recorded':item['diagnostics_recorded'],'gap_count':item['gap_count'],'program_gate_count':item['program_gate_count'],
+                       'preview_complete':item['gaps_complete'] and item['program_gates_complete']},
+        'requirements':{'linked_count':len(linked),'preview_complete':len(linked)<=20}}
+
+
 def comparison_page(model, *, program='', status='all', after=0, limit=25):
     require(program=='' or isinstance(program,str), 'Invalid program filter')
-    require(status in FILTERS, 'Unknown comparison status filter')
+    require(isinstance(status,str) and status in FILTERS, 'Unknown comparison status filter')
     require(type(after) is int and after>=0 and type(limit) is int and 1<=limit<=50, 'Comparison page bounds are invalid')
     rules, owned=_inventory(model)
+    scope_index,markdown,revision=_scope_index(model)
+    links={r['id']:_scope_links(r,scope_index) for r in rules}
     catalog=[]; by_id={r['id']:r for r in rules}; owners={r['id']:[] for r in rules}
     for entry in model['programs']:
         header={k:entry[k] for k in ('program','source_path','source_version')}
-        header.update(key=program_key(entry), counts=counts([by_id[rid] for rid in entry['rule_ids']]))
+        header.update(key=program_key(entry), counts=counts([by_id[rid] for rid in entry['rule_ids']]),
+                      traceability_summary=_traceability_summary([by_id[rid] for rid in entry['rule_ids']],links))
         catalog.append(header)
         for rid in entry['rule_ids']: owners[rid].append(header)
     selected=rules
@@ -282,10 +437,15 @@ def comparison_page(model, *, program='', status='all', after=0, limit=25):
             item['program_gate_count']=len(issues); item['program_gates_complete']=len(issues)<=12
         else: item['program_gate_count']=0; item['program_gates_complete']=True
         item['diagnostics_recorded']=model.get('comparison_contract_version',0)>=2
+        item['gaps']=[_qualify_gap(g) for g in item['gaps']]
+        item['program_gates']=[_qualify_gap(g) for g in item['program_gates']]
+        _traceability(rule,item,links[rule['id']],markdown,revision)
         output.append(item)
-    return {'cics_contract_version':model.get('cics_contract_version'), 'process_id':model['process_id'], 'basis':evidence_basis(model), 'programs':catalog,
+    return {'traceability_contract_version':1,'traceability_basis':TRACEABILITY_BASIS,
+            'traceability_summary':_traceability_summary(selected,links),'inventory_traceability_summary':_traceability_summary(rules,links),
+            'cics_contract_version':model.get('cics_contract_version'), 'process_id':model['process_id'], 'basis':evidence_basis(model), 'programs':catalog,
             'unassigned_count':sum(r['id'] not in owned for r in rules), 'inventory_counts':counts(rules),
-            'counts':scoped_counts, 'process_gates':[_gate(g) for g in model.get('process_gates',[])[:12]],
+            'counts':scoped_counts, 'process_gates':[_qualify_gap(_gate(g)) for g in model.get('process_gates',[])[:12]],
             'process_gate_count':len(model.get('process_gates',[])), 'process_gates_complete':len(model.get('process_gates',[]))<=12, 'filters':{'program':program, 'status':status}, 'matching_total':len(matching),
             'after':after, 'limit':limit, 'next_after':after+limit if after+limit<len(matching) else None, 'rules':output}
 
@@ -294,6 +454,8 @@ def render_comparison_report(model):
     """New HTML generations only; historical executive rendering stays unchanged."""
     from .rule_inventory import render_rule_summary
     rules, owned=_inventory(model)
+    scope_index,markdown,revision=_scope_index(model)
+    scope_links={r['id']:_scope_links(r,scope_index) for r in rules}
     esc=lambda value:html.escape(str(value), quote=True)
     options=''.join('<option value="'+program_key(p)+'">'+esc(p['program']+' · '+p['source_path'])+'</option>' for p in model['programs'])
     owners={r['id']:[] for r in rules}
@@ -334,10 +496,31 @@ def render_comparison_report(model):
             if model.get('process_gates'):gaps+='<p><a href="#process-gates">Process-wide gates ('+str(len(model['process_gates']))+')</a> also affect verification credit.</p>'
             if model.get('comparison_contract_version',0)<2:gaps+='<p>Additional fixture diagnostics were not recorded in this historical inventory. Inspect the referenced receipts.</p>'
             gaps+='</div>'
-        proofs=esc(json.dumps({'tests':rule['tests'],'evidence':rule['evidence'],'memberships':rule['memberships']},ensure_ascii=False,sort_keys=True))
-        cards.append('<article class="comparison" data-status="'+rule['status']+'" data-owners="'+','.join(owners[rule['id']])+'"><header><h2>'+esc(rule['description'])+'</h2><p>'+esc(rule['category'].replace('_',' '))+' · <strong>'+LABELS[rule['status']]+'</strong></p></header><div class="columns"><section><h3>COBOL / source logic</h3><p>'+esc(location)+'</p><pre>'+esc(source)+'</pre><small>Source version '+esc(rule['source_version'])+'</small></section><section aria-label="Modernized implementation"><h3>Python replacement</h3>'+targets+'</section></div>'+gaps+'<details><summary>Versions, tests and evidence</summary><p>Rule '+esc(rule['source_rule_id'])+' · '+esc(rule['id'])+'</p><pre>'+proofs+'</pre></details></article>')
-    style='body{font:16px Arial,Helvetica,sans-serif;line-height:1.5;color:#292724;background:#faf9f7;margin:0;overflow-wrap:anywhere}main{max-width:1160px;margin:auto;padding:32px}h1{font-size:30px;margin-bottom:8px}h2{font-size:20px}h3{font-size:16px}p{overflow-wrap:anywhere}small{overflow-wrap:anywhere;color:#57534e}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:24px 0}label{display:grid;gap:6px;min-width:0;max-width:100%}select{min-width:0;width:100%;box-sizing:border-box}select,button{font:inherit;padding:10px;border:1px solid #c9c4bc;border-radius:6px;background:white;max-width:100%}button[aria-pressed=true]{background:#ad1625;color:white;border-color:#ad1625}.comparison{background:white;border:1px solid #ddd8d0;border-radius:8px;padding:24px;margin:20px 0}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.columns section{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f3ef;padding:16px;border-radius:4px;font-size:13px}details{margin-top:16px}summary{cursor:pointer}table{width:100%;table-layout:fixed;border-collapse:collapse}td,th{overflow-wrap:anywhere;padding:8px;text-align:left}.gap{border-left:3px solid #ad1625;padding:4px 16px;margin-top:20px;background:#fff8f7}[hidden]{display:none!important}@media(max-width:640px){main{padding:16px}.comparison{padding:16px}.columns{grid-template-columns:1fr}.filters{display:block}.filters>*{margin:8px 0;width:100%}}'
-    script='''(()=>{const cards=[...document.querySelectorAll('.comparison')],program=document.getElementById('program'),buttons=[...document.querySelectorAll('[data-filter]')];let status='all';function update(){let selected=0,shown=0,verified=0,gaps=0,excluded=0;for(const card of cards){const owner=card.dataset.owners.split(',').filter(Boolean),inScope=!program.value||(program.value==='unassigned'?!owner.length:owner.includes(program.value)),s=card.dataset.status,isGap=['identified','implemented_unverified','blocked'].includes(s);if(inScope){selected++;verified+=s==='converted_verified';gaps+=isGap;excluded+=s==='excluded_by_requirements';}const visible=inScope&&(status==='all'||status==='gaps'&&isGap||status==='verified'&&s==='converted_verified'||status==='excluded'&&s==='excluded_by_requirements');card.hidden=!visible;shown+=visible;}for(const b of buttons)b.setAttribute('aria-pressed',String(b.dataset.filter===status));document.getElementById('count').textContent=shown+' shown / '+selected+' source units in this scope · '+verified+' verified · '+gaps+' gaps · '+excluded+' selected No';document.getElementById('empty').hidden=shown!==0;}program.addEventListener('change',update);for(const button of buttons)button.addEventListener('click',()=>{status=button.dataset.filter;update();});update();})();'''
+        proof_item={'source_start':rule['source'][0]['line'],'source_end':rule['source'][-1]['line'],'source_excerpt_complete':True,
+                    'targets':[{'excerpt_available':'text' in t,'excerpt_complete':True} for t in rule['targets']],
+                    'targets_complete':True,'tests_complete':True,'evidence_complete':True,
+                    'diagnostics_recorded':model.get('comparison_contract_version',0)>=2,
+                    'gap_count':len(_source_gaps(rule,model,bounded=False)),
+                    'program_gate_count':sum(len(diagnostics.get(key,[])) for key in owners[rule['id']]) if rule['status'] in GAP_STATUSES else 0,
+                    'gaps_complete':True,'program_gates_complete':True}
+        _traceability(rule,proof_item,scope_links[rule['id']],markdown,revision)
+        requirement=proof_item['requirement']
+        scope_text=('; '.join(row['id']+' · '+('Yes' if row['selected'] else 'No') for row in scope_links[rule['id']]) or 'Unknown: no matching saved scope requirement')
+        satisfaction='<section class="satisfaction"><h3>How the requirement is satisfied</h3><p>'+esc(proof_item['fulfillment']['explanation'])+'</p><p><strong>Source logic obligation:</strong> '+esc(rule['source_rule_id'])+' · '+esc(rule['id'])+'</p><p><strong>Saved scope requirement links:</strong> '+esc(scope_text)+'</p><p><strong>Saved selection:</strong> '+esc(requirement['selection'])+' · '+esc(requirement['selection_basis'])+'</p><p><strong>Observed mainframe parity:</strong> Unknown · <strong>Risk / accountable owner:</strong> Unknown</p>'
+        if proof_item['traceability_missing']:
+            satisfaction+='<details><summary>Traceability qualifications ('+str(len(proof_item['traceability_missing']))+')</summary>'+''.join('<p><strong>'+esc(g['kind'].replace('_',' '))+':</strong> '+esc(g['reason'])+'</p><p><strong>Evidence needed:</strong> '+esc(g['resolution'])+'</p>' for g in proof_item['traceability_missing'])+'</details>'
+        satisfaction+='</section>'
+        proofs=esc(json.dumps({'tests':rule['tests'],'evidence':rule['evidence'],'memberships':rule['memberships'],'evidence_matrix':proof_item['evidence_matrix']},ensure_ascii=False,sort_keys=True))
+        cards.append('<article class="comparison" id="unit-'+esc(rule['id'])+'" data-status="'+rule['status']+'" data-owners="'+','.join(owners[rule['id']])+'"><details><summary><strong>'+esc(rule['description'])+'</strong> · '+LABELS[rule['status']]+'</summary><p>'+esc(rule['category'].replace('_',' '))+'</p><div class="columns"><section><h3>COBOL / source logic</h3><p>'+esc(location)+'</p><pre>'+esc(source)+'</pre><small>Source version '+esc(rule['source_version'])+'</small></section><section aria-label="Modernized implementation"><h3>Python / database replacement</h3>'+targets+'</section></div>'+satisfaction+gaps+'<details><summary>Versions, tests and evidence</summary><pre>'+proofs+'</pre></details></details></article>')
+    unique=_traceability_summary(rules,scope_links)
+    aggregate_rows=[];rules_by_id={rule['id']:rule for rule in rules}
+    for program in model['programs']:
+        selected=[rules_by_id[rid] for rid in program['rule_ids']]
+        summary=_traceability_summary(selected,scope_links)
+        aggregate_rows.append('<tr><th scope="row"><button type="button" data-program-key="'+program_key(program)+'">'+esc(program['program'])+'</button></th>'+''.join('<td>'+str(summary[key])+'</td>' for key in ('source_units','verified_source_derived','unmet_selected','excluded','unique_target_spans'))+'</tr>')
+    aggregate='<section aria-labelledby="aggregate-title"><h2 id="aggregate-title">Gap analysis at a glance</h2><p>'+str(unique['source_units'])+' unique source units · '+str(unique['verified_source_derived'])+' verified in the source-derived scope · '+str(unique['unmet_selected'])+' selected units with gaps · '+str(unique['excluded'])+' selected No · '+str(unique['unique_target_spans'])+' unique target spans.</p><p>'+esc(TRACEABILITY_BASIS)+'</p><p>Select a program below, then expand an obligation for its exact source, target and evidence. Shared source units may appear under several programs; program totals must not be added as a process total.</p><div class="table-scroll"><table><caption>Accepted evidence by program</caption><thead><tr><th scope="col">Program</th><th scope="col">Source units</th><th scope="col">Verified</th><th scope="col">With gaps</th><th scope="col">Selected No</th><th scope="col">Target spans</th></tr></thead><tbody>'+''.join(aggregate_rows)+'</tbody></table></div></section>'
+    style='body{font:16px Arial,Helvetica,sans-serif;line-height:1.5;color:#292724;background:#faf9f7;margin:0;overflow-wrap:anywhere}main{max-width:1160px;margin:auto;padding:32px}h1{font-size:30px;margin-bottom:8px}h2{font-size:20px}h3{font-size:16px}p{overflow-wrap:anywhere}small{overflow-wrap:anywhere;color:#57534e}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:24px 0}label{display:grid;gap:6px;min-width:0;max-width:100%}select{min-width:0;width:100%;box-sizing:border-box}select,button{font:inherit;padding:10px;border:1px solid #c9c4bc;border-radius:6px;background:white;max-width:100%}button[aria-pressed=true]{background:#ad1625;color:white;border-color:#ad1625}.table-scroll{overflow-x:auto}button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #1d5a94;outline-offset:3px}.satisfaction{border-top:1px solid #ddd8d0;margin-top:20px}.comparison{background:white;border:1px solid #ddd8d0;border-radius:8px;padding:24px;margin:20px 0}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}.columns section{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f3ef;padding:16px;border-radius:4px;font-size:13px}details{margin-top:16px}summary{cursor:pointer;padding:6px 0}table{width:100%;table-layout:fixed;border-collapse:collapse}td,th{overflow-wrap:anywhere;padding:8px;text-align:left}.gap{border-left:3px solid #ad1625;padding:4px 16px;margin-top:20px;background:#fff8f7}[hidden]{display:none!important}@media(max-width:640px){main{padding:16px}.comparison{padding:16px}.columns{grid-template-columns:1fr}.filters{display:block}.filters>*{margin:8px 0;width:100%}}'
+    script='''(()=>{const cards=[...document.querySelectorAll('.comparison')],program=document.getElementById('program'),buttons=[...document.querySelectorAll('[data-filter]')];let status='all';function update(){let selected=0,shown=0,verified=0,gaps=0,excluded=0;for(const card of cards){const owner=card.dataset.owners.split(',').filter(Boolean),inScope=!program.value||(program.value==='unassigned'?!owner.length:owner.includes(program.value)),s=card.dataset.status,isGap=['identified','implemented_unverified','blocked'].includes(s);if(inScope){selected++;verified+=s==='converted_verified';gaps+=isGap;excluded+=s==='excluded_by_requirements';}const visible=inScope&&(status==='all'||status==='gaps'&&isGap||status==='verified'&&s==='converted_verified'||status==='excluded'&&s==='excluded_by_requirements');card.hidden=!visible;shown+=visible;}for(const b of buttons)b.setAttribute('aria-pressed',String(b.dataset.filter===status));document.getElementById('count').textContent=shown+' shown / '+selected+' source units in this scope · '+verified+' verified · '+gaps+' gaps · '+excluded+' selected No';document.getElementById('empty').hidden=shown!==0;}for(const button of document.querySelectorAll('[data-program-key]'))button.addEventListener('click',()=>{program.value=button.dataset.programKey;status='all';update();program.focus();});program.addEventListener('change',update);for(const button of buttons)button.addEventListener('click',()=>{status=button.dataset.filter;update();});update();})();'''
     process_details=''
     if model.get('process_gates'):
         process_details='<details class="gap" id="process-gates"><summary>Process-wide gates ('+str(len(model['process_gates']))+')</summary><p>These obligations remain visible even when individual source units are verified.</p>'
@@ -345,8 +528,8 @@ def render_comparison_report(model):
             process_details+='<p><strong>Whole-process gate'+(' · '+esc(gate['source_rule_id']) if gate.get('source_rule_id') else '')+':</strong> '+esc(gate['reason'])+'</p><p><strong>Evidence needed:</strong> '+esc(gate['resolution'])+'</p><pre>'+esc(json.dumps({'facts':gate['facts'],'evidence':gate['evidence']},ensure_ascii=False,sort_keys=True))+'</pre>'
         process_details+='</details>'
     rollup=render_rule_summary({**model,'rules':[]})
-    output = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>COBOL and Python comparison</title><style>'+style+'</style></head><body><main><h1>COBOL and Python comparison</h1><p>'+esc(evidence_basis(model))+'</p><p>Counts are unique source units; unclassified spans have unknown semantic rule counts. Shared copybooks can appear in more than one program.</p>'+process_details+'<div class="filters"><label for="program">Program<select id="program"><option value="">All programs and source</option>'+options+'<option value="unassigned">Source outside parsed program ownership</option></select></label><div role="group" aria-label="Comparison status"><button type="button" data-filter="all" aria-pressed="true">All</button> <button type="button" data-filter="gaps" aria-pressed="false">Gaps only</button> <button type="button" data-filter="verified" aria-pressed="false">Verified</button> <button type="button" data-filter="excluded" aria-pressed="false">Selected No</button></div></div><p id="count" role="status">'+str(len(rules))+' source units in the accepted inventory.</p><noscript>All evidence is shown. Enable JavaScript to use filters.</noscript><p id="empty" hidden>No source units match these filters.</p>'+''.join(cards)+''.join(program_details)+'<details><summary>Full counts and requirements accounting</summary>'+rollup+'</details></main><script>'+script+'</script></body></html>'
+    output = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>COBOL and Python comparison</title><style>'+style+'</style></head><body><main><h1>COBOL and Python comparison</h1><p>'+esc(evidence_basis(model))+'</p><p>Counts are unique source units; unclassified spans have unknown semantic rule counts. Shared copybooks can appear in more than one program.</p>'+aggregate+process_details+'<div class="filters"><label for="program">Program<select id="program"><option value="">All programs and source</option>'+options+'<option value="unassigned">Source outside parsed program ownership</option></select></label><div role="group" aria-label="Comparison status"><button type="button" data-filter="all" aria-pressed="true">All</button> <button type="button" data-filter="gaps" aria-pressed="false">Gaps only</button> <button type="button" data-filter="verified" aria-pressed="false">Verified</button> <button type="button" data-filter="excluded" aria-pressed="false">Selected No</button></div></div><p id="count" role="status">'+str(len(rules))+' source units in the accepted inventory.</p><noscript>All evidence is shown. Enable JavaScript to use filters.</noscript><p id="empty" hidden>No source units match these filters.</p>'+''.join(cards)+''.join(program_details)+'<details><summary>Full counts and requirements accounting</summary>'+rollup+'</details></main><script>'+script+'</script></body></html>'
 
     if model.get('cics_contract_version')==1:
-        output=output.replace('COBOL and Python comparison','Mainframe and Python / FastAPI comparison').replace('COBOL / source logic','Mainframe / CICS source logic').replace('Python replacement','Python / FastAPI replacement')
+        output=output.replace('COBOL and Python comparison','Mainframe and Python / FastAPI comparison').replace('COBOL / source logic','Mainframe / CICS source logic').replace('Python / database replacement','Python / FastAPI / database replacement')
     return output

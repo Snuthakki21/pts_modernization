@@ -5,7 +5,7 @@ from .target import run_generated, emit_jobs
 from .domain import encode, sha, require, safe_path
 
 def verify_jobs(doc,root,jobs,checkpoint=None):
-    if doc.get('fixture_contract_version') == 4:
+    if doc.get('fixture_contract_version') in (4,5):
         return _verify_jobs_v4(doc,root,jobs,checkpoint)
     require(jobs==emit_jobs(doc,doc['program_versions']), 'Job template differs from validated manifest generation')
     programs=doc['analysis']['programs']
@@ -56,11 +56,12 @@ def _verify_jobs_v4(doc,root,jobs,checkpoint=None):
     from .target import prepare_generated
     seed=doc['authorization']['seed'];budget=doc['authorization']['max_cases_per_program']
     require(type(seed) is int and 0<=seed<2**63 and type(budget) is int and 1<=budget<=10000,'Invalid job validation seed or budget')
+    if doc.get('fixture_contract_version')==5:require(budget<=4096,'V5 job case budget must not exceed 4096')
     # Preserve all established template/layout/version checks and baseline keys.
     baseline=verify_jobs({k:v for k,v in doc.items() if k!='fixture_contract_version'},root,jobs,checkpoint)
     if 'expected' not in baseline:return baseline
     programs=doc['analysis']['programs'];first=next(iter(programs.values()))
-    rng=random.Random(seed);minimum=20;candidates={}
+    rng=random.Random(seed);minimum=64 if doc.get('fixture_contract_version')==5 else 20;candidates={}
     def add(record,randomized=False):
         if len(candidates)>=budget or any(input_errors(p,record) for p in programs.values()):return
         key=sha(encode(record))
@@ -71,7 +72,7 @@ def _verify_jobs_v4(doc,root,jobs,checkpoint=None):
     # Reserve randomized capacity before optional Cartesian interactions. Every
     # mandatory boundary that cannot fit remains an explicit gap.
     for program in programs.values():
-        source_suite=plan_cases(program,seed,256)
+        source_suite=plan_cases(program,seed,budget,64,fixture_contract_version=5) if doc.get('fixture_contract_version')==5 else plan_cases(program,seed,256)
         for case in source_suite['cases']:
             if any(input_errors(p,case['record']) for p in programs.values()):continue
             destination=optional if case['reason']=='Source-predicate interaction witness' else required
@@ -79,8 +80,8 @@ def _verify_jobs_v4(doc,root,jobs,checkpoint=None):
         for gap in source_suite['coverage']['obligation_gaps']:
             if gap['reason'].startswith(('Boundary/domain witness','Source-layout baseline')):
                 candidate_gaps.append({'program':program['name'],**gap})
-    alphabet='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz '
-    random_goal=min(64,budget);random_candidates={}
+    alphabet=''.join(chr(i) for i in range(32,127)) if doc.get('fixture_contract_version')==5 else '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz '
+    random_goal=min(128 if doc.get('fixture_contract_version')==5 else 64,budget);random_candidates={}
     for _ in range(max(256,random_goal*16)):
         if len(random_candidates)>=random_goal:break
         record={name:rng.randrange(spec['max']+1) if spec['type']=='integer' else ''.join(rng.choice(alphabet) for _ in range(spec['width']))
@@ -137,16 +138,16 @@ def _verify_jobs_v4(doc,root,jobs,checkpoint=None):
         count=len(state['records']);random_count=len(state['randomized_records'])
         if count<minimum or random_count<minimum:
             gaps.append({'job':state['job'],'step':state['step'],'required':minimum,'observed':count,'randomized_observed':random_count,
-                         'reason':'Fewer than 20 distinct source-valid executed step states with randomized witnesses; skipped, constrained or budget-limited steps receive no full integration credit.'})
+                         'reason':f'Fewer than {minimum} distinct source-valid executed step states with randomized witnesses; skipped, constrained or budget-limited steps receive no full integration credit.'})
         summaries.append({k:v for k,v in state.items() if k not in ('records','randomized_records','outcomes')} |
                          {'executed_records':count,'randomized_executed_records':random_count,
                           'record_hashes':sorted(state['records']),'condition_outcomes':sorted(state['outcomes']),
                           'unreachable_outcomes':[{'outcome':v,'basis':'Unconditional manifest step always executes.' if state['condition'].strip().upper() in ('ALWAYS','') else 'Supported flat record programs return RC=0; positive/nonzero RC requires a separate source adapter.'}
                                                   for v in (False,True) if v not in state['outcomes']]})
     matched=bool(cases) and all(c['matched'] for c in cases)
-    validation={'contract_version':4,'minimum_distinct_records_per_step':minimum,'steps':summaries,'gaps':gaps,
+    validation={'contract_version':doc['fixture_contract_version'],'minimum_distinct_records_per_step':minimum,'steps':summaries,'gaps':gaps,
                 'source_state_coverage_complete':not gaps,'target_comparisons_matched':matched,'complete':not gaps and matched}
     return {**baseline,'matched':validation['complete'],
-            'reason':'Seeded source-valid ordered record comparisons; every credited step needs 20 distinct executed states and randomized witnesses. Native scheduling/dataset I/O remain outside this adapter.',
+            'reason':f'Seeded source-valid ordered record comparisons; every credited step needs {minimum} distinct executed states and randomized witnesses. Native scheduling/dataset I/O remain outside this adapter.',
             'cases':cases,'case_ids':[c['id'] for c in cases],'integration_cases':len(cases),'randomized_cases':sum(c['randomized'] for c in cases),
             'seed':seed,'validation':validation}

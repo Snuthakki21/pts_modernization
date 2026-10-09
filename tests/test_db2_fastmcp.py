@@ -39,7 +39,7 @@ class FastMCPTests(unittest.TestCase):
         async def run(directory):
             sql=[]
             with patch.object(gateway,'connect',side_effect=lambda:Connection(sql)),patch.object(gateway,'configured_row_limit',return_value=500000):
-                async with Client(gateway.create_server(Path(directory)/'search')) as client:
+                async with Client(gateway.create_server(Path(directory)/'search',protected=False)) as client:
                     tools=await client.list_tools()
                     self.assertTrue({'db2_search_start','db2_search_continue','db2_read_table_rows'}<={t.name for t in tools})
                     self.assertTrue(all(t.annotations.read_only_hint for t in tools))
@@ -56,7 +56,7 @@ class FastMCPTests(unittest.TestCase):
 
     def test_real_http_negotiates_with_workbench_client_and_rejects_wrong_token_origin(self):
         with tempfile.TemporaryDirectory() as directory:
-            mcp=gateway.create_server(Path(directory)/'search')
+            mcp=gateway.create_server(Path(directory)/'search',protected=False)
             def app(port):
                 return mcp.http_app(path='/mcp',json_response=True,stateless_http=True,
                     middleware=[Middleware(gateway.LocalSecurity,port=port,token='fixture-token')])
@@ -77,7 +77,9 @@ class FastMCPTests(unittest.TestCase):
             transport=StdioTransport(command=sys.executable,args=[str(Path(gateway.__file__).absolute()),'--transport','stdio'])
             async with Client(transport) as client:
                 tools=await client.list_tools()
-                self.assertIn('db2_search_results',[t.name for t in tools])
+                names={t.name for t in tools}
+                self.assertEqual(names,{'db2_list_schemas','db2_list_tables','db2_describe_table','db2_export_snapshot_to_inbox'})
+                self.assertFalse({'db2_sample_rows','db2_read_table_rows','db2_search_results'}&names)
         asyncio.run(run())
 
 

@@ -1,7 +1,7 @@
-"""Enterprise host split: only Copilot retrieval may expose MCP tools.
+"""Approved Claude Db2 MCP and retired workflow-proxy tool boundaries.
 
-Previous development-MCP success expectations are intentionally replaced: the
-organization prohibits every Claude Code MCP integration, including this one.
+The old retrieval bridge remains read-only compatibility metadata. Claude
+retrieves through approved Db2 MCP and Zowe, never through development proxy tools.
 """
 import io
 import json
@@ -40,8 +40,9 @@ class RetrievalBridgeTests(unittest.TestCase):
             result = server.handle({'jsonrpc':'2.0','id':2,'method':'tools/list'})['result']
             self.assertEqual({tool['name'] for tool in result['tools']}, {'workbench_retrieval_task'})
             self.assertTrue(all(t['annotations']['readOnlyHint'] for t in result['tools']))
-            self.assertIn('Copilot', info['instructions'])
-            self.assertIn('no MCP', info['instructions'])
+            self.assertIn('Deprecated', info['instructions'])
+            self.assertIn('Claude Code uses approved Db2 MCP', info['instructions'])
+            self.assertNotIn('no MCP integration', info['instructions'])
 
     def test_claude_development_role_is_rejected_before_any_transport(self):
         for role in ('development','claude','all','admin','DEVELOPMENT','',None,True):
@@ -111,9 +112,9 @@ class RetrievalBridgeTests(unittest.TestCase):
         self.assertEqual(result.stdout,'')
         self.assertIn('retrieval',result.stderr)
 
-    def test_claude_template_has_no_mcp_server_and_copilot_selects_retrieval(self):
+    def test_claude_template_has_approved_db2_and_legacy_bridge_stays_retrieval_only(self):
         root=Path(__file__).parents[1]
-        self.assertEqual(json.loads((root/'examples/claude-mcp.json').read_text()),{'mcpServers':{}})
+        self.assertEqual(json.loads((root/'examples/claude-mcp.json').read_text()), {'mcpServers':{'workbench-db2':{'type':'http','url':'${WB_DB2_MCP_URL}','headers':{'Authorization':'Bearer ${WB_DB2_MCP_TOKEN}'}}}})
         copilot=json.loads((root/'examples/mcp.json').read_text())
         self.assertEqual(copilot['servers']['workbench']['args'][-2:],['--role','retrieval'])
 

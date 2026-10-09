@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "locations": [
-    {"name": "WEDLX", "path": "REPLACE_WITH_ACTUAL_MOUNTED_FOLDER", "bindings": []},
+    {"name": "WEBELX", "path": "REPLACE_WITH_ACTUAL_MOUNTED_FOLDER", "bindings": []},
     {"name": "TranRepository", "path": "REPLACE_WITH_ACTUAL_MOUNTED_FOLDER", "bindings": []}
   ]
 }

@@ -1,4 +1,4 @@
-"""Prepare approved local Copilot and Zowe configuration without executing tools.
+"""Prepare approved Claude Code MCP and Zowe configuration without executing tools.
 
 The Coordinator owns saves. Credentials and VS Code activation remain in their
 native secure clients; neither configuration nor CLI presence proves host access.
@@ -20,19 +20,28 @@ CHOICE_KEYS = {'mode', 'host', 'port', 'config_file', 'schema_file'}
 DB2_KEYS = {'mode','host','port','database','location','driver','certificate_file','mcp_port','row_limit'}
 SERVER = 'workbench-retrieval'
 DB2_SERVER = 'workbench-db2'
+TOKEN_ENV = 'WB_DB2_MCP_TOKEN'
+# Frozen v1 setup metadata is read for explicit migration, never reused as Claude config.
 TOKEN_INPUT = 'workbenchDb2Token'
 
 
 def default_choices(settings):
-    return {'copilot':False, 'zowe':{'mode':'existing' if settings.get('zowe_profile') else 'off',
+    return {'claude':True, 'db2_auth':'bearer_env', 'zowe':{'mode':'existing' if settings.get('zowe_profile') else 'off',
             'host':None, 'port':None, 'config_file':None, 'schema_file':None},
             'db2':{'mode':'existing' if settings.get('db2_metadata_url') else 'off',
                    **{key:None for key in DB2_KEYS-{'mode'}}}}
 
 
 def validate_choices(value):
-    require(isinstance(value,dict) and set(value) in ({'copilot','zowe'},{'copilot','zowe','db2'}) and type(value['copilot']) is bool,
-            'Supply only the nonsecret Copilot, Zowe and Db2 MCP setup choices')
+    require(isinstance(value,dict),'Supply nonsecret Claude, Zowe and Db2 setup choices')
+    value=copy.deepcopy(value)
+    # One explicit Save migrates historical Copilot choices; no GET rewrites files.
+    if 'copilot' in value and 'claude' not in value:
+        value['claude']=value.pop('copilot')
+    value.setdefault('db2_auth','bearer_env')
+    require(set(value) in ({'claude','db2_auth','zowe'},{'claude','db2_auth','zowe','db2'}) and type(value['claude']) is bool,
+            'Supply only the nonsecret Claude, Zowe and Db2 MCP setup choices')
+    require(value['db2_auth'] in ('bearer_env','oauth'),'Choose private environment token or approved OAuth for Db2 MCP')
     zowe=value['zowe']
     require(isinstance(zowe,dict) and set(zowe)==CHOICE_KEYS and zowe['mode'] in ('off','existing','create','import'),
             'Choose off, existing, create or import for Zowe configuration')
@@ -66,7 +75,8 @@ def validate_choices(value):
             _host(db2['host'])
             require(all(db2[key] is not None for key in ('port','database','location','driver','mcp_port','row_limit')),
                     'Supply the actual Db2 host, port, database, location, driver and local MCP limits')
-            require(value['copilot'],'Prepare the approved Copilot MCP binding for the Db2 gateway')
+            require(value['claude'],'Prepare the approved Claude MCP binding for the Db2 gateway')
+            require(value['db2_auth']=='bearer_env','The local Db2 gateway requires a private bearer token')
         else:require(all(db2[key] is None for key in DB2_KEYS-{'mode'}),'Inactive Db2 gateway fields must be empty')
     return copy.deepcopy(value)
 
@@ -79,101 +89,47 @@ def _read(path):
     return data
 
 
-def _jsonc(raw):
-    """Strip VS Code comments/trailing commas only outside quoted JSON strings."""
-    try:text=raw.decode('utf-8-sig')
-    except UnicodeError as exc:raise ValidationError('Existing MCP configuration must be UTF-8 JSON or JSONC') from exc
-    out=[];i=0;quoted=False;escaped=False
-    while i<len(text):
-        c=text[i]
-        if quoted:
-            out.append(c)
-            if escaped:escaped=False
-            elif c=='\\':escaped=True
-            elif c=='"':quoted=False
-            i+=1;continue
-        if c=='"':quoted=True;out.append(c);i+=1;continue
-        if text.startswith('//',i):
-            end=text.find('\n',i);end=len(text) if end<0 else end
-            out.extend(' '*(end-i));i=end;continue
-        if text.startswith('/*',i):
-            end=text.find('*/',i+2);require(end>=0,'Close the comment in the existing MCP configuration')
-            out.extend('\n' if x=='\n' else ' ' for x in text[i:end+2]);i=end+2;continue
-        out.append(c);i+=1
-    cleaned=''.join(out);out=[];quoted=False;escaped=False
-    for i,c in enumerate(cleaned):
-        if quoted:
-            out.append(c)
-            if escaped:escaped=False
-            elif c=='\\':escaped=True
-            elif c=='"':quoted=False
-        elif c=='"':quoted=True;out.append(c)
-        elif c==',':
-            next_index=i+1
-            while next_index<len(cleaned) and cleaned[next_index].isspace():next_index+=1
-            previous=i-1
-            while previous>=0 and cleaned[previous].isspace():previous-=1
-            trailing=next_index<len(cleaned) and cleaned[next_index] in '}]' and previous>=0 and cleaned[previous] not in '[{,:'
-            out.append(' ' if trailing else c)
-        else:out.append(c)
-    return decode(''.join(out),MAX_CONFIG)
-
-
 def _state(root, settings):
     raw=_read(safe_path(root,'.migration/connections.json'))
     if raw is None:return default_choices(settings),{}
     doc=decode(raw,MAX_CONFIG)
-    require(isinstance(doc,dict) and set(doc)=={'version','choices','managed'} and doc['version']==1
-            and type(doc['version']) is int and isinstance(doc['managed'],dict),'Unsupported local connection setup state')
-    require(set(doc['managed'])<={SERVER,DB2_SERVER,TOKEN_INPUT} and all(isinstance(h,str) and len(h)==64
+    require(isinstance(doc,dict) and set(doc)=={'version','choices','managed'} and type(doc['version']) is int
+            and doc['version'] in (1,2) and isinstance(doc['managed'],dict),'Unsupported local connection setup state')
+    allowed={SERVER,DB2_SERVER,TOKEN_INPUT} if doc['version']==1 else {DB2_SERVER}
+    require(set(doc['managed'])<=allowed and all(isinstance(h,str) and len(h)==64
             and all(c in '0123456789abcdef' for c in h) for h in doc['managed'].values()),'Invalid managed configuration identities')
-    return validate_choices(doc['choices']),doc['managed']
+    # The former VS Code config belongs to another client and remains untouched.
+    return validate_choices(doc['choices']),doc['managed'] if doc['version']==2 else {}
 
 
-def _copilot_plan(root, choices, settings, managed, origin):
-    path=safe_path(root,'.vscode/mcp.json');raw=_read(path)
-    if not choices['copilot'] and not managed:return [],{}
-    config=_jsonc(raw) if raw is not None else {}
-    require(isinstance(config,dict),'Existing VS Code MCP configuration must be an object')
-    config=copy.deepcopy(config);servers=config.setdefault('servers',{});inputs=config.setdefault('inputs',[])
-    require(isinstance(servers,dict) and isinstance(inputs,list) and all(isinstance(i,dict) and isinstance(i.get('id'),str) for i in inputs),
-            'Preserve the existing MCP file and correct its server/input structure')
-    ids=[item['id'] for item in inputs];require(len(ids)==len(set(ids)),'Existing MCP input IDs must be unique')
-    expected={}
-    if choices['copilot']:
-        parsed=urlsplit(origin)
-        require(parsed.scheme=='http' and parsed.hostname=='127.0.0.1' and parsed.port is not None
-                and parsed.username is None and parsed.password is None and not parsed.query and not parsed.fragment
-                and parsed.path in ('','/'),'Use the running loopback Workbench origin')
-        package=Path(__file__).parent.parent
-        script=package/'tools/workbench_mcp.py';require(script.is_file(),'Workbench retrieval server is missing')
-        expected[SERVER]={'type':'stdio','command':str(Path(sys.executable).absolute()),
-            'args':[str(script.absolute()),'--origin',origin,'--role','retrieval']}
-        if settings['db2_metadata_url']:
-            expected[DB2_SERVER]={'type':'http','url':settings['db2_metadata_url'],
-                'headers':{'Authorization':'Bearer ${input:'+TOKEN_INPUT+'}'}}
-            expected[TOKEN_INPUT]={'type':'promptString','id':TOKEN_INPUT,'description':'Approved Db2 MCP token','password':True}
-    for name in (SERVER,DB2_SERVER):
-        old=servers.get(name)
-        wanted=expected.get(name)
-        if old is not None and old!=wanted:
-            require(name in managed and sha(encode(old))==managed[name],
-                    'Existing MCP binding '+name+' is preserved; resolve the conflicting binding locally')
-        if wanted is not None:servers[name]=wanted
-        elif name in managed:servers.pop(name,None)
-    old_input=next((item for item in inputs if item['id']==TOKEN_INPUT),None)
-    wanted_input=expected.get(TOKEN_INPUT)
-    # Another approved server may reuse this input. Preserve that dependency when
-    # retiring our own binding instead of breaking the supplied client config.
-    shared=any('${input:'+TOKEN_INPUT+'}' in encode(value).decode('utf-8') for name,value in servers.items() if name not in (SERVER,DB2_SERVER))
-    if wanted_input is not None:
-        require(old_input is None or old_input==wanted_input or TOKEN_INPUT in managed and sha(encode(old_input))==managed[TOKEN_INPUT],
-                'Existing MCP credential input is preserved; resolve its conflicting declaration locally')
-        inputs[:]=[item for item in inputs if item['id']!=TOKEN_INPUT]+[wanted_input]
-    elif TOKEN_INPUT in managed and not shared:
-        require(old_input is None or sha(encode(old_input))==managed[TOKEN_INPUT],
-                'Changed MCP credential input is preserved; resolve its declaration locally')
-        inputs[:]=[item for item in inputs if item['id']!=TOKEN_INPUT]
+def _claude_plan(root, choices, settings, managed, origin):
+    path=safe_path(root,'.mcp.json');raw=_read(path)
+    # Text-first stdio survives an intake/source-only Save. A deliberate change
+    # to the optional HTTP choices may still use the existing managed-hash route.
+    if raw is not None:
+        candidate=decode(raw,MAX_CONFIG)
+        entry=candidate.get('mcpServers',{}).get(DB2_SERVER) if isinstance(candidate,dict) and isinstance(candidate.get('mcpServers'),dict) else None
+        if isinstance(entry,dict) and entry.get('type')=='stdio':
+            from .db2_setup import validate_stdio_binding
+            validate_stdio_binding(entry,root)
+            previous,_=_state(root,settings)
+            if (choices.get('db2',{'mode':'off'})==previous.get('db2',{'mode':'off'}) and choices['claude']==previous['claude']) or choices.get('db2',{'mode':'off'})['mode']=='off':
+                return [],{DB2_SERVER:sha(encode(entry))}
+    if not choices['claude'] and not managed:return [],{}
+    config=decode(raw,MAX_CONFIG) if raw is not None else {'mcpServers':{}}
+    require(isinstance(config,dict) and set(config)=={'mcpServers'} and isinstance(config['mcpServers'],dict),
+            'Claude MCP config must contain mcpServers; preserve and correct any incompatible client format')
+    config=copy.deepcopy(config);servers=config['mcpServers'];expected={}
+    if choices['claude'] and settings['db2_metadata_url']:
+        entry={'type':'http','url':settings['db2_metadata_url']}
+        if choices['db2_auth']=='bearer_env':entry['headers']={'Authorization':'Bearer ${'+TOKEN_ENV+'}'}
+        expected[DB2_SERVER]=entry
+    old=servers.get(DB2_SERVER);wanted=expected.get(DB2_SERVER)
+    if old is not None and old!=wanted:
+        require(DB2_SERVER in managed and sha(encode(old))==managed[DB2_SERVER],
+                'Existing Claude MCP binding '+DB2_SERVER+' is preserved; resolve the conflicting binding locally')
+    if wanted is not None:servers[DB2_SERVER]=wanted
+    elif DB2_SERVER in managed:servers.pop(DB2_SERVER,None)
     return [(path,encode(config,MAX_CONFIG))],{name:sha(encode(value)) for name,value in expected.items()}
 
 
@@ -230,6 +186,23 @@ def _profile_checks(config, settings, schema=None):
         except Exception as exc:raise ValidationError('Correct the supplied local Zowe schema') from exc
 
 
+def _db2_env_template(db2):
+    """Create only nonsecret canonical z/OS settings; authentication stays empty."""
+    require(db2['database']==db2['location'], 'DB2_DATABASE must equal DB2_LOCATION_NAME for the workspace z/OS environment')
+    def literal(value):
+        value=str(value)
+        quote='"' if '"' not in value else "'"
+        require(quote not in value, 'Db2 environment fields require a literal value with an available quote delimiter')
+        return quote+value+quote
+    rows=[('DB2_LOCATION_NAME',db2['location']),('DB2_DATABASE',db2['database']),
+          ('DB2_HOSTNAME',db2['host']),('DB2_PORT',db2['port'])]
+    text='# Private local Db2 connection. Never commit or paste this file into a model/chat.\n'
+    text+='# DB2_DATABASE equals DB2_LOCATION_NAME for this z/OS adapter.\n'
+    text+='\n'.join(key+'='+literal(value) for key,value in rows)+'\n'
+    text+='DB2_USERNAME=\nDB2_PASSWORD=\nDB2_SSL_CONNECTION=true\nDB2_SSL_SERVER_CERTIFICATE=certificates/DB2-CA.cert\n'
+    return text.encode('utf-8')
+
+
 def _command(argv):
     if sys.platform=='win32':return '& '+' '.join("'"+str(v).replace("'","''")+"'" for v in argv)
     return shlex.join([str(v) for v in argv])
@@ -240,6 +213,59 @@ def _inspect_connections(root, settings, origin=None):
     checks=[];commands=[];files=[];remaining=[]
     def need(name,message):remaining.append({'id':name,'message':message})
     cli='NOT_REQUIRED'
+    mcp_raw=_read(safe_path(root,'.mcp.json'))
+    if mcp_raw is not None:
+        candidate=decode(mcp_raw,MAX_CONFIG)
+        entry=candidate.get('mcpServers',{}).get(DB2_SERVER) if isinstance(candidate,dict) and isinstance(candidate.get('mcpServers'),dict) else None
+        if isinstance(entry,dict) and entry.get('type')=='stdio':
+            from .db2_setup import inspect_stdio_binding
+            from .db2_env import settings as env_settings, _certificate
+            configured=inspect_stdio_binding(root)
+            files.append({'kind':'claude','path':configured['config_file'],'status':'PREPARED'})
+            env_status='PREPARED'
+            try:
+                private=env_settings({},safe_path(root,'.env'),canonical=True)
+                _certificate(private.certificate)
+                if not private.username or not private.password:
+                    need('db2_credentials','Fill missing DB2_USERNAME and DB2_PASSWORD only in the private local .env, then restart the Claude-owned server.')
+            except (ValidationError,OSError):
+                env_status='NEEDS_LOCAL_CORRECTION'
+                need('db2_env','Check the private workspace .env and certificates/DB2-CA.cert locally. Existing bytes are preserved; never paste their contents into chat.')
+            files.append({'kind':'db2_env','path':configured['env_file'],'status':env_status})
+            # Shared .env preparation includes Zowe independently of Db2.
+            # Do not turn its real local prerequisites into NOT_REQUIRED.
+            try:
+                from .db2_env import read_workspace_env
+                zowe_selected=bool(read_workspace_env(safe_path(root,'.env')).get('ZOWE_ENVIRONMENT'))
+            except (ValidationError,OSError):zowe_selected=False
+            if zowe_selected:
+                from .zowe_setup import environment_profiles
+                from .connectors import zowe_command
+                try:
+                    environment_profiles(root)
+                    files.extend([{'kind':'zowe','path':str(safe_path(root,'zowe.config.json')),'status':'PREPARED'},
+                                  {'kind':'zowe_schema','path':str(safe_path(root,'zowe.schema.json')),'status':'PREPARED'}])
+                except (ValidationError,OSError):
+                    need('zowe_config','Prepare the clean Zowe config/schema from the private .env. Existing different files are preserved.')
+                cli='NOT_FOUND'
+                if shutil.which('zowe'):
+                    try:zowe_command(['zowe','config','secure'],dict(os.environ));cli='AVAILABLE'
+                    except (ValidationError,OSError):cli='UNUSABLE'
+                checks.append({'id':'zowe_cli','status':cli,'message':'Text-prepared Zowe CLI availability is checked separately from authentication or read access.'})
+                if cli!='AVAILABLE':need('zowe_cli','Install or repair the organization-approved Zowe CLI and Node runtime, then recheck. No mainframe request was made.')
+                need('zowe_credentials','For Zowe Explorer, complete zowe config secure locally and launch the client with the approved CA environment. Private .env credentials support only the bounded local CLI reader; live read access remains unverified.')
+            checks.append({'id':'db2_transport','status':'PREPARED','message':'Local stdio configuration prepared from .env. Claude owns the server; no separate HTTP server or transport credential entry is needed.'})
+            import importlib.util
+            try:driver_module=importlib.util.find_spec('pyodbc') is not None
+            except (ValueError,ImportError):driver_module=False
+            if not driver_module:need('db2_driver','Install the organization-approved pyodbc package and registered IBM Db2 ODBC driver before the local MCP server can read Db2.')
+            launcher=Path(__file__).parent.parent/'scripts/Start-Claude.ps1'
+            commands.append({'id':'claude_start','label':'Open Claude Code for this workspace','command':"& '"+str(launcher).replace("'","''")+"' -Workspace '"+str(root).replace("'","''")+"'",'required':True})
+            need('claude_activation','Run the displayed Claude launcher and review the approved local server with /mcp. Configuration is not a successful database read.')
+            return {'choices':choices,'transport':'stdio','status':'ACTION_REQUIRED' if remaining else 'CONFIGURATION_READY',
+                    'checks':checks,'commands':commands,'files':files,'remaining':remaining,
+                    'runtime':{'platform':'windows' if sys.platform=='win32' else 'macos' if sys.platform=='darwin' else 'linux','zowe_cli':cli},
+                    'claude_mcp_servers':1,'connectivity':'UNVERIFIED'}
     if choices['zowe']['mode']!='off':
         cli='NOT_FOUND'
         from .connectors import zowe_command
@@ -291,35 +317,52 @@ def _inspect_connections(root, settings, origin=None):
                        'message':'The Python ODBC module is present; the selected IBM driver is checked at local server startup.' if module_available else 'Install the organization-approved pyodbc package and IBM Db2 ODBC driver in this Python environment.'})
         if not module_available:need('db2_driver','Install the organization-approved pyodbc package and IBM Db2 ODBC driver; then recheck setup.')
         else:need('db2_driver','Start the local server command to validate the selected registered ODBC driver. No Db2 read has been performed.')
+        env_path=safe_path(root,'.env')
+        if env_path.exists() or db2['database']==db2['location']:
+            env_ready=False
+            try:
+                from .db2_env import settings as env_settings
+                require(env_path.is_file(), 'Prepare the private workspace environment')
+                selected=env_settings({},env_path,canonical=True)
+                require((selected.host,selected.port,selected.database,selected.location)==(db2['host'],db2['port'],db2['database'],db2['location']),
+                        'Private environment differs from the saved form')
+                env_ready=True
+            except (ValidationError,OSError,UnicodeError):
+                need('db2_env','The private workspace .env needs local correction or differs from saved connection settings. Existing bytes are preserved; never paste its contents into chat.')
+            files.append({'kind':'db2_env','path':str(env_path),'status':'PREPARED' if env_ready else 'NEEDS_LOCAL_CORRECTION'})
+        else:
+            need('db2_env','This historical gateway uses a separate database/location. Save the canonical z/OS settings to prepare a workspace .env; existing configuration is preserved.')
         script=Path(__file__).parent.parent/'tools/db2_mcp_server.py'
-        argv=[str(Path(sys.executable).absolute()),str(script.absolute()),'--transport','http','--config',str(config_path),'--port',str(db2['mcp_port']),'--interactive']
+        argv=[str(Path(sys.executable).absolute()),str(script.absolute()),'--transport','http','--config',str(config_path),'--workspace',str(root),'--port',str(db2['mcp_port']),'--interactive']
+        if env_path.exists():argv += ['--env-file',str(env_path)]
         cd="Set-Location -LiteralPath "+"'"+str(root).replace("'","''")+"'" if sys.platform=='win32' else 'cd '+shlex.quote(str(root))
         commands.append({'id':'db2_start','label':'Start the approved read-only Db2 MCP server','command':cd+'\n'+_command(argv),'required':True})
-        need('db2_server','Run the displayed local Db2 MCP command. Enter credentials privately, then use the same approved token at the VS Code secure prompt. Keep the server terminal open.')
-    if choices['copilot']:
-        path=safe_path(root,'.vscode/mcp.json');raw=_read(path)
-        actual={};input_values={}
+        need('db2_server','Run the displayed local Db2 MCP command. Use DB2_USERNAME and DB2_PASSWORD in the protected local .env, or enter missing credentials at its secure local prompts. Keep transport authentication at the approved Claude launcher and keep the server terminal open.')
+    if choices['claude']:
+        path=safe_path(root,'.mcp.json');raw=_read(path);actual={}
         if raw is not None:
-            doc=_jsonc(raw);require(isinstance(doc,dict) and isinstance(doc.get('servers',{}),dict),'Correct the local MCP server structure')
-            actual=doc.get('servers',{})
-            require(isinstance(doc.get('inputs',[]),list),'Correct the local MCP input structure')
-            input_values={item.get('id'):item for item in doc.get('inputs',[]) if isinstance(item,dict)}
-        valid=SERVER in managed and all(name in (input_values if name==TOKEN_INPUT else actual)
-             and sha(encode((input_values if name==TOKEN_INPUT else actual)[name]))==fingerprint for name,fingerprint in managed.items())
-        if origin is not None:
-            valid=valid and actual.get(SERVER,{}).get('args',[])[1:3]==['--origin',origin]
+            doc=decode(raw,MAX_CONFIG)
+            require(isinstance(doc,dict) and set(doc)=={'mcpServers'} and isinstance(doc['mcpServers'],dict),
+                    'Correct the local Claude MCP server structure')
+            actual=doc['mcpServers']
+        expected={}
         if settings['db2_metadata_url']:
-            valid=valid and actual.get(DB2_SERVER,{}).get('url')==settings['db2_metadata_url']
-        elif DB2_SERVER in actual and DB2_SERVER in managed:valid=False
-        files.append({'kind':'copilot','path':str(path),'status':'PREPARED' if valid else 'NEEDS_SAVE'})
-        if not valid:need('copilot_config','Save setup to prepare the retrieval-only Copilot configuration.')
-        need('copilot_activation','Open this workspace in VS Code. Review and start the approved servers in MCP: List Servers; keep the Workbench running.')
-        if settings['db2_metadata_url']:need('db2_authentication','Enter the approved Db2 token at the VS Code secure prompt; server reachability is unverified.')
-    active=choices['copilot'] or choices['zowe']['mode']!='off' or db2['mode']!='off'
+            expected[DB2_SERVER]={'type':'http','url':settings['db2_metadata_url']}
+            if choices['db2_auth']=='bearer_env':expected[DB2_SERVER]['headers']={'Authorization':'Bearer ${'+TOKEN_ENV+'}'}
+        valid=raw is not None and managed=={name:sha(encode(value)) for name,value in expected.items()} and all(actual.get(name)==value for name,value in expected.items())
+        files.append({'kind':'claude','path':str(path),'status':'PREPARED' if valid else 'NEEDS_SAVE'})
+        if not valid:need('claude_config','Save setup to prepare the approved Claude Code MCP configuration.')
+        launcher=Path(__file__).parent.parent/'scripts/Start-Claude.ps1'
+        command="& '"+str(launcher).replace("'","''")+"' -Workspace '"+str(root).replace("'","''")+"'"
+        commands.append({'id':'claude_start','label':'Open Claude Code for this workspace','command':command,'required':True})
+        need('claude_activation','Run the displayed Windows Claude launcher, then /mcp. Review the approved server trust and authenticate. Configuration is not connectivity.')
+        if settings['db2_metadata_url']:
+            need('db2_authentication','Enter the approved token only at the secure Claude launcher prompt.' if choices['db2_auth']=='bearer_env' else 'Use /mcp in Claude Code to authenticate with the approved OAuth server.')
+    active=choices['claude'] or choices['zowe']['mode']!='off' or db2['mode']!='off'
     return {'choices':choices,'status':'ACTION_REQUIRED' if remaining else 'CONFIGURATION_READY' if active else 'NOT_CONFIGURED',
             'checks':checks,'commands':commands,'files':files,'remaining':remaining,
             'runtime':{'platform':'windows' if sys.platform=='win32' else 'linux' if sys.platform.startswith('linux') else 'macos', 'zowe_cli':cli},
-            'claude_mcp_servers':0,'connectivity':'UNVERIFIED'}
+            'claude_mcp_servers':int(choices['claude'] and bool(settings['db2_metadata_url'])),'connectivity':'UNVERIFIED'}
 
 
 
@@ -350,9 +393,9 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
     baseline={state_path:_read(state_path)}
     _,managed=_state(root,settings);mode=choices['zowe']['mode']
     selected=['.migration/workstation.json', '.migration/workstation.md']
-    if choices['copilot'] or managed:selected.append('.vscode/mcp.json')
+    if choices['claude'] or managed:selected.append('.mcp.json')
     if mode!='off':selected.append('zowe.config.json')
-    if db2 is not None and db2['mode']=='gateway':selected.extend(['.migration/db2-config.json','certificates/DB2-CA.cert'])
+    if db2 is not None and db2['mode']=='gateway':selected.extend(['.migration/db2-config.json','certificates/DB2-CA.cert','.env'])
     for relative in selected:
         path=safe_path(root,relative);baseline[path]=_read(path)
     if mode=='import':
@@ -391,8 +434,11 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
             _,gateway_files=prepare_db2(root,location=db2['location'],database=db2['database'],host=db2['host'],port=db2['port'],
                                         max_rows=db2['row_limit'],certificate_source=db2['certificate_file'],driver=db2['driver'])
             prepared+=gateway_files
-    mcp,managed=_copilot_plan(root,choices,settings,managed,origin);prepared+=mcp
-    prepared += [(settings_path,encode(settings_doc)), (safe_path(root,'.migration/connections.json'),encode({'version':1,'choices':choices,'managed':managed}))]
+            env_path=safe_path(root,'.env')
+            if baseline[env_path] is None and db2['database']==db2['location']:
+                prepared.append((env_path,_db2_env_template(db2)))
+    mcp,managed=_claude_plan(root,choices,settings,managed,origin);prepared+=mcp
+    prepared += [(settings_path,encode(settings_doc)), (safe_path(root,'.migration/connections.json'),encode({'version':2,'choices':choices,'managed':managed}))]
     prepared.append((safe_path(root,'.migration/workstation.md'), workstation_markdown(root, settings, choices)))
     before={path:baseline[path] for path,_ in prepared};changed=[]
     try:
@@ -402,6 +448,7 @@ def configure_connections(root, settings, choices, *, origin='http://127.0.0.1:8
             if before[path]!=payload:
                 atomic_bytes(path,payload);changed.append((path,payload))
         view['connection_setup']=inspect_connections(root,settings,origin)
+        view['workflow']['claude_mcp_servers']=view['connection_setup']['claude_mcp_servers']
         view['instructions']=inspect_workstation_instructions(root,settings)
         expected={**baseline,**dict(prepared)}
         require(all(_read(path)==payload for path,payload in expected.items()) and view['instructions']['status']=='READY',
