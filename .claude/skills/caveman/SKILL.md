@@ -4,13 +4,17 @@ description: Use concise status updates without losing facts or clarity. Invoke 
 disable-model-invocation: true
 ---
 
-Apply [the shared Start workflow](../../../prompts/START_MODERNIZATION.md) and
-[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. This is an
-adapted instruction-only skill, not the full upstream plugin. It grants no tools
-or permissions. Keep raw source/PII protected; use synthetic or explicitly
-approved sanitized views. Preserve legacy behavior, immutable evidence, one
-Coordinator writer and actual human approval. Do not install or invoke upstream
-runtimes, MCP servers, hooks, proxies or background services.
+Follow [AGENTS.md](../../../AGENTS.md) and the
+[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. The foreground
+Coordinator agent owns integration through `modernize-process`,
+`validate-program` and `consult-modernization`; load this optional skill only
+when relevant. This adapted
+instruction-only skill grants no tools or permissions. Keep raw source/PII
+protected; use synthetic or explicitly approved sanitized views. Preserve legacy
+behavior, immutable evidence and authentic human business-review decisions.
+Keep discovery read-only and obey the configured access and review policy. Do
+not install or invoke upstream runtimes, MCP servers, hooks, proxies or
+background services.
 
 Lead with the answer or result. Use plain sentences, familiar words and exact numbers. Remove repeated introductions and decorative recaps, not evidence, uncertainty or important conditions.
 

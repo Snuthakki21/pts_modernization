@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "model": {
+    "id": "claude-opus-4-7",
+    "availability_user_confirmed": true,
+    "provider_binding_confirmed": false,
+    "no_fallback": true
+  },
+  "mainframe": {
+    "reference": "TSTSN.#RW477",
+    "reference_confirmed": true,
+    "reference_kind": "dataset_prefix",
+    "screenshot": "IMG_3919.jpeg",
+    "read_profile": null,
+    "write_profile": null,
+    "db2_profile": null,
+    "listing_pattern": "TSTSN.#RW477*",
+    "live_verified": false
+  },
+  "execution": {
+    "max_workers": 2,
+    "repair_cycles": 2
+  },
+  "validation": {
+    "positive_cases_per_rule": 100,
+    "negative_cases_per_rule": 100
+  },
+  "capabilities": {
+    "mainframe_read": false,
+    "mainframe_write": false,
+    "mainframe_execute": false
+  },
+  "commands": {
+    "unit": null,
+    "integration": null,
+    "etl": null,
+    "mainframe": null
+  },
+  "sparkflows": {
+    "kind": "unconfirmed",
+    "example_flow": null,
+    "profile": null
+  }
+}

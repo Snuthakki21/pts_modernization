@@ -3,15 +3,19 @@ name: karpathy-guidelines
 description: Keep changes focused, assumptions visible and success criteria testable. Use for coding, refactoring and avoiding speculative complexity.
 ---
 
-Apply [the shared Start workflow](../../../prompts/START_MODERNIZATION.md) and
-[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. This is an
-adapted instruction-only skill, not the full upstream plugin. It grants no tools
-or permissions. Keep raw source/PII protected; use synthetic or explicitly
-approved sanitized views. Preserve legacy behavior, immutable evidence, one
-Coordinator writer and actual human approval. Do not install or invoke upstream
-runtimes, MCP servers, hooks, proxies or background services.
+Follow [AGENTS.md](../../../AGENTS.md) and the
+[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. The foreground
+Coordinator agent owns integration through `modernize-process`,
+`validate-program` and `consult-modernization`; load this optional skill only
+when relevant. This adapted
+instruction-only skill grants no tools or permissions. Keep raw source/PII
+protected; use synthetic or explicitly approved sanitized views. Preserve legacy
+behavior, immutable evidence and authentic human business-review decisions.
+Keep discovery read-only and obey the configured access and review policy. Do
+not install or invoke upstream runtimes, MCP servers, hooks, proxies or
+background services.
 
-This is independently authored Workbench guidance. The upstream skill declares MIT in frontmatter but no complete license notice was detected at the pinned revision; its instruction text is not redistributed here.
+This is independently authored repository guidance. The upstream skill declares MIT in frontmatter but no complete license notice was detected at the pinned revision; its instruction text is not redistributed here.
 
 Before coding, write down the requested observable result and the repository component that owns it. Distinguish verified facts from assumptions. Resolve uncertainty with deterministic inspection or a focused experiment before asking for unavailable authoritative input.
 

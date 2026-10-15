@@ -3,17 +3,21 @@ name: ponytail
 description: Solve the complete task with the least necessary code. Use for simplification, dependency choices, maintenance and avoiding duplicate infrastructure.
 ---
 
-Apply [the shared Start workflow](../../../prompts/START_MODERNIZATION.md) and
-[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. This is an
-adapted instruction-only skill, not the full upstream plugin. It grants no tools
-or permissions. Keep raw source/PII protected; use synthetic or explicitly
-approved sanitized views. Preserve legacy behavior, immutable evidence, one
-Coordinator writer and actual human approval. Do not install or invoke upstream
-runtimes, MCP servers, hooks, proxies or background services.
+Follow [AGENTS.md](../../../AGENTS.md) and the
+[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. The foreground
+Coordinator agent owns integration through `modernize-process`,
+`validate-program` and `consult-modernization`; load this optional skill only
+when relevant. This adapted
+instruction-only skill grants no tools or permissions. Keep raw source/PII
+protected; use synthetic or explicitly approved sanitized views. Preserve legacy
+behavior, immutable evidence and authentic human business-review decisions.
+Keep discovery read-only and obey the configured access and review policy. Do
+not install or invoke upstream runtimes, MCP servers, hooks, proxies or
+background services.
 
 Inspect the affected callers, tests, fixtures, exports and UI contracts before selecting a smaller design. Simplicity means the complete requested behavior remains understandable and verified.
 
-Prefer, in order: an existing Workbench helper or component; the standard library; an installed dependency; a small explicit new function. Do not add a package, wrapper, service or configuration layer for a few ordinary operations.
+Prefer, in order: an existing repository helper or component; the standard library; an installed dependency; a small explicit new function. Do not add a package, wrapper, service or configuration layer for a few ordinary operations.
 
 A shared sort function may replace several source programs only when their ordering, collation, duplicate handling, return behavior and invocation context are verified. Preserve every original source obligation and map it to the consolidated target. A smaller implementation does not reduce the original rule denominator.
 

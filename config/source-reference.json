@@ -1,0 +1,26 @@
+{
+  "evidence": "User-supplied screenshot IMG_3919.jpeg, visually transcribed",
+  "listing_pattern": "TSTSN.#RW477*",
+  "displayed_position": "Row 39 of 75",
+  "complete_listing": false,
+  "live_verified": false,
+  "visible_examples": [
+    "TSTSN.#RW477.NDMPJCL",
+    "TSTSN.#RW477.NDMPROC",
+    "TSTSN.#RW477.P.ELE01.COBOL.D260923",
+    "TSTSN.#RW477.P.ELE01.CONPARMX.D260923",
+    "TSTSN.#RW477.P.ELE01.COPY.D260923",
+    "TSTSN.#RW477.P.ELE01.CTRL.D260923",
+    "TSTSN.#RW477.P.ELE01.DECL.D260923",
+    "TSTSN.#RW477.P.ELE01.JCL.D260923",
+    "TSTSN.#RW477.P.ELE01.LINKCARD.D260923",
+    "TSTSN.#RW477.P.ELE01.MAP.D260923",
+    "TSTSN.#RW477.P.ELE01.NDMCTRL.D260923",
+    "TSTSN.#RW477.P.ELE01.NDMPROC.D260923",
+    "TSTSN.#RW477.P.ELE01.PKGBND.D260923",
+    "TSTSN.#RW477.P.ELE01.PROC.D260923",
+    "TSTSN.#RW477.PCOBOL",
+    "TSTSN.#RW477.PCOPY"
+  ],
+  "discovery_instruction": "Verify names through approved read-only catalog access; enumerate every returned dataset and member, preserve exact names, hashes and source identity. Suffixes are hints, not semantic classification. Capture dependencies beyond the prefix as unresolved references until located. Do not assume the screenshot is exhaustive or infer an API endpoint from the terminal URL."
+}

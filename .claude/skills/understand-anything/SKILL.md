@@ -3,19 +3,23 @@ name: understand-anything
 description: Explain a component and its evidence-backed dependencies. Use for onboarding, lineage interpretation and source-to-target drill-down without full rescans.
 ---
 
-Apply [the shared Start workflow](../../../prompts/START_MODERNIZATION.md) and
-[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. This is an
-adapted instruction-only skill, not the full upstream plugin. It grants no tools
-or permissions. Keep raw source/PII protected; use synthetic or explicitly
-approved sanitized views. Preserve legacy behavior, immutable evidence, one
-Coordinator writer and actual human approval. Do not install or invoke upstream
-runtimes, MCP servers, hooks, proxies or background services.
+Follow [AGENTS.md](../../../AGENTS.md) and the
+[technical contract](../../../docs/TECHNICAL_REFERENCE.md) first. The foreground
+Coordinator agent owns integration through `modernize-process`,
+`validate-program` and `consult-modernization`; load this optional skill only
+when relevant. This adapted
+instruction-only skill grants no tools or permissions. Keep raw source/PII
+protected; use synthetic or explicitly approved sanitized views. Preserve legacy
+behavior, immutable evidence and authentic human business-review decisions.
+Keep discovery read-only and obey the configured access and review policy. Do
+not install or invoke upstream runtimes, MCP servers, hooks, proxies or
+background services.
 
-Start with the existing compact context and operator-reference index for static guide questions. Check source-hash freshness, then read only relevant public or approved sanitized spans. Do not rescan protected exports or databases to answer navigation questions.
+Start with the repository guide and relevant process/program index for navigation questions. Check source-hash freshness, then read only relevant public or approved sanitized spans. Do not rescan protected exports or databases to answer navigation questions.
 
-Describe one component through its responsibility, inputs, outputs, callers, dependencies and failure boundaries. Distinguish an observed call/reference from a inferred business meaning. Unknown or dynamic dependencies remain visible.
+Describe one component through its responsibility, inputs, outputs, callers, dependencies and failure boundaries. Distinguish an observed call/reference from an inferred business meaning. Unknown or dynamic dependencies remain visible.
 
-For a process, explain job → step/program or transaction → program/map bindings, the logical obligation, its selected scope, target location and verification receipt. Keep source IDs and cross-job memberships consistent with the Coordinator evidence.
+For a process, explain job → step/program or transaction → program/map bindings, the logical obligation, its recorded treatment, target location and verification receipt. Keep source IDs and cross-job memberships consistent with the canonical inventory and evidence.
 
 Use the existing inventory/lineage projection as the graph owner. Avoid creating a second knowledge database, hidden graph directory, Markdown per rule or another discovery engine. A stale graph/cache is a navigation gap; it cannot authorize conversion.
 
