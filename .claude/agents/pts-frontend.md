@@ -54,6 +54,13 @@ PII in prompts, screenshots or logs. Use fictional/synthetic fixtures for UI che
 Do not invent execution traces or acceptance states. Return changed paths, actual
 checks, accessibility findings and remaining data-contract gaps.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Keep the current evidence schema/version, protected-value rules, query pagination
+and accessibility requirements active. Extract actual view-contract facts and
+return concise UI checks with artifact references; retain missing/stale events and
+all affected record counts. A compact UI or handoff must not substitute samples
+for the full paginated record explorer or imply an unavailable result passed.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

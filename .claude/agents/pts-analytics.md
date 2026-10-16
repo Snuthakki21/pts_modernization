@@ -40,6 +40,13 @@ receipts; report unavailable measures. Never invent savings percentages.
 Provide source/rule-linked mismatch examples using permitted synthetic/sanitized
 values. Do not change expectations, code, evidence history or canonical inventory.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Extract reconciliation facts from pinned run evidence, preserving denominators,
+normalization rules, missing IDs, retries and transaction states. Distill queries
+with filters, versions, counts, errors and unvisited pages; group repeated mismatch
+explanations without dropping affected records. Externalize full details in the
+assigned run artifacts; report unavailable measurements instead of estimated savings.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

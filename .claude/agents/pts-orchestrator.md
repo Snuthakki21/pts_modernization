@@ -53,6 +53,17 @@ Own the `Endevor/navigation.json` manifest and rebuildable `knowledge/endevor/`
 OKF bundle using `docs/ENDEVOR_NAVIGATION.md`. Merge approved source identities and
 worker findings before rebuilding; workers consume one fresh snapshot. Keep
 canonical inventory, source maps and acceptance independent of navigation.
+For an unanswered OKF lookup, assign gap analysis/DevOps the scoped permitted
+Db2 MCP or Zowe discovery task described in that runbook. Independent object
+queries may run in parallel within the two-worker limit; serialize queries whose
+scope depends on earlier results and avoid duplicate searches. Bind exact tools
+only from verified capabilities; preserve denials and stop repeated no-progress
+queries within the existing task budget. Merge approved acquisitions before
+rebuilding OKF; inventory and acceptance remain independent of this retrieval.
+At handoff/compaction use `docs/TOKEN_EFFICIENCY.md`'s five-technique procedure.
+Keep objective, applicable contracts, versions, decisions, denied operations,
+unresolved questions, failures, uncertain effects and remaining budgets active.
+Externalize detailed evidence in existing stores before trimming completed chatter.
 Require `docs/SECURITY_REVIEW.md`'s separate quality/security receipts and fresh
 independent review of remediation. After inventory updates, use the approved
 progress-export binding in `docs/PROGRESS_UI.md`; count each program once and

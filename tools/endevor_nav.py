@@ -14,7 +14,7 @@ import stat
 import sys
 import uuid
 
-VERSION = "1.0"
+VERSION = "1.1"
 MAX_BYTES = 1024 * 1024
 MAX_FILES = 2000
 MAX_REFERENCES = 10000
@@ -22,6 +22,14 @@ MAX_QUERY_REFERENCES = 200
 KINDS = {"cobol", "copybook", "jcl", "proc", "sql", "control", "other"}
 OUTPUT = ("knowledge", "endevor")
 TOKEN = re.compile(r"'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|/\*[\s\S]*?(?:\*/|$)|[A-Za-z0-9_@$#&.-]+|[=(),*]")
+
+
+class NavigationLookupMiss(ValueError):
+    """A current declared view set does not contain the exact requested start."""
+
+
+class StaleNavigation(ValueError):
+    """Declared inputs or the generator differ from the published snapshot."""
 
 
 def _digest(data):
@@ -506,7 +514,7 @@ def _checked(root):
     manifest, digest, records = _inputs(root)
     graph = receipt["graph"]
     if graph.get("generator_sha256") != _tool_sha256() or digest != graph["input_manifest_sha256"] or [(n["path"], n["sha256"]) for n in graph["nodes"]] != [(r["path"], r["sha256"]) for r in records]:
-        raise ValueError("Navigation is stale; rebuild from current approved inputs")
+        raise StaleNavigation("Navigation is stale; rebuild from current approved inputs")
     return pointer, receipt
 
 
@@ -525,7 +533,7 @@ def walk(root, start, direction="dependencies", max_depth=2, max_nodes=40):
     summary = _summary(pointer, graph)
     matched = [n for n in graph["nodes"] if start in {n["id"], n["path"]}]
     if len(matched) != 1:
-        raise ValueError("Use an exact declared file path or node ID")
+        raise NavigationLookupMiss("Use an exact declared file path or node ID")
     start_id = matched[0]["id"]
     depths, queue, truncated = {start_id: 0}, deque([start_id]), False
     while queue:
@@ -547,10 +555,15 @@ def walk(root, start, direction="dependencies", max_depth=2, max_nodes=40):
     edges = [r for r in graph["references"] if r["source"] in depths and r["target"] in depths]
     unresolved = [r for r in graph["references"] if r["source"] in depths and r["state"] != "resolved"]
     references_truncated = len(edges) > MAX_QUERY_REFERENCES or len(unresolved) > MAX_QUERY_REFERENCES
+    clipped = truncated or references_truncated
+    retrieval_state = ("partial" if clipped else "unresolved" if unresolved
+                       else "static_matches" if edges else "no_static_edges")
     return summary | {"start": start_id, "direction": direction, "truncated": truncated or references_truncated,
                       "nodes": [{k: n[k] for k in ("id", "path", "kind", "sha256")} | {"depth": depths[n["id"]]} for n in graph["nodes"] if n["id"] in depths],
                       "edges": edges[:MAX_QUERY_REFERENCES], "unresolved": unresolved[:MAX_QUERY_REFERENCES],
-                      "edges_total": len(edges), "unresolved_total": len(unresolved), "references_truncated": references_truncated}
+                      "edges_total": len(edges), "unresolved_total": len(unresolved), "references_truncated": references_truncated,
+                      "retrieval": {"state": retrieval_state, "absence_proven": False,
+                                    "next_step": "Refine bounded local results; if the question remains unanswered, follow permitted object discovery in docs/ENDEVOR_NAVIGATION.md"}}
 
 
 def main():
@@ -570,8 +583,17 @@ def main():
         print(json.dumps(result, ensure_ascii=True))
         return 0
     except (OSError, ValueError, TypeError, KeyError) as exc:
-        print(json.dumps({"status": "blocked", "reason": type(exc).__name__,
-                          "action": "Check approved manifest, safe paths, supported inputs and current bundle; no acceptance produced"}), file=sys.stderr)
+        code, action = "input_or_integrity_block", "Check approved manifest, safe paths, supported inputs and current bundle; do not treat this failure as an object absence"
+        if isinstance(exc, NavigationLookupMiss):
+            code, action = "okf_lookup_miss", "Verify the requested identity, then use permitted Db2 MCP or Zowe discovery for the unresolved object kind"
+        elif isinstance(exc, StaleNavigation):
+            code, action = "stale_index", "Rebuild from current approved local views before deciding whether remote discovery is needed"
+        elif isinstance(exc, PermissionError):
+            code, action = "access_denied", "Preserve the denial; do not retry the denied operation through another tool"
+        elif isinstance(exc, FileNotFoundError):
+            code, action = "local_input_or_index_missing", "Check local manifest and bundle availability, then use the documented permitted discovery workflow if required source is unavailable"
+        print(json.dumps({"status": "blocked", "reason": type(exc).__name__, "code": code,
+                          "action": action, "absence_proven": False}), file=sys.stderr)
         return 2
 
 

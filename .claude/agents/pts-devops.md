@@ -32,6 +32,17 @@ Sections 4.1–4.4 for the readiness receipt, exact tool/resource binding and bo
 parity packet. Record configured, reachable, permitted and verified separately.
 MCP tools must be explicitly available to the assigned role and allowed by the
 host/account; do not infer access from a server name or bypass a blocked tool.
+When OKF leaves an object question unanswered, use the independent connector
+gates and bounded read-only discovery in `docs/ENDEVOR_NAVIGATION.md`. Verify the
+installed CLI/help and actual MCP metadata tool schema; never invent a tool name
+or expose credentials to complete a binding. Report found, scoped miss, partial,
+denied, unavailable and error outcomes separately; a denied route is not a reason
+to retry the same operation through another connector. Continue independently
+permitted metadata work where useful and return one batched setup handoff.
+Follow `docs/TOKEN_EFFICIENCY.md` for the five context techniques. Distill capability
+and discovery results into source-linked structured facts; externalize complete
+permitted receipts before trimming command chatter. Preserve unknown remote
+outcomes, denials, exact resource bounds and remaining task budgets on resume.
 
 Propose exact non-secret environment bindings to the lead/environment owner.
 Never change permission policy, enable a capability or install a runtime to escape

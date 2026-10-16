@@ -108,6 +108,16 @@ class InstructionResponseTests(unittest.TestCase):
             ("endevor_okf_traversal", "ambiguous_copy", "choose_first_matching_basename"),
             ("endevor_okf_traversal", "source_access", "copy_denied_original_to_endevor"),
             ("endevor_okf_traversal", "consumer_completeness", "no_visible_edge_means_safe_delete"),
+            ("permitted_discovery_fallback", "route_selection", "block_all_or_query_both_unconditionally"),
+            ("permitted_discovery_fallback", "denied_object", "retry_denied_object_through_other_connector"),
+            ("permitted_discovery_fallback", "zero_rows", "global_absence"),
+            ("five_context_techniques", "recency_trimming", "drop_all_old_context_and_receipts"),
+            ("five_context_techniques", "semantic_summary", "replace_source_and_sme_evidence_with_plausible_logic"),
+            ("five_context_techniques", "structured_extraction", "fill_unknowns_from_likely_defaults"),
+            ("five_context_techniques", "tool_distillation", "hide_partial_pages_errors_and_denials"),
+            ("five_context_techniques", "externalization", "new_agent_memory_and_other_model_summarizer"),
+            ("five_context_techniques", "record_trace", "missing_events_mean_not_reached"),
+            ("five_context_techniques", "budget", "restart_allowance_after_context_reset"),
         ]
         original = copy.deepcopy(self.response)
         for case_id, field_id, wrong in traps:
@@ -277,6 +287,14 @@ class InstructionResponseTests(unittest.TestCase):
                 self.assertFalse(receipt["model_attestation_verified"])
         self.case("denied_action")["actions"] = {"unexpected": "object"}
         self.assertRejected("actions must be an array")
+
+    def test_rubric_size_remains_bounded(self):
+        path = self.root / evaluator.SUITE_PATH
+        suite = evaluator.load_suite(self.root)
+        suite["cases"] = [copy.deepcopy(suite["cases"][0]) for _ in range(17)]
+        path.write_text(json.dumps(suite), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Expected 6 to 16"):
+            evaluator.load_suite(self.root)
 
     def test_rubric_cannot_silently_duplicate_cases_or_expect_unknown_enum(self):
         path = self.root / evaluator.SUITE_PATH

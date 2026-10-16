@@ -1,5 +1,7 @@
 """Synthetic Endevor navigation checks; these never assert program acceptance."""
 import hashlib
+import contextlib
+import io
 import importlib.util
 import json
 from datetime import datetime
@@ -134,8 +136,63 @@ class EndevorNavigationTests(unittest.TestCase):
 
     def test_unknown_start_does_not_fall_back_to_another_program(self):
         self.fixture()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(nav.NavigationLookupMiss):
             nav.walk(self.root, "MISSING")
+
+    def invoke_cli(self, *args):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch("sys.argv", ["endevor_nav.py", "--root", str(self.root), *args]), \
+                contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            status = nav.main()
+        return status, stdout.getvalue(), stderr.getvalue()
+
+    def test_cli_distinguishes_scoped_lookup_miss_from_stale_index(self):
+        self.fixture()
+        status, stdout, stderr = self.invoke_cli("walk", "--start", "MISSING")
+        self.assertEqual(status, 2)
+        self.assertEqual(stdout, "")
+        result = json.loads(stderr)
+        self.assertEqual(result["code"], "okf_lookup_miss")
+        self.assertFalse(result["absence_proven"])
+        (self.source / "COBOL/A.cbl").write_text("PROGRAM-ID. CHANGED.\n")
+        status, _, stderr = self.invoke_cli("walk", "--start", "MISSING")
+        self.assertEqual(status, 2)
+        self.assertEqual(json.loads(stderr)["code"], "stale_index")
+
+    def test_cli_missing_local_index_is_not_a_remote_object_absence(self):
+        status, _, stderr = self.invoke_cli("check")
+        self.assertEqual(status, 2)
+        self.assertEqual(json.loads(stderr)["code"], "local_input_or_index_missing")
+        self.assertFalse(json.loads(stderr)["absence_proven"])
+
+    def test_cli_denial_and_integrity_failure_do_not_authorize_fallback(self):
+        for error, code in [(PermissionError("sensitive authorization detail"), "access_denied"),
+                            (ValueError("sensitive path detail"), "input_or_integrity_block")]:
+            with self.subTest(code=code), patch.object(nav, "check", side_effect=error):
+                status, _, stderr = self.invoke_cli("check")
+                self.assertEqual(status, 2)
+                self.assertEqual(json.loads(stderr)["code"], code)
+                self.assertFalse(json.loads(stderr)["absence_proven"])
+                self.assertNotIn("sensitive", stderr)
+
+    def test_retrieval_states_preserve_partial_unknown_and_leaf_semantics(self):
+        self.add("COBOL/A.cbl", "PROGRAM-ID. A.\nCOPY LAYOUT.\nCALL 'B'.\n")
+        self.add("COBOL/B.cbl", "PROGRAM-ID. B.\nGOBACK.\n")
+        self.add("COPY/LAYOUT.cpy", "01 SYNTHETIC-ROW PIC X(4).\n", "copybook")
+        nav.build(self.root)
+        matched = nav.walk(self.root, "COBOL/A.cbl", max_depth=4)
+        partial = nav.walk(self.root, "COBOL/A.cbl", max_depth=0)
+        leaf = nav.walk(self.root, "COPY/LAYOUT.cpy")
+        self.assertEqual(matched["retrieval"]["state"], "static_matches")
+        self.assertEqual(partial["retrieval"]["state"], "partial")
+        self.assertEqual(leaf["retrieval"]["state"], "no_static_edges")
+        for result in (matched, partial, leaf):
+            self.assertFalse(result["retrieval"]["absence_proven"])
+        self.add("COBOL/UNKNOWN.cbl", "PROGRAM-ID. UNKNOWN.\nCALL 'ABSENT'.\n")
+        nav.build(self.root)
+        missing = nav.walk(self.root, "COBOL/UNKNOWN.cbl")
+        self.assertEqual(missing["retrieval"]["state"], "unresolved")
+        self.assertEqual(missing["unresolved"][0]["name"], "ABSENT")
 
     def test_changed_bytes_block_check_and_walk(self):
         self.fixture()

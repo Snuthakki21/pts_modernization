@@ -48,6 +48,12 @@ Avoid service-per-paragraph designs, new engines, speculative frameworks and
 unnecessary wrappers. Record source/decision versions and affected consumers.
 Do not modify code or certify implementation; return contracts and blockers.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Extract source-linked preconditions, effects, consumer dependencies and unresolved
+alternatives into the assigned design; summarize only the decisions needed for the
+next design step. Retain compatibility exceptions, accepted decision versions and
+missing-source questions. Return references to the lead, not a second design memory.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

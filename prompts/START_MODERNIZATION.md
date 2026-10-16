@@ -19,3 +19,11 @@ The foreground Claude Code session coordinates the eight specialist roles. Read
 `AGENTS.md` and `config/project.json`; do not invoke the retired workbench engine.
 Return artifact paths, measured results and batched blockers. Do not request
 permission again for already authorized local work.
+
+Use current Endevor OKF navigation first. If the object question remains
+unanswered, follow docs/ENDEVOR_NAVIGATION.md to use the existing permitted Zowe
+CLI or Db2 MCP metadata route. Preserve partial/denied/error results and refresh
+approved views/OKF after discovery; do not ask SMEs to find technical objects.
+Apply the five context techniques from docs/TOKEN_EFFICIENCY.md before handoff
+or compaction, preserving active contracts, evidence links, unknown outcomes and
+remaining budgets. Do not delete full rule, test or per-record evidence.

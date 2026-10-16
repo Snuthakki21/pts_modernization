@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "dated_scoped_security_evidence",
-  "recorded_at_utc": "2026-10-16T10:22:49.231308+00:00",
+  "recorded_at_utc": "2026-10-16T10:54:43.635300+00:00",
   "guarantees_complete_security": false,
   "receipt_scope": "Kit UI and optional Graphify adapter only; no real converted application reviewed.",
   "reviews": [
@@ -588,5 +588,130 @@
       "remaining_findings": []
     },
     "complete_security_claim": false
+  },
+  "fallback_context_review_v7_3": {
+    "source_receipt": ".implementation/fallback-context-review.json",
+    "source_sha256": "d0baae14184640ac13756aaf15d0ce7bfa5e07a18ba5cd17d407c1eb5b857dee",
+    "independent_review": {
+      "recorded_at": "2026-10-16T10:53:41.536784+00:00",
+      "reviewer": "context_workflow independent scoped review",
+      "status": "passed_with_explicit_scope",
+      "scope": "Root-authored navigator retrieval-state/error changes, discovery-control instructions and regression changes; supporting mainframe playbook reviewed for workflow consistency. No remote connector execution.",
+      "independence": {
+        "not_author_of_reviewed_changes": true,
+        "authored_files_excluded_from_independent_conclusions": [
+          ".claude/agents/pts-analytics.md",
+          ".claude/agents/pts-audit.md",
+          ".claude/agents/pts-backend.md",
+          ".claude/agents/pts-design.md",
+          ".claude/agents/pts-frontend.md",
+          ".claude/agents/pts-qa.md",
+          "docs/TOKEN_EFFICIENCY.md"
+        ],
+        "required_other_review": "Root reviews the seven authored context files separately."
+      },
+      "observations": [
+        "Checked exact-start misses, stale snapshots, denied access, missing local input and integrity failures are separate outcomes; every navigator result refuses an absence proof.",
+        "The navigator remains local, bounded and read-only for traversal; no DB2/Zowe execution, MCP invocation or new permission bypass was added.",
+        "Fallback control docs require exact qualified identities, independent connector bindings, authorized scope and completion/pagination receipts; denial cannot be retried through another connector.",
+        "New approved acquisitions are reconciled into the existing manifest before OKF rebuild; damaged or stale local state is not silently trusted.",
+        "Control instructions retain source/version evidence, current denials, original budgets, unresolved or contradictory facts and full rule/record evidence; summaries confer no validation credit.",
+        "Public structured rubric fixtures are explicitly not actual Opus evaluations or evidence of model quality."
+      ],
+      "resolved_findings": [
+        {
+          "finding": "The enlarged 14-case suite exceeded the prior 12-case evaluator maximum, causing setup failures.",
+          "resolution": "Bounded maximum raised to 16 with a regression rejecting 17; all 27 evaluator tests now pass.",
+          "status": "resolved"
+        }
+      ],
+      "open_findings": [],
+      "checks": [
+        {
+          "suite": "nav",
+          "count": 43,
+          "status": "passed",
+          "log": ".implementation/fallback-review-nav-tests.txt",
+          "sha256": "f825e45d0f53566fdd715bdf69514956a56914f9d8b23a6b6a4f8d901d1b5c8c"
+        },
+        {
+          "suite": "instruction",
+          "count": 27,
+          "status": "passed",
+          "log": ".implementation/fallback-review-instruction-tests.txt",
+          "sha256": "ae666c6f5cc1a811dc7146ee37d10adec23324ec6a08c60a0b0d6e938ae760e0"
+        },
+        {
+          "suite": "independent synthetic navigator probes",
+          "count": 9,
+          "status": "passed",
+          "receipt": ".implementation/fallback-independent-nav-probes.json",
+          "sha256": "26a6dca774d273583889675ae39cb090035103e0d2813d4e6a753099c66788ed"
+        },
+        {
+          "suite": "kit integrity",
+          "result": {
+            "kit_integrity": "passed",
+            "errors": [],
+            "preservation_basis": "git_history_and_pinned_baseline",
+            "runtime_validation": "not performed",
+            "mainframe_validation": "not performed"
+          }
+        },
+        {
+          "suite": "git diff --check",
+          "status": "passed"
+        }
+      ],
+      "reviewed_sha256": {
+        ".claude/agents/pts-devops.md": "862bbdebebb57f0beaba0aa328041860f5f68851b6dc4ed3880f7b8e04394193",
+        ".claude/agents/pts-gap-analysis.md": "a9ba72da5b99aad432969a5d437b361bcc6d03a7e10f604c12814762598fcde5",
+        ".claude/agents/pts-orchestrator.md": "d7f2ee1bf1a3fb600665d5975b9f7296fd7c9992e883f621b49af6aad7b90dfe",
+        ".claude/skills/modernize-process/SKILL.md": "0a0b4cc59ef94c62f82e59ba88d4eb592f009945364b65b14bc887d6ff7dedee",
+        ".claude/skills/validate-program/SKILL.md": "88111eb92fb8efc254b5a7ccd06d86a7365b906094c7d1590cf0aff73f5d0066",
+        ".claude/skills/validate-program/references/mainframe.md": "30cedb52462196b10e4a5991a3895e7ab2debfc100eb8cfaa5beb256a618c17a",
+        "AGENTS.md": "2cc5b5847a260f5756fc0367558c88f9dd1f2f6de01dc9d4dd7ed59915fe654e",
+        "CLAUDE.md": "0a0bdc996c2e47934b32b5b688baa26642ca07260baf2d6bf3d08d1d55318f5b",
+        "README.md": "7fec38d403baf1143bc3092aa7a09c513bcb910544daa88ac9d6ab8b76015ec7",
+        "START_HERE.md": "af82b661fa597101f91198d956921740bf4e84e2397bb794f71dd6e157359a9b",
+        "docs/ENDEVOR_NAVIGATION.md": "3086078c4f5e34f4cd51c381ce12981a8e65fc7a8a31598918a969a2998691fe",
+        "docs/TECHNICAL_REFERENCE.md": "879124d5a70e51d69803a31d0dee185272ae971d799ffec281ffca395f66c7b9",
+        "knowledge/MEMORY.md": "16bc3ff178dae842caa061c5bf195de71bd554e8f40e9de473a69fdd51ae587a",
+        "prompts/START_MODERNIZATION.md": "df626ecae2b1331c574bda4ed3fa1685b7f4ac0d46fa3e026f868ca8f51036db",
+        "tests/instruction_cases.json": "933ebcfdfaddc23a57b616c3ac1bec0afd1fe4bc3fe9306426d678bf3bd0395d",
+        "tests/test_endevor_nav.py": "44aa076f64fcaf2f94e2d0dc50ed9dc3160f6fcfd7754a187ff178d1ee8229d8",
+        "tests/test_instruction_responses.py": "de4cf20c2cc4aa77b9adfbd4f8fc244473b5f75affbbaa590653152b648fb5fb",
+        "tools/check_instruction_responses.py": "a9e22d3f7c5f3518118ba18be1248e8bb2c3dc2987fb4f5bde75232e923815e6",
+        "tools/endevor_nav.py": "a46ef81b4b162307d68aed57710d675cab1801c7ac955acab63603ca5e6c56fd"
+      },
+      "limitations": [
+        "No live Db2 MCP, Zowe, mainframe source acquisition, catalog lookup, or legacy execution was performed.",
+        "No Claude/Opus model, host permission binding, goal loop or real provider-token savings were tested.",
+        "Vendor CLI/catalog shapes depend on the separately primary-source-verified author research and must be matched to the installed host release.",
+        "Evidence/index receipts to be updated after this freeze are outside these reviewed hashes; this review does not certify unreviewed future changes.",
+        "Scoped review and passing tests do not establish complete security, complete mainframe dependencies or application conversion acceptance."
+      ]
+    },
+    "context_files_independent_root_review": {
+      "reviewer": "root; not author of these context additions",
+      "recorded_at_utc": "2026-10-16T10:54:43.635300+00:00",
+      "status": "passed_with_documented_limits",
+      "reviewed_sha256": {
+        ".claude/agents/pts-analytics.md": "edd01fce1de844a18353625e8062eee44b3d92ac3cae57742c3d2386fde4df53",
+        ".claude/agents/pts-audit.md": "1a86b001e0dd1cdd8764524d67e1e81514c632d0d45a198c07d276cfd7034eaa",
+        ".claude/agents/pts-backend.md": "592a978f16fe1b75d6deef6451b66699dde9ea66f4d929e04b25d8f3490e4ea4",
+        ".claude/agents/pts-design.md": "5afcb0e30dfc5ced9f410f0fa7c3ba49273e7cdf12d5f7faee4f353b83ad0ed6",
+        ".claude/agents/pts-frontend.md": "13a585264551691dbd4953da0988152265608b4d63afe4b14f32d911f207d12f",
+        ".claude/agents/pts-qa.md": "46066bc0623e67c3c5f24b0e1cf08160e4ce903ff43282c37640b18c1fea4be6",
+        "docs/TOKEN_EFFICIENCY.md": "48bd3e22315084f1373f18d177f7404a54ec686ad75651bf81de1c5c2d73d017"
+      },
+      "observations": [
+        "All five techniques are present with concrete steps and role-specific use.",
+        "Active constraints, permissions, unresolved failures, original budgets and authentic decisions survive trimming.",
+        "Full per-record rule events, replay inputs and canonical source evidence remain separately retained; summaries never create validation credit.",
+        "No new engine, model route, memory store or plugin was introduced; provider-token savings and actual model behavior remain unmeasured."
+      ],
+      "open_findings": []
+    }
   }
 }

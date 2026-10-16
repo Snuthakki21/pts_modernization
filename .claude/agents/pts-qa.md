@@ -62,6 +62,13 @@ for each failed record. Missing context blocks reproducibility; a matched failur
 does not establish correctness. Follow `docs/APP_MODERNIZATION_GUIDE.md`.
 Stop at the shared repair limit. Green unit counts are not observed legacy parity.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Keep the independent oracle/source versions, every rule's case counts, unresolved
+failures and remaining repair budget active. Distill runs into rule/case/record IDs,
+actual assertions and immutable receipt/replay links; preserve complete cases,
+failed records and traces. Summarize repeated diagnostics only after retaining their
+full permitted evidence; never derive missing expectations from the target summary.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

@@ -73,6 +73,14 @@ views. The lead builds the OKF bundle; workers check freshness, open its index a
 traverse only the required dependencies or callers. Keep unresolved references
 visible. Navigation is a retrieval projection, never proof of completeness or
 permission to remove code. Graphify remains the separate Python-only lookup.
+If the checked OKF view cannot answer the question, use the existing permitted
+Zowe CLI for dataset/member discovery or Db2 MCP for database metadata under that
+runbook. Route technical discovery to gap analysis/DevOps; batch actual business
+ambiguities for SMEs. A denied or truncated query is not a not-found result.
+Apply recency trimming, semantic summarization, structured extraction, tool-result
+distillation and externalization as specified in `docs/TOKEN_EFFICIENCY.md`.
+Retain the active contract and exact evidence pointers before trimming. Never
+summarize with another model, erase failures, sample record traces or reset budgets.
 Never paste whole fixtures, logs or unrelated programs. Retained Headroom guidance
 is instruction-only. `docs/TOKEN_EFFICIENCY.md` supplies the pinned optional local
 Graphify parser and scoped lookup command; never invoke its generic CLI/hooks or

@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "kind": "graphify_navigation_refresh_receipt",
-  "observed_at_utc": "20261016T102110Z",
+  "observed_at_utc": "20261016T105348Z",
   "graphify_version": "0.9.91",
   "adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
   "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
   "execution": "actual pinned extract_python via existing read_source/extract_snapshot/select helpers; no upstream CLI, model or network calls",
-  "index_artifact": ".implementation/navigation/graphify-20261016T102110Z.json",
-  "index_sha256": "0f7c55bfd2b9fb24953e797ce2250c7297400751a49b08f6e989695b538f2139",
+  "index_artifact": ".implementation/navigation/graphify-20261016T105348Z.json",
+  "index_sha256": "1bf1d88e744600be84d7661250cf5dc2a5a2843eb23ad857d9f4888c87c3a865",
   "index_committed": false,
   "canonical_navigation_manifest": "knowledge/local-index.json (ignored local state)",
   "file_count": 12,
-  "symbol_count": 176,
-  "call_count": 269,
+  "symbol_count": 179,
+  "call_count": 271,
   "files": [
     {
       "path": "examples/rule_validation/demo_oracle.py",
@@ -30,7 +30,7 @@
     },
     {
       "path": "tools/check_instruction_responses.py",
-      "sha256": "ee48a3de08853948575278ef84a68183191fb3934bfd040bf3e3c0eb77a54870",
+      "sha256": "a9e22d3f7c5f3518118ba18be1248e8bb2c3dc2987fb4f5bde75232e923815e6",
       "symbols": 15,
       "calls": 26,
       "truncated": false
@@ -51,9 +51,9 @@
     },
     {
       "path": "tools/endevor_nav.py",
-      "sha256": "915e54d06edd26bad02e9436baa8f0f8be6ad34720096b6530b3d6c1b9d3a110",
-      "symbols": 28,
-      "calls": 45,
+      "sha256": "a46ef81b4b162307d68aed57710d675cab1801c7ac955acab63603ca5e6c56fd",
+      "symbols": 31,
+      "calls": 47,
       "truncated": false
     },
     {

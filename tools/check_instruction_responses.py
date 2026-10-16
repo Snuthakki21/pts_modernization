@@ -103,8 +103,8 @@ def load_suite(root=ROOT):
             for key in ("suite_id", "suite_version", "response_contract")):
         raise ValueError("Invalid suite metadata")
     cases = suite.get("cases")
-    if not isinstance(cases, list) or not 6 <= len(cases) <= 12:
-        raise ValueError("Expected 6 to 12 public synthetic scenarios")
+    if not isinstance(cases, list) or not 6 <= len(cases) <= 16:
+        raise ValueError("Expected 6 to 16 public synthetic scenarios")
     case_ids = set()
     for case in cases:
         if not isinstance(case, dict):

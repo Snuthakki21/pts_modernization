@@ -79,6 +79,13 @@ Return supported findings with severity, source/file location, consequence and
 reproducing evidence. Do not edit implementation, supply SME answers, overwrite
 history or update canonical inventory. Missing evidence remains a named blocker.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Reopen cited current evidence rather than accepting another agent's summary as
+proof. Check that trimming retained denials, budgets, conflicting facts, unresolved
+findings and complete rule/record denominators. Trace distilled claims to full
+version-bound receipts, including pagination and failed queries; record unsupported
+claims as findings. Preserve your independent new-run review and its exact subject hash.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

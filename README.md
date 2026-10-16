@@ -19,6 +19,9 @@ read-only monitoring. Ponytail is required for minimal complete design and code.
 Use [Endevor navigation](docs/ENDEVOR_NAVIGATION.md) for source dependency/caller
 traversal in Open Knowledge Format. Mainframe views live in `Endevor/`; the local
 Markdown bundle is generated from an explicit approved-source manifest.
+Unanswered OKF questions use the documented permitted Db2 MCP/Zowe fallback.
+The agents apply [five context techniques](docs/TOKEN_EFFICIENCY.md#five-context-techniques-in-the-existing-workflow)
+while retaining complete evidence and unresolved outcomes.
 
 This clean branch retains the existing 15 optional instruction packages and their
 licenses from `modernization-factory`. It does not install their upstream runtimes.

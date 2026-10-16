@@ -77,6 +77,13 @@ weakening assertions, hardcoding fixtures or changing approved meaning. The lead
 owns the two-cycle budget. Stop repeated failure without progress or semantic
 ambiguity. Do not implement an engine or alter permissions/model bindings.
 
+Apply the five techniques in `docs/TOKEN_EFFICIENCY.md` at handoff or compaction.
+Keep the current rule/source hashes, affected callers, effects, denied operations
+and remaining repair allowance active. Distill compiler/test output into exact
+failure IDs and receipt links while preserving full results and replay inputs.
+Replace repeated code dumps with current symbol/span references; never summarize
+away an exception, trace event or unresolved dependency before implementing a fix.
+
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
 the turn budget so the foreground can persist continuation state.

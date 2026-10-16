@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 7.2 · 16 October 2026 (UTC) · Endevor traversal in Open Knowledge Format
+Version 7.3 · 16 October 2026 (UTC) · Permitted discovery fallback and evidence-preserving context techniques
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -141,6 +141,11 @@ projection, bounded dependency/caller traversal and freshness checks. Protected
 originals remain in their existing stores. The lead owns builds; workers consume
 a checked snapshot. The graph is a retrieval aid, not the source inventory,
 business-rule analysis or proof that every dependency has been discovered.
+If a checked local lookup leaves an object question unanswered, follow that
+runbook's conditional fallback to the existing permitted Zowe CLI or Db2 MCP
+metadata binding. Check each connector independently; do not confuse inaccessible,
+partial, stale or failed retrieval with object absence. Record exact query scope
+and receipts, reconcile approved acquisitions and refresh the local OKF projection.
 
 The supplied photo shows listing pattern **`TSTSN.#RW477*`**, at **Row 39 of 75**.
 `config/source-reference.json` records visible dataset examples and provenance.
@@ -613,7 +618,7 @@ docstring and `--help` define its executable interface.
 | `tools/rule_cases.py` | QA; source-linked catalog, reviewed independent generator, pinned target | Freezes deterministic cases, de-duplicates declared meaningful inputs, observes actual mapped synchronous Python functions, checks outputs/events and reports each rule's separate passing counts/coverage. Declared source coverage is not independent COBOL completeness. |
 | `tools/replay_record.py` | QA/DevOps; captured failure bundle and record occurrence | Validates hashes and materializes a portable dependency closure; explicit execution replays a trusted local adapter. Expected comparison and failure reproduction are separate; neither sets program acceptance. |
 | `tools/render_migration.py` | Lead; canonical inventory and all source maps | Replaces only the migration document's generated facts. Verifies supplied artifact hashes and exposes missing/stale artifacts and cyclic dependencies. Stages are reported, never certified. |
-| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores eleven public scenarios with 54 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
+| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores the versioned public scenario suite, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
 
 The separate initializer in Section 6 creates missing files only. The kit checker
 requires the tools, tests, workbook, templates and memory files, verifies preserved
@@ -775,6 +780,15 @@ demonstrations only; it does not implement runtime capture or automated imports.
 See the [workbook operating guide](WORKBOOK_GUIDE.md) for the refresh contract.
 
 ## 10. Model, autonomy, tokens and durable knowledge
+
+Apply the [five context techniques](TOKEN_EFFICIENCY.md#five-context-techniques-in-the-existing-workflow)
+at handoff, compaction and context growth: recency trimming, semantic summarization,
+structured extraction, tool-result distillation and externalization. Keep active
+contracts, qualified versions, authentic decisions, denials, unresolved failures,
+uncertain effects and cumulative budgets. Detailed evidence stays in existing
+canonical stores; summaries never replace all-rule testing or full record traces.
+Use only the approved model and measure total-task cost, including retrieval and
+review. No new summarization service, memory engine or guaranteed saving is implied.
 
 Use [Claude Code workflow](CLAUDE_CODE_WORKFLOW.md) and the
 [goal/loop prompts](../prompts/GOAL_WORKFLOW.md). Native `/goal` requires the

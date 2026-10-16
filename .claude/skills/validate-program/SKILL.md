@@ -11,6 +11,11 @@ backend for repairs and audit for independent findings. Keep at most two workers
 Read `CLAUDE.md`, `config/project.json`, approved original-source views, rule IDs,
 accepted decision revisions and the assigned target/flow versions. Never bypass
 protected data or permission denies through shell, scripts, MCP or alternate paths.
+For missing source/object metadata, follow `docs/ENDEVOR_NAVIGATION.md` and the
+mainframe reference's read-only fallback, keeping discovery separate from a legacy
+test run. Apply `docs/TOKEN_EFFICIENCY.md`'s five context techniques to cases and
+results: distill a linked summary while preserving every case, failure and record
+event in its existing evidence store. Unknown outcomes remain unknown.
 
 ## 1. Establish an independent oracle
 

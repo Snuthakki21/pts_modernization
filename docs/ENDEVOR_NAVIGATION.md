@@ -164,6 +164,44 @@ refresh Python symbols, and a Graphify refresh does not update the mainframe bun
 Refresh each affected projection after source or instruction changes. Keep the
 full source inventory denominator independent of the currently reachable graph.
 
+## When navigation cannot answer
+
+Use the existing [read-only mainframe playbook](../.claude/skills/validate-program/references/mainframe.md)
+for fallback discovery through the user's Db2 MCP server and Zowe CLI. The helper
+does not invoke either connector. The lead assigns one bounded lookup to gap
+analysis or DevOps, using the same handoff and verified workstation bindings.
+Once those bindings permit the operation, continue without repeated confirmation.
+
+Navigator 1.1 returns exit 2 with `status: blocked` and a reason code for
+`okf_lookup_miss`, `stale_index`, `local_input_or_index_missing`, `access_denied`
+or `input_or_integrity_block`. Preserve that distinction and follow its next step;
+none proves absence. A successful walk reports `retrieval.state` as `partial`,
+`unresolved`, `static_matches` or `no_static_edges`. Use fallback only if the actual
+question remains unanswered after relevant local evidence; a known leaf does not
+need a remote search. Rebuild previous generator snapshots before reuse.
+
+| Observed condition | Next action |
+|---|---|
+| Missing bundle or stale approved-source/manifest hash | Check the exact qualified identity in the current approved local inventory; reconcile the manifest and rebuild/check if safe. Preserve damaged generated state for reviewed recovery. |
+| Source absent locally or unresolved literal reference | Search the exact known library/member/version first through permitted Zowe metadata, then the approved `TSTSN.#RW477*` catalog scope. Use approved acquisition only after identifying the candidate. |
+| SQL object, schema, alias or package dependency missing | Query the independently permitted Db2 MCP metadata binding using the actual subsystem and qualified object/package identity. Do not use Db2 as a COBOL source repository. |
+| Ambiguous or dynamic reference; fresh graph with no edges | Inspect approved source spans, ordered libraries, bind controls and existing runtime evidence. Discover candidates through the appropriate permitted connector; retain uncertainty until resolution is evidenced. |
+| Walk/result truncated, paging unknown, timeout or inaccessible object | Record an incomplete lookup. Continue supported paging within the original budget or retain the outstanding scope; never report global absence. |
+
+A stale index, no matches, denied access and an unavailable connector are distinct
+outcomes. `not_found_in_scope` requires a successful, complete search of the recorded
+authorized scope; it does not prove the object does not exist elsewhere. Catalog
+visibility does not establish source-read or business-table-read permission. Never
+switch connectors/accounts to obtain an object whose access was denied.
+
+Retain exact request, scope, binding, timestamps, completion state and evidence
+hashes in the existing protected program analysis records; return only approved
+metadata, unresolved identities and receipt references to agent context. Follow
+the playbook's reconciliation step before adding newly acquired approved views to
+`Endevor/navigation.json`, rebuilding OKF and invalidating dependent analysis.
+Resolve technical discovery independently; SMEs answer only unresolved business
+meaning or intended changes. A host-access gap belongs to the environment owner.
+
 ## Claude Code prompt
 
 ```text
@@ -172,6 +210,10 @@ Endevor/navigation.json manifest. Follow docs/ENDEVOR_NAVIGATION.md. The lead
 builds/checks the OKF bundle, then gives each worker one qualified program and
 the checked snapshot. Traverse only relevant dependencies/callers with explicit
 bounds; read cited source spans and retain ambiguous, dynamic and missing links.
+If OKF cannot answer, follow its fallback playbook: exact identity and approved
+local files first, then independently permitted Zowe/Db2 metadata discovery.
+Preserve denied, unavailable, partial and not-found-in-scope as distinct outcomes;
+reconcile approved acquisitions into Endevor and rebuild before reuse.
 Reconcile every supplied program with canonical inventory/source maps, including
 unreachable programs. Return artifact paths, hashes, unresolved gaps and the next
 action. Preserve source protections, original budgets and all validation gates.

@@ -24,6 +24,16 @@ approved `Endevor/` views. Check its source fingerprints before use, follow only
 relevant dependency/caller links, and return omissions and ambiguous references.
 Do not infer an absent consumer from a missing edge. Propose source-manifest
 updates to the lead; do not write the shared bundle concurrently with another worker.
+If the question remains unanswered, follow the runbook's bounded discovery route:
+use permitted Zowe dataset/member metadata or the actual approved Db2 MCP metadata
+binding appropriate to the object. Query only available authorized objects; retain
+qualified identity, source of the reference, pages checked, errors/denials and
+unresolved alternatives. An accessible listing is not proof of content access.
+Propose hash-linked acquisition/manifest changes to the lead before OKF refresh.
+Apply `docs/TOKEN_EFFICIENCY.md`'s structured extraction and tool-result distillation
+to facts, preserving source spans and evidence class. Externalize detailed findings
+in assigned analysis, then summarize dependencies, exceptions and uncertainty;
+trim repeated discovery chatter only after the lead receives the durable handoff.
 
 Account for every original source span using approved sanitized views and their
 original-span/hash mapping. Classify business, technical, mixed and unknown units;

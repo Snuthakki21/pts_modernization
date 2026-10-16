@@ -62,6 +62,10 @@ packages from `modernization-factory`; it does not start the old Python workbenc
 For the mainframe source folder named `Endevor`, follow
 [Endevor navigation](docs/ENDEVOR_NAVIGATION.md). Populate its explicit approved-view
 manifest, then build/check the local OKF bundle before source dependency traversal.
+If the question remains unanswered, use its read-only Db2 MCP/Zowe fallback after
+the existing workstation bindings are verified. Keep denials, errors and partial
+results distinct. The [context procedure](docs/TOKEN_EFFICIENCY.md#five-context-techniques-in-the-existing-workflow)
+keeps handoffs compact without removing evidence or changing budgets.
 
 For the recommended VS Code/terminal setup, goal boundaries and monitoring loops,
 read [Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and use the

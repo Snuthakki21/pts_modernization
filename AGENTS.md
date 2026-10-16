@@ -48,6 +48,14 @@ Keep sources, rules, target mappings, cases and observed results linked by IDs,
 versions and hashes. An unavailable result remains unverified. Reuse only compatible
 versions and fresh evidence. The foreground coordinator alone publishes inventory.
 
+When OKF cannot answer an object question, follow `docs/ENDEVOR_NAVIGATION.md`:
+refresh stale local views first, then use the existing permitted Zowe/Db2 MCP
+route appropriate to the object. Preserve denial, partial, error and scoped-miss
+outcomes separately. Do not invent tool bindings or repeat an answered search.
+Apply all five context techniques in `docs/TOKEN_EFFICIENCY.md` at handoff and
+compaction. Trim conversation, not canonical evidence, active constraints,
+unresolved failures, authentic decisions or remaining budgets.
+
 Follow `docs/SECURITY_REVIEW.md`: backend remediates, QA challenges the fix, and
 an independent audit rechecks the exact version. Keep quality and security gates
 separate; missing checks and unresolved critical/high findings block promotion.

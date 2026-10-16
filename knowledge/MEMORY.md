@@ -27,6 +27,8 @@ process, decision or unresolved task. Per-agent copies are unnecessary.
 - [Endevor navigation](../docs/ENDEVOR_NAVIGATION.md) defines the OKF traversal
   procedure. Begin at the local `knowledge/endevor/index.md` after its freshness
   check; load only the relevant concepts and cited approved source spans.
+  An unanswered question triggers its permitted Db2 MCP/Zowe fallback, with
+  recorded scope and outcomes. Denied/partial/error results are not object absence.
 
 ## Canonical local memory
 
@@ -65,3 +67,9 @@ the next unblocked task and preserve unresolved gaps.
 
 Knowledge may improve continuity. Model quality and business correctness still
 require observed independent evaluation and execution evidence.
+
+Apply the five context techniques in [Token efficiency](../docs/TOKEN_EFFICIENCY.md)
+at handoff or compaction. Keep the active objective, contracts, hashes, decisions,
+denials, failures, uncertain effects and remaining budgets. Store detailed facts
+in existing owned analysis/evidence paths, return concise references to the lead,
+and trim only superseded conversational material after those references are saved.
