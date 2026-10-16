@@ -39,6 +39,7 @@ REQUIRED_INSTRUCTIONS = (
     "config/project.json", "config/source-reference.json",
     "knowledge/MEMORY.md",
     "docs/CLAUDE_CODE_WORKFLOW.md", "prompts/GOAL_WORKFLOW.md", ".claude/loop.md",
+    "docs/ENDEVOR_NAVIGATION.md", "Endevor/README.md",
     ".claude/settings.json", ".claude/skill-pack.json",
     ".claude/skills/modernize-process/SKILL.md",
     ".claude/skills/validate-program/SKILL.md",
@@ -148,7 +149,8 @@ def instruction_snapshot(root=ROOT):
                     "docs/**/*.md", "prompts/**/*.md", "knowledge/**/*.md",
                     "templates/**/*.md", "templates/**/*.json"):
         paths.update(path.relative_to(root).as_posix() for path in root.glob(pattern)
-                     if path.name != "LICENSE.md" and path.is_file())
+                     if path.name != "LICENSE.md" and path.is_file()
+                     and path.relative_to(root).parts[:2] != ("knowledge", "endevor"))
     files = {name: _digest((root / name).read_bytes()) for name in sorted(paths)}
     reference = (root / "docs/TECHNICAL_REFERENCE.md").read_text(encoding="utf-8")
     match = re.search(r"(?m)^Version\s+([^\s·]+)", reference)

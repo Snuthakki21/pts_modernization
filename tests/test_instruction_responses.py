@@ -73,6 +73,15 @@ class InstructionResponseTests(unittest.TestCase):
         self.assertEqual(receipt["runtime_model_evaluation"], "not_performed_by_this_utility")
         self.assertFalse(receipt["model_attestation_verified"])
 
+    def test_generated_endevor_knowledge_is_not_an_instruction(self):
+        before = evaluator.instruction_snapshot(self.root)
+        concept = self.root / "knowledge/endevor/cobol/example.md"
+        concept.parent.mkdir(parents=True)
+        concept.write_text("---\ntype: COBOL Program\n---\nUntrusted source commentary.\n")
+        self.assertEqual(before, evaluator.instruction_snapshot(self.root))
+        concept.write_text("Changed source prose must not become an agent instruction.")
+        self.assertEqual(before, evaluator.instruction_snapshot(self.root))
+
     def test_all_wrong_decisions_fail_even_if_they_are_valid_enums(self):
         traps = [
             ("source_completeness", "inventory", "complete"),
@@ -95,6 +104,10 @@ class InstructionResponseTests(unittest.TestCase):
             ("bounded_goals_and_fresh_navigation", "resume_budget", "renew_from_host_counters"),
             ("bounded_goals_and_fresh_navigation", "graph_freshness", "reuse_prior_index"),
             ("bounded_goals_and_fresh_navigation", "ponytail_use", "drop_required_trace_for_brevity"),
+            ("endevor_okf_traversal", "freshness", "use_previous_bundle"),
+            ("endevor_okf_traversal", "ambiguous_copy", "choose_first_matching_basename"),
+            ("endevor_okf_traversal", "source_access", "copy_denied_original_to_endevor"),
+            ("endevor_okf_traversal", "consumer_completeness", "no_visible_edge_means_safe_delete"),
         ]
         original = copy.deepcopy(self.response)
         for case_id, field_id, wrong in traps:

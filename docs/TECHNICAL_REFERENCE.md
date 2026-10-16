@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 7.1 · 16 October 2026 (UTC) · Bounded goals, source navigation and temporary research cleanup
+Version 7.2 · 16 October 2026 (UTC) · Endevor traversal in Open Knowledge Format
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -133,6 +133,14 @@ task is not success. A normal foreground IDE session is not a durable unattended
 service; persist handoffs so it can resume after closure or context compaction.
 
 ## 4. Mainframe source discovery
+
+Use `Endevor/` for explicitly approved sanitized local source views and
+`Endevor/navigation.json` for their declared identities and acquisition reference.
+[Endevor navigation](ENDEVOR_NAVIGATION.md) defines the implemented OKF v0.2
+projection, bounded dependency/caller traversal and freshness checks. Protected
+originals remain in their existing stores. The lead owns builds; workers consume
+a checked snapshot. The graph is a retrieval aid, not the source inventory,
+business-rule analysis or proof that every dependency has been discovered.
 
 The supplied photo shows listing pattern **`TSTSN.#RW477*`**, at **Row 39 of 75**.
 `config/source-reference.json` records visible dataset examples and provenance.

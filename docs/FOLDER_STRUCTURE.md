@@ -15,6 +15,8 @@ model-quality result is implied by the presence of these files.
 | `prompts/START_MODERNIZATION.md` | Start/resume prompt |
 | `docs/CLAUDE_CODE_WORKFLOW.md`, `prompts/GOAL_WORKFLOW.md`, `.claude/loop.md` | Verified native feature guidance, bounded goal prompts and read-only loop default |
 | `docs/GRAPHIFY_INDEX_EVIDENCE.json` | Dated source-hash and parser receipt for the refreshed public Python navigation index |
+| `docs/ENDEVOR_NAVIGATION.md`, `tools/endevor_nav.py` | OKF v0.2 build/check/traversal and operating contract |
+| `Endevor/README.md`, `templates/endevor/navigation.json` | Source-folder entry point and empty explicit-file manifest template |
 | `.claude/agents/` | Nine definitions: orchestrator, design, frontend, backend, QA, DevOps, analytics, audit and gap analysis |
 | `.claude/skills/modernize-process/` | Application/process modernization procedure |
 | `.claude/skills/validate-program/` | Program validation procedure and mainframe reference |
@@ -113,6 +115,8 @@ state merely to make initialization pass.
 | `knowledge/decisions.json` | Lead; accepted attributed decisions with provenance/applicability/supersession |
 | `knowledge/handoff.json` | Lead; current work, versions, checks, blockers, pending tasks, remaining budgets and next action |
 | `knowledge/local-index.json` | Lead; rebuildable retrieval pointers and hash matches, never independent acceptance |
+| `Endevor/` | Lead; approved sanitized mainframe views and explicit `navigation.json` manifest; source files ignored by Git |
+| `knowledge/endevor/` | Lead; generated linked Markdown navigation, provenance and freshness cache; ignored by Git |
 | `programs/<id>/program.json` | Qualified program identity and source-manifest reference |
 | `programs/<id>/source/` | Protected original snapshots or references; existing read protections remain |
 | `programs/<id>/analysis/` | Approved sanitized views, source ledger/map, classified rules, questions, design and compact compatibility profile |

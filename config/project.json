@@ -18,7 +18,8 @@
     "write_profile": null,
     "db2_profile": null,
     "listing_pattern": "TSTSN.#RW477*",
-    "live_verified": false
+    "live_verified": false,
+    "local_source_root": "Endevor"
   },
   "execution": {
     "max_workers": 2,
@@ -85,5 +86,13 @@
     "comparative_model_equivalence": "not_established",
     "live_model_evaluation": "not_performed",
     "held_out_evaluation_required": true
+  },
+  "navigation": {
+    "format": "OKF",
+    "version": "0.2",
+    "manifest": "Endevor/navigation.json",
+    "bundle": "knowledge/endevor",
+    "source_policy": "explicit_approved_sanitized_views",
+    "acceptance_authority": false
   }
 }

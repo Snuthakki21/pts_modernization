@@ -25,6 +25,8 @@ REQUIRED_FILES = (
     "docs/SPARKFLOWS_MIGRATION.md", "docs/IMPLEMENTATION_PLAN.md", "docs/WORKBOOK_GUIDE.md",
     "docs/FOLDER_STRUCTURE.md", "docs/OPUS_QUALITY.md", "docs/RULE_REMOVAL.md", "docs/evidence.json",
     "docs/CLAUDE_CODE_WORKFLOW.md", "docs/GRAPHIFY_INDEX_EVIDENCE.json",
+    "docs/ENDEVOR_NAVIGATION.md", "Endevor/README.md",
+    "tools/endevor_nav.py", "tests/test_endevor_nav.py", "templates/endevor/navigation.json",
     "docs/PROGRESS_UI.md", "docs/PROGRESS_DESIGN.md", "docs/PUBLIC_SITE_DESIGN.md",
     "docs/SECURITY_REVIEW.md", "docs/SECURITY_EVIDENCE.json", "docs/TOKEN_EFFICIENCY.md", "docs/TOKEN_TOOLS_EVIDENCE.json",
     "docs/design/wells-fargo-reference-20261016.jpg",
@@ -137,6 +139,16 @@ def audit(root=ROOT):
             "Program-source and private-evidence deny entries were removed")
     require(settings.get("agent") == "pts-orchestrator", "Foreground lead not selected")
     trace = config.get("trace", {})
+    require(config.get("mainframe", {}).get("local_source_root") == "Endevor",
+            "Approved mainframe views must use the Endevor folder")
+    navigation = config.get("navigation", {})
+    require(navigation.get("format") == "OKF" and navigation.get("version") == "0.2"
+            and navigation.get("manifest") == "Endevor/navigation.json"
+            and navigation.get("bundle") == "knowledge/endevor",
+            "Endevor OKF navigation bindings differ from the contract")
+    ignore_lines = (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    require({"/Endevor/*", "!/Endevor/README.md", "/knowledge/endevor/"} <= set(ignore_lines),
+            "Endevor source and generated knowledge must stay ignored")
     require(trace.get("required") is True and trace.get("coverage") == "all_records"
             and trace.get("sampling_allowed") is False
             and trace.get("incomplete_trace_blocks_acceptance") is True,

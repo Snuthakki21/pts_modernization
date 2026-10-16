@@ -19,6 +19,11 @@ Own assigned `programs/<id>/analysis/{rules.json,source-map.json,questions.json}
 Inventory every supplied program, even without process membership. Qualify identity
 by library/member/version; dataset names and matching names do not prove program
 identity. Preserve unknown files and missing/dynamic dependencies.
+Use `docs/ENDEVOR_NAVIGATION.md` to traverse the lead's current OKF projection of
+approved `Endevor/` views. Check its source fingerprints before use, follow only
+relevant dependency/caller links, and return omissions and ambiguous references.
+Do not infer an absent consumer from a missing edge. Propose source-manifest
+updates to the lead; do not write the shared bundle concurrently with another worker.
 
 Account for every original source span using approved sanitized views and their
 original-span/hash mapping. Classify business, technical, mixed and unknown units;

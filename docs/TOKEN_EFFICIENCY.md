@@ -1,5 +1,11 @@
 # Token efficiency without losing evidence
 
+For mainframe navigation, use [Endevor OKF traversal](ENDEVOR_NAVIGATION.md).
+It uses the standard library, linked Markdown and a bounded dependency/caller
+query. It does not add a runtime, embeddings or a model call. Read one directory
+index, the relevant concepts and cited source spans; do not ingest the full bundle.
+Graphify below remains Python-only. Neither index proves complete dependencies.
+
 The selected runtime is **Graphify 0.9.91 for local Python symbol lookup**. It is
 installed in an isolated environment in the build workspace; its reproducible
 dependency lock and a narrow adapter are included on this branch. It does not

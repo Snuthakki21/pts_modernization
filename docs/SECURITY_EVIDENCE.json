@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "dated_scoped_security_evidence",
-  "recorded_at_utc": "2026-10-16T04:51:04.514507+00:00",
+  "recorded_at_utc": "2026-10-16T10:22:49.231308+00:00",
   "guarantees_complete_security": false,
   "receipt_scope": "Kit UI and optional Graphify adapter only; no real converted application reviewed.",
   "reviews": [
@@ -480,5 +480,113 @@
         }
       ]
     }
+  },
+  "endevor_navigation_review_v7_2": {
+    "review_receipt": ".implementation/endevor-independent-review.json",
+    "review_sha256": "0d4e08812049ff63c60c4ee5357c2ae97d039fc729cf7fad18c36a88ede322de",
+    "review": {
+      "schema_version": 1,
+      "recorded_at": "2026-10-16T10:21:13.218854+00:00",
+      "reviewer": "endevor_navigation_qa independent implementation reviewer and synthetic test author",
+      "scope": "Endevor OKF traversal utility, synthetic tests and source-boundary/workflow integration",
+      "result": "passed_with_documented_limits",
+      "reviewed_sha256": {
+        "tools/endevor_nav.py": "915e54d06edd26bad02e9436baa8f0f8be6ad34720096b6530b3d6c1b9d3a110",
+        "tests/test_endevor_nav.py": "5fc1fcdb488457f2511c006b4ff81ae5590143fd09481d10f38370b773894710",
+        "docs/ENDEVOR_NAVIGATION.md": "0713fac5a2e3bac609e1405ee704dcf545a7c07923809dc5cc5b9eda12159423",
+        "Endevor/README.md": "a4f8afd4a51d46ad68f6801023ff59f465c4183f14498f31743f9cc43c7a3295",
+        "templates/endevor/navigation.json": "06e7e07cf57dea0a84cc930da93a2ec6af72e1466da7f545c0b385707d4196c8",
+        ".gitignore": "38f8ce291b0fd35a3c80fd46fe08befc47e294200614dbb5772848c6d7c81974",
+        "config/project.json": "1d96ab51f2955816d41a7906a27b1ac3cd5321070e7a337a995b1bccca7a13e3",
+        ".claude/settings.json": "b6c8fb7a0ff0cb89664d0936e7f17a47e4320ef7e1a22e1bb898211230cf9388",
+        "CLAUDE.md": "353fee2a5cb144b8c27ef538b9c164b4b5b5dfd73f055daf1cf02c599beff3f4",
+        ".claude/agents/pts-orchestrator.md": "b3ffbf64cf7e1369496a76c42b5069c65cae7ac6b56b6e21ecbe78c93866cce8",
+        ".claude/agents/pts-gap-analysis.md": "f3a91f8a31653e0118ad2174d92a1d2a5d3dfb62abd4a207cd3dee9670a205dc",
+        ".claude/skills/modernize-process/SKILL.md": "adf15b5e6d5682edfe2ca53c89d356ab5365dbe0e9af28761c5269aca9b335ca",
+        "README.md": "9fd1885399cc4107240278190f183de77270a33bca19b30733ecc5c354d61af9",
+        "START_HERE.md": "a814a0561e90734293a48ef0aafa92a026c97a1e96c2c2da78f69967a77c4f4d",
+        "docs/APP_MODERNIZATION_GUIDE.md": "10fd23cc6ef400573fb35a023d4250bb80871dda5191d1c31c84253e28d1b000",
+        "docs/FOLDER_STRUCTURE.md": "9a760cd482b7b8e49005efcb08916fadc9f76545ec2fb4d8efa1c39b82ace8ea",
+        "docs/TECHNICAL_REFERENCE.md": "7b919b1d27021e9f105cac6a4ed821380bc761233da7e9617a3f93fa1b345487",
+        "docs/TOKEN_EFFICIENCY.md": "e7ad7771e8e9d4b2f2ec1cd5749e1f8d4e8062c1b6cea65bd97374cf414a64e2",
+        "knowledge/MEMORY.md": "7b02b57012a0bd754cb83885b159c3d91b3b196f174aab014b3d9cde6cd492f9",
+        "tools/check_kit.py": "16581614e76086ca0ba6b2df769eb965defed9192b43907ee4b8b7af12541b1c",
+        "tools/check_instruction_responses.py": "ee48a3de08853948575278ef84a68183191fb3934bfd040bf3e3c0eb77a54870",
+        "tests/test_kit_integrity.py": "0d33a8a67d713cbeaa7ea555b56221bff41bfe76f409b289697f04b0d9776858",
+        "tests/test_instruction_responses.py": "a7bf3b79b3e5ad124c98d476a1e72dabfb397dc03f5d5c032b61c00e60ba112f",
+        "tests/instruction_cases.json": "c468fb86dfdd264b2bd85b5d4c44d30cc8ce089221a2c90e3ed10a53ab163d67"
+      },
+      "validation": {
+        "command": "python -m unittest discover -s tests -p test_endevor_nav.py -v",
+        "tests": 39,
+        "status": "passed",
+        "git_diff_check": "passed",
+        "test_data": "Temporary synthetic Endevor fixtures only; qualified SYNTH/TEST/APP identities",
+        "okf_checks": "Root-only version frontmatter, nested indexes without frontmatter, JSON-valued YAML concepts with type, draft source provenance and timezone-aware generated metadata, resolvable emitted Markdown concept links",
+        "source_checks": "COPY/literal CALL/EXEC SQL INCLUDE/JCL EXEC and PROC chains, reverse callers, cycles and limits, byte hashes and exact source lines, edited/deleted/renamed sources and changed manifests/generator, duplicate members and dynamic references",
+        "boundary_checks": "No manifest glob ingestion, explicit approval/identity fields, no symlink/hardlink input or output ancestor traversal, invalid path/encoding/private-path rejection, bounded source/reference output, tampered generated artifact and unowned output preservation"
+      },
+      "findings_resolved": [
+        {
+          "id": "QA-1",
+          "finding": "JCL comment field EXEC text produced a false program dependency",
+          "resolution": "Parse operation and operand/comment boundary; regression fixture passes"
+        },
+        {
+          "id": "QA-2",
+          "finding": "EXEC-looking records in DD DATA produced false program dependencies",
+          "resolution": "Skip in-stream payload with delimiters and preserve explicit unsupported-analysis gap; regression fixture passes"
+        },
+        {
+          "id": "QA-3",
+          "finding": "Traversal separately reloaded a pointer after freshness checking another receipt",
+          "resolution": "One checked receipt/graph is used for the entire traversal"
+        },
+        {
+          "id": "QA-4",
+          "finding": "Provenance resource looked like a bundle-relative path to a repository source",
+          "resolution": "Explicit identity scope descriptor plus documented repository-relative source_path"
+        },
+        {
+          "id": "QA-5",
+          "finding": "Node bound alone did not bound repeated reference output",
+          "resolution": "Per-query references and ambiguous candidates have caps, exact totals and visible truncation; oversized builds block"
+        },
+        {
+          "id": "QA-6",
+          "finding": "Interrupted publication cannot always be repaired by ordinary rebuild",
+          "resolution": "Guide distinguishes stale-input rebuild from fail-closed partial-publication/hash-mismatch review; preserved artifacts are not silently overwritten"
+        }
+      ],
+      "permissions": {
+        "historical_denials": "unchanged",
+        "added_allow_entries": [
+          "Bash(python tools/endevor_nav.py build)",
+          "Bash(python tools/endevor_nav.py check)",
+          "Bash(python tools/endevor_nav.py walk *)",
+          "Bash(python3 tools/endevor_nav.py build)",
+          "Bash(python3 tools/endevor_nav.py check)",
+          "Bash(python3 tools/endevor_nav.py walk *)"
+        ],
+        "default_mode": "dontAsk",
+        "host_policy_execution": "not_verified"
+      },
+      "limits": [
+        "Static lexical navigation is not a compiler, complete call graph, mainframe inventory, or behavioral acceptance result.",
+        "Only explicit approved sanitized manifest entries are read. Their approval and qualified identities are supplied provenance, not independently certified by the utility.",
+        "No real mainframe source, Db2 data, remote library, Zowe execution, Claude host or Opus run was validated.",
+        "Dynamic, ambiguous, missing, qualified and unsupported references require canonical source analysis; bounded traversal cannot establish safe deletion.",
+        "The POSIX no-follow implementation requires an approved Linux/macOS/WSL binding; no native Windows fallback weakens file controls.",
+        "Single lead writer and immutable snapshots are required; source or metadata tampering/partial publication blocks consumption and may require review.",
+        "This scoped review is not a proof of complete security or application acceptance."
+      ],
+      "primary_references_read": [
+        "https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md",
+        "https://www.ibm.com/docs/en/zos/2.5.0?topic=statements-jcl-statement-fields",
+        "https://www.ibm.com/docs/en/zos-basic-skills?topic=do-jcl-dd-statements-positional-frequently-used-parameters"
+      ],
+      "remaining_findings": []
+    },
+    "complete_security_claim": false
   }
 }

@@ -24,6 +24,9 @@ node_modules/
 programs/
 processes/
 sources/
+/Endevor/*
+!/Endevor/README.md
+/knowledge/endevor/
 /inventory.json
 knowledge/decisions.json
 knowledge/handoff.json

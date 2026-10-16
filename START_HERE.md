@@ -59,6 +59,10 @@ packages from `modernization-factory`; it does not start the old Python workbenc
 
 ## Start, review and resume
 
+For the mainframe source folder named `Endevor`, follow
+[Endevor navigation](docs/ENDEVOR_NAVIGATION.md). Populate its explicit approved-view
+manifest, then build/check the local OKF bundle before source dependency traversal.
+
 For the recommended VS Code/terminal setup, goal boundaries and monitoring loops,
 read [Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and use the
 [paste-ready prompts](prompts/GOAL_WORKFLOW.md). The separate `/goal` evaluator

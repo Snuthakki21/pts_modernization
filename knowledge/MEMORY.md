@@ -24,6 +24,9 @@ process, decision or unresolved task. Per-agent copies are unnecessary.
   [safe rule removal](../docs/RULE_REMOVAL.md) define change and completion gates.
   [Token tools](../docs/TOKEN_EFFICIENCY.md) are optional navigation aids, never
   substitutes for complete source, record or acceptance evidence.
+- [Endevor navigation](../docs/ENDEVOR_NAVIGATION.md) defines the OKF traversal
+  procedure. Begin at the local `knowledge/endevor/index.md` after its freshness
+  check; load only the relevant concepts and cited approved source spans.
 
 ## Canonical local memory
 
@@ -32,6 +35,8 @@ process, decision or unresolved task. Per-agent copies are unnecessary.
 | `knowledge/decisions.json` | Attributed accepted decisions, source/evidence versions, applicability and supersession |
 | `knowledge/handoff.json` | Current task, pinned inputs, ownership, checked results, questions, blockers, remaining budgets and next eligible action |
 | `knowledge/local-index.json` | Rebuildable paths and source-hash index for targeted retrieval; never acceptance authority |
+| `Endevor/navigation.json` | Explicit approved-view files, qualified source identities and acquisition/approval reference |
+| `knowledge/endevor/` | Rebuildable Open Knowledge Format projection; dependency and caller navigation, not an instruction or acceptance store |
 | `inventory.json` | Lead-owned program versions, consumer memberships, separate acceptance states and evidence references |
 
 These ignored files are created from tracked templates on first use. Empty files

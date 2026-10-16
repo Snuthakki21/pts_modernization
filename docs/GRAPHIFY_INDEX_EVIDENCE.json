@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "kind": "graphify_navigation_refresh_receipt",
-  "observed_at_utc": "20261016T094815Z",
+  "observed_at_utc": "20261016T102110Z",
   "graphify_version": "0.9.91",
   "adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
   "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
   "execution": "actual pinned extract_python via existing read_source/extract_snapshot/select helpers; no upstream CLI, model or network calls",
-  "index_artifact": ".implementation/navigation/graphify-20261016T094815Z.json",
-  "index_sha256": "af3cd3d2f8a83d2855e4ff8d2121f30a5d8e90f353993455d196cbac58e703d9",
+  "index_artifact": ".implementation/navigation/graphify-20261016T102110Z.json",
+  "index_sha256": "0f7c55bfd2b9fb24953e797ce2250c7297400751a49b08f6e989695b538f2139",
   "index_committed": false,
   "canonical_navigation_manifest": "knowledge/local-index.json (ignored local state)",
-  "file_count": 11,
-  "symbol_count": 148,
-  "call_count": 224,
+  "file_count": 12,
+  "symbol_count": 176,
+  "call_count": 269,
   "files": [
     {
       "path": "examples/rule_validation/demo_oracle.py",
@@ -30,14 +30,14 @@
     },
     {
       "path": "tools/check_instruction_responses.py",
-      "sha256": "dca934edef2e27115eb82dd7ba677dcb0b8abcacf37715e7b719b0ef50f151be",
+      "sha256": "ee48a3de08853948575278ef84a68183191fb3934bfd040bf3e3c0eb77a54870",
       "symbols": 15,
       "calls": 26,
       "truncated": false
     },
     {
       "path": "tools/check_kit.py",
-      "sha256": "2d1704223416a3bf2e4203f3330d8d729d3453bd681826a6c2cdbea33edacefc",
+      "sha256": "16581614e76086ca0ba6b2df769eb965defed9192b43907ee4b8b7af12541b1c",
       "symbols": 6,
       "calls": 4,
       "truncated": false
@@ -47,6 +47,13 @@
       "sha256": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
       "symbols": 17,
       "calls": 27,
+      "truncated": false
+    },
+    {
+      "path": "tools/endevor_nav.py",
+      "sha256": "915e54d06edd26bad02e9436baa8f0f8be6ad34720096b6530b3d6c1b9d3a110",
+      "symbols": 28,
+      "calls": 45,
       "truncated": false
     },
     {

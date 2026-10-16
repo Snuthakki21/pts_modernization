@@ -68,6 +68,11 @@ promotion; synthetic test evidence alone cannot explain an ordinary record's pat
 
 Keep context small: query an existing valid index, use `rg`/targeted reads, cache
 analysis by source/dependency hash, and return artifact paths plus concise findings.
+Use `docs/ENDEVOR_NAVIGATION.md` for mainframe traversal from approved `Endevor/`
+views. The lead builds the OKF bundle; workers check freshness, open its index and
+traverse only the required dependencies or callers. Keep unresolved references
+visible. Navigation is a retrieval projection, never proof of completeness or
+permission to remove code. Graphify remains the separate Python-only lookup.
 Never paste whole fixtures, logs or unrelated programs. Retained Headroom guidance
 is instruction-only. `docs/TOKEN_EFFICIENCY.md` supplies the pinned optional local
 Graphify parser and scoped lookup command; never invoke its generic CLI/hooks or

@@ -16,6 +16,9 @@ Recorded kit checks and execution limits are in [docs/evidence.json](docs/eviden
 Use [the Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and
 [goal/loop prompts](prompts/GOAL_WORKFLOW.md) for bounded autonomous work and
 read-only monitoring. Ponytail is required for minimal complete design and code.
+Use [Endevor navigation](docs/ENDEVOR_NAVIGATION.md) for source dependency/caller
+traversal in Open Knowledge Format. Mainframe views live in `Endevor/`; the local
+Markdown bundle is generated from an explicit approved-source manifest.
 
 This clean branch retains the existing 15 optional instruction packages and their
 licenses from `modernization-factory`. It does not install their upstream runtimes.

@@ -49,6 +49,10 @@ business meaning and intended changes. Use consulting discipline for ambiguous
 trade-offs: evidence, options, consequences, recommendation, recorded decision.
 Publish measured status only after QA, integration, reconciliation and audit gates
 applicable to that claim. A blocked comparison cannot become observed parity.
+Own the `Endevor/navigation.json` manifest and rebuildable `knowledge/endevor/`
+OKF bundle using `docs/ENDEVOR_NAVIGATION.md`. Merge approved source identities and
+worker findings before rebuilding; workers consume one fresh snapshot. Keep
+canonical inventory, source maps and acceptance independent of navigation.
 Require `docs/SECURITY_REVIEW.md`'s separate quality/security receipts and fresh
 independent review of remediation. After inventory updates, use the approved
 progress-export binding in `docs/PROGRESS_UI.md`; count each program once and

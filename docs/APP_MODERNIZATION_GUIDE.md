@@ -72,6 +72,13 @@ handoff. Do not invoke a blocked utility through an alternative command.
 
 ## 2. Inventory the entire application and close source dependencies
 
+Place approved sanitized views under `Endevor/`, enumerate qualified identities
+in `Endevor/navigation.json`, and follow [OKF traversal](ENDEVOR_NAVIGATION.md).
+The lead builds/checks the bundle; gap analysis traverses relevant dependencies
+and callers before reading exact source spans. Rebuild after declared inputs
+change. Dynamic or missing links and unlisted files remain explicit inventory
+work; navigation does not establish source completeness.
+
 Follow the existing [mainframe discovery and validation runbook](../.claude/skills/validate-program/references/mainframe.md)
 and technical-reference Sections 4.1–4.4 for exact Zowe/Db2 readiness and commands.
 Reuse the existing tools and their verified bindings; this guide introduces no

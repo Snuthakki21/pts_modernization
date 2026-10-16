@@ -20,9 +20,19 @@ class KitIntegrityTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "archive"
-        shutil.copytree(ROOT, self.root, ignore=shutil.ignore_patterns(
+        ignore_kit_caches = shutil.ignore_patterns(
             ".git", ".implementation", "__pycache__", "programs", "processes",
-            "sources", "*.pyc", "tmp*", ".venv", "node_modules", "dist"))
+            "sources", "*.pyc", "tmp*", ".venv", "node_modules", "dist")
+
+        def ignore_local_sources(directory, names):
+            ignored = set(ignore_kit_caches(directory, names))
+            if Path(directory) == ROOT / "Endevor":
+                ignored.update(name for name in names if name != "README.md")
+            if Path(directory) == ROOT / "knowledge":
+                ignored.add("endevor")
+            return ignored
+
+        shutil.copytree(ROOT, self.root, ignore=ignore_local_sources)
 
     def report(self):
         return kit.audit(self.root)
@@ -84,6 +94,13 @@ class KitIntegrityTests(unittest.TestCase):
                        lambda value: value["permissions"]["deny"].remove(
                            "Bash(zowe zos-jobs submit *)"))
         self.assertTrue(any("deny" in error.lower() for error in self.report()["errors"]))
+
+    def test_endevor_root_and_knowledge_exclusions_are_required(self):
+        self.edit_json("config/project.json", lambda value: value["mainframe"].update(local_source_root="sources"))
+        self.assertTrue(any("Endevor folder" in error for error in self.report()["errors"]))
+        path = self.root / ".gitignore"
+        path.write_text(path.read_text().replace("/knowledge/endevor/\n", ""))
+        self.assertTrue(any("must stay ignored" in error for error in self.report()["errors"]))
 
     def test_missing_new_ui_lock_or_security_artifact_is_reported_explicitly(self):
         for relative in (

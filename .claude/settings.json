@@ -78,7 +78,13 @@
       "Skill(consult-modernization)",
       "Skill(ponytail)",
       "Skill(loop)",
-      "Skill(loop *)"
+      "Skill(loop *)",
+      "Bash(python tools/endevor_nav.py build)",
+      "Bash(python tools/endevor_nav.py check)",
+      "Bash(python tools/endevor_nav.py walk *)",
+      "Bash(python3 tools/endevor_nav.py build)",
+      "Bash(python3 tools/endevor_nav.py check)",
+      "Bash(python3 tools/endevor_nav.py walk *)"
     ]
   },
   "model": "claude-opus-4-7",
