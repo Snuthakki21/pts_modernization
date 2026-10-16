@@ -50,11 +50,25 @@ and outputs; preserve baseline inputs. Run the actual target and the exact deplo
 SQL/Sparkflows artifact, not a surrogate Python version of a flow.
 
 Write new `programs/<id>/runs/<run-id>/results.json`, actual outputs and emitted
-`trace.jsonl` where supported. Record command binding, runner/model when relevant,
+full per-record trace evidence in the approved indexed database/evidence store,
+with an evidence-manifest reference in the run folder. Follow technical-reference
+Section 9: every input and derived record, every rule evaluation, causal lineage,
+effects and terminal disposition; no sampling. A JSONL export may supplement the
+store. Unsupported capture blocks trace acceptance. Record command binding, runner/model when relevant,
 source/build/flow/test/reference hashes, actual assertion results and per-rule
 positive/negative counts derived from distinct cases. Keep failures and unavailable
 trace evidence. Measure elapsed time, memory/database calls when instruments exist;
 never invent performance receipts.
+
+Validate trace completeness against the independent input inventory at record-ID
+level, including rejected/no-output records and duplicate business keys. Check
+all joins/aggregate contributors, repeated evaluations, retries, committed versus
+rolled-back effects, source/target links and evidence freshness. Test trace-write
+failure, crash and restart; preserve failed attempts. Missing events remain
+unavailable, not inferred not-reached. No run promotion with incomplete tracing.
+Mainframe internal rule hits require actual legacy instrumentation; target trace
+or output parity alone cannot establish them. Ordinary runs require the same full
+capture as synthetic validation runs.
 
 QA runs process integration against pinned program versions when assigned, saving
 `processes/<id>/integration/runs/<run-id>/results.json`. Include multi-rule/state

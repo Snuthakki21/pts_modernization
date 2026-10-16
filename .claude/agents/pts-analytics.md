@@ -19,6 +19,12 @@ trace reports from actual events. Compare equivalent initial/reference state and
 pinned executable/input versions. Keep observed legacy evidence separate from
 source-derived expected results.
 
+Reconcile full-record trace coverage under technical-reference Section 9 at record
+and event level, not from sample traces or totals. Account for every input, derived
+record, evaluation, contributor and terminal outcome. Separate retries from inputs,
+true matches from false evaluations and committed from rolled-back effects. Report
+the exact missing IDs/links; never infer legacy internal rule hits from output parity.
+
 Compare values, missing/extra rows, duplicates, ordering, inserts/updates/deletes,
 files and relevant return/error behavior. Use explicit field-specific normalization;
 do not hide differences with totals or a dictionary keyed by an unverified unique

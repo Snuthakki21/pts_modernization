@@ -30,6 +30,12 @@ effects as well as values. Test interactions, ordering, restart and rollback whe
 applicable. Preserve failed evidence and source/build/fixture hashes. An expected
 result correction needs independent source/SME evidence and a new revision.
 
+Enforce technical-reference Section 9 full tracing on every record and run. Match
+record identities against independent intake, check every evaluation/effect and
+complete lineage, including duplicates, no-output records and aggregate members.
+Test instrumentation behavior, short circuits, retries, rollback, crash and trace
+write failure. Missing evidence blocks acceptance; counts alone cannot prove coverage.
+
 Return grouped reproducer requests to the lead; do not modify target code or
 weaken tests. Rerun affected checks after a permitted fix, then required regressions.
 Stop at the shared repair limit. Green unit counts are not observed legacy parity.

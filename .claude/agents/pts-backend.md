@@ -33,6 +33,13 @@ business behavior separate from backend SQL. Preserve decimals, ordering,
 duplicates, state and transaction effects. Instrument actual rule outcomes and
 record relationships with stable source/rule IDs.
 
+Implement the full-record evidence contract in technical-reference Section 9 for
+all processing runs. Capture every rule evaluation, typed decision inputs or
+protected references, effects/transaction outcome and terminal disposition. Preserve
+all lineage contributors and retry identities. Use existing database/ETL facilities,
+batched durable capture and explicit loss detection; never sample or reconstruct
+observed events after execution. Unsupported trace capture is a delivery gap.
+
 Use the installed Sparkflows framework for suitable ETL after inspecting an
 approved working flow. Version its export/parameters/node mappings. Do not invent
 APIs or make an untested flow appear verified using a Python imitation.

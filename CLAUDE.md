@@ -32,6 +32,11 @@ RIGHT. Preserve unmapped units; never derive requirements from Python. Keep
 `source-map.json` canonical and generate the workbook `Gap Analysis` view from it.
 Implementation coverage is not observed parity; stale/unknown evidence is unverified.
 
+Require a full evidence trace for every processed record in every accepted run:
+actual rule evaluations, outcomes, effects, lineage and source/target links, without
+sampling. Follow technical-reference Section 9. Incomplete tracing blocks run
+promotion; synthetic test evidence alone cannot explain an ordinary record's path.
+
 Keep context small: query an existing valid index, use `rg`/targeted reads, cache
 analysis by source/dependency hash, and return artifact paths plus concise findings.
 Never paste whole fixtures, logs or unrelated programs. Retained Headroom guidance

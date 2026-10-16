@@ -33,6 +33,13 @@ do not prove not reached. Support joins, splits, aggregation, rejected/deleted
 inputs and multiple updates; do not force all flows into a binary tree. Link to
 original source, target and validation evidence.
 
+Implement the Section 9 record explorer: every record is searchable by run and
+occurrence ID, with its full evaluation timeline, decision inputs, outcomes,
+effects, ancestors/descendants and terminal disposition. Each rule event opens
+the version-pinned mainframe-LEFT/Python-RIGHT comparison. Rule search returns
+all affected records using pagination, never sampling. Expose incomplete capture
+and unavailable legacy events; respect protected-value access on detail and export.
+
 Keep query browsing read-only and bounded. Display only permitted values; no raw
 PII in prompts, screenshots or logs. Use fictional/synthetic fixtures for UI checks.
 Do not invent execution traces or acceptance states. Return changed paths, actual

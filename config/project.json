@@ -30,6 +30,14 @@
     "mainframe_write": false,
     "mainframe_execute": false
   },
+  "trace": {
+    "required": true,
+    "coverage": "all_records",
+    "sampling_allowed": false,
+    "incomplete_trace_blocks_acceptance": true,
+    "evidence_store_binding": null,
+    "retention_policy_binding": null
+  },
   "commands": {
     "unit": null,
     "integration": null,

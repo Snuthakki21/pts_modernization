@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T00:03:42.258094+00:00",
+  "recorded_at_utc": "2026-10-16T00:08:54.941627+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -64,23 +64,25 @@
     "sparkflows_execution": "not performed"
   },
   "sha256": {
-    "CLAUDE.md": "29d4e261399ae4b828fb60e2463e4f8c6018353a4eeac6e72a51dd459ac8d8d5",
-    "config/project.json": "6052781125a6c440506b472d464fa7b7c2af588a2370eab9bc082fec179a6e8d",
+    "CLAUDE.md": "b7f7793bd9f2720dad72c2d3595ef8b952cef1de87f4ff558108a50f2f0951ec",
+    "config/project.json": "c737330119e1af3552bcbe63db75e47490814cf9b5cf1ed5d9962c255ce67bc8",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "32ecf87f79a06ff9ecf8f5e071ac5a5226fb472e843c67e3ca630d243fcd602f",
+    "docs/TECHNICAL_REFERENCE.md": "c54c2a0201656502a7426505d94d9fc96bcf99e84c55df58f90a073750741369",
     "examples/PTS_Modernization_Review_Template.xlsx": "b500fdef2ee66d5da5e172bbcdba706fd4dc91c56b4a0f1569c9897088954d2b",
-    ".claude/agents/pts-analytics.md": "f3c02338a049aa045455c5b1bdaee6f9678b30470d6b63c6b91a8c0c5b3b2818",
-    ".claude/agents/pts-audit.md": "41af38e3c92ce6c5f8a3404e47ba5c89f0e333e1c44c589648b677d7caffac55",
-    ".claude/agents/pts-backend.md": "e98719f20411371bb665989d86e134d8ada0c77742f0e2fdb3a7be229c188f01",
+    ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
+    ".claude/agents/pts-audit.md": "6703445d8707c03cfda5734d76af2e295df322c263b5e10a617b91616f9af369",
+    ".claude/agents/pts-backend.md": "0bc64f0269852bc9fbeb98e0d5f77949bdfb318ccd650a15da11790304cb3a6d",
     ".claude/agents/pts-design.md": "865df136d9ddc087f33d9b09dd1ab28186f8d6653f276646f7583cc1c73583f9",
     ".claude/agents/pts-devops.md": "0317e94ae0483bdf5aba630abfa793334cd64f4a87742c7b6d3c72ecbc26c270",
-    ".claude/agents/pts-frontend.md": "4124a307a7a39bd24dd3daaa2b41bf1f707ed7137413a57ec594ecbe756ef710",
+    ".claude/agents/pts-frontend.md": "433bdff0559b7b8f6f29204eeb9514d9a045ca3ecd608d7b8a09d881e69353ac",
     ".claude/agents/pts-gap-analysis.md": "7c48aaa458730633ba85bfaa1e86423402c19cc65e7381695f067f40c9edd103",
     ".claude/agents/pts-orchestrator.md": "5baa1137a04f098f40a765b5df765a1da396dc26b46c28cf49d434f717424e12",
-    ".claude/agents/pts-qa.md": "0f828e90639d43a4b167141191de819304a09e740a5d2d99cc3dafdb83304ea4",
+    ".claude/agents/pts-qa.md": "12e3d7dd8571a3b088b6a48b3eae93caa585fa0bb7bae86a8e989f26fe9a6d3b",
     ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
-    ".claude/skills/validate-program/SKILL.md": "8e774f0c0077ccc0f8b7a72bc417ee89f0980a87c7118202512859e7e41c6d06",
-    ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b"
+    ".claude/skills/validate-program/SKILL.md": "00a844eafdb9ea78d6fc5e39908f108107fb0623780976b28c82f74d2c4555e7",
+    ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
+    "START_HERE.md": "8c4f6fd850530b0c30f011e41c302b78dbf7b8dbbba8950d1c63f8308f8b3de1",
+    "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d"
   },
   "gap_comparison_checks": {
     "sheets": 9,
@@ -118,5 +120,18 @@
     ],
     "exported_existing_formulas_and_feature_counts_preserved": true,
     "visual_review": "new comparison, fictional example and affected existing views checked"
+  },
+  "record_trace_contract_review": {
+    "status": "passed",
+    "coverage": "all_records; no sampling",
+    "review": "independent scoped specification review; no material defects",
+    "runtime_capture": "not implemented or executed by this kit update",
+    "checks": [
+      "Record occurrence identity and complete lineage",
+      "Every evaluation, effect and terminal outcome",
+      "Retry, rollback and trace-write failure handling",
+      "Protected operands and retention bindings",
+      "Mainframe internal trace separated from output parity"
+    ]
   }
 }

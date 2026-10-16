@@ -31,6 +31,10 @@ packages from `modernization-factory`; it does not start the old Python workbenc
    in these tracked files. The photo confirms the listing prefix `TSTSN.#RW477*`;
    live enumeration is still required. Model-visible source must be an approved
    sanitized view. Keep private inputs and outputs in the ignored working folders.
+7. Bind the approved indexed trace/evidence store and retention policy in
+   `config/project.json`. Every processed record needs complete rule-event,
+   lineage and effect evidence under technical-reference Section 9. No sampling;
+   missing trace evidence blocks acceptance. These bindings are not configured here.
 
 ## Start, review and resume
 

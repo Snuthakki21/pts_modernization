@@ -39,6 +39,11 @@ passing cases per business rule, actual executed ETL assets, technical tests,
 reconciliation, process integration and evidence freshness. Distinguish each claim;
 finite tests do not establish perfection.
 
+Require Section 9 full-record trace acceptance: independent intake reconciled by
+identity, complete rule events and lineage, current source/target links, explicit
+terminal/transaction outcomes and detectable trace-write failure. Reject sampled
+capture, aggregate-only proof or a success claim with missing record evidence.
+
 Find redundant wrappers, duplicated transformations, hardcoded maintained data,
 ignored errors, fixture-specific hacks and inefficient algorithms. Require measured
 performance where claimed. Inspect permissions, private-data boundaries and model

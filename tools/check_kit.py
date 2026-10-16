@@ -33,6 +33,11 @@ def check():
     require(settings["permissions"]["defaultMode"] == "dontAsk",
             "Expected bounded no-prompt policy")
     require(settings.get("agent") == "pts-orchestrator", "Foreground lead not selected")
+    trace = config.get("trace", {})
+    require(trace.get("required") is True and trace.get("coverage") == "all_records"
+            and trace.get("sampling_allowed") is False
+            and trace.get("incomplete_trace_blocks_acceptance") is True,
+            "Full per-record tracing must be required without sampling")
     require(config["validation"]["positive_cases_per_rule"] >= 100 and
             config["validation"]["negative_cases_per_rule"] >= 100,
             "Business-rule case minima below the acceptance requirement")

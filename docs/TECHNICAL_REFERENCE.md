@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 4.1 · 15 October 2026 · Agent-first branch
+Version 4.2 · 15 October 2026 · Agent-first branch
 
 This contract replaces the legacy engine workflow on `modernization/agents-only`.
 The existing branches and their historical evidence remain in Git. The deliverable
@@ -301,21 +301,105 @@ it must not route around it. After an authorized environment owner supplies perm
 bindings, the workflow can execute reviewed test work without asking again within
 the agreed authorization envelope. This setup has not executed such a run.
 
-## 9. Frontend and actual execution traces
+## 9. Full evidence trace for every processed record
 
-Reuse an approved database browser where sufficient. Add only missing SME, source,
-rule and record views. A selected record must show the actual run, evaluated rules,
-values permitted for display, outcomes, source and target links, changes and validation
-findings. Represent true, false, not reached, error and unavailable distinctly.
-An absent event is unavailable unless control-flow evidence proves not reached.
+Every processed record requires a complete, queryable evidence trace in every
+accepted execution, including ordinary processing runs, not only synthetic tests.
+Sampling, aggregate rule counters and error-only logging do not satisfy this
+requirement. Capture business rules and relevant technical transformations from
+the actual Python, SQL and Sparkflows execution. Unsupported capture is an explicit
+delivery blocker. Do not infer a path afterward and label it observed.
 
-Record provenance supports joins, splits, aggregations, repeated updates, rejected
-records, deletions and records with no output. Events carry stable input/output IDs,
-run and sequence IDs, rule IDs and effect references. Trace observed execution;
-never infer a path afterward and label it observed. Measure trace overhead and
-detect incomplete traces after crashes. Read-only browsing must not imply writes.
-Use accessible navigation and explicit environment/run labels; keep technical
-details out of ordinary SME decisions unless needed to judge business behavior.
+### Record identity and lineage
+
+Assign an opaque record-occurrence ID at intake, before decoding or business-rule
+evaluation. Bind it to the run, source snapshot and exact file offset/ordinal or
+database row occurrence. Business keys alone are insufficient: duplicates remain
+distinct records. Preserve identity across program calls with separate invocation,
+attempt and record-version IDs. Pin the input inventory before processing; if a
+source cannot be fully enumerated, mark acquisition and run completeness unknown.
+
+Track every input occurrence and derived record version, including malformed,
+rejected, filtered, deleted, deduplicated and no-output records. Keep explicit
+parent/child edges for joins, splits and aggregations; preserve all contributors
+with indexed membership edges rather than a truncated list. Link lookup/reference
+rows and their immutable versions when they determine a decision. A final output
+must trace backward to its inputs; an input must trace forward to every effect or
+its explicit no-output reason.
+
+### Required evidence contract
+
+Use the approved database and existing instrumentation facilities. These are
+logical entities, not a request to build a new tracing service or engine.
+
+| Entity | Required evidence |
+|---|---|
+| Run manifest | Run/process/job/step IDs; input inventory; source/build/rule-map/flow/config/reference-data hashes; capture version; start/end; trace completeness; observed coverage and missing evidence. |
+| Record occurrence/version | Opaque ID; source locator and snapshot; parent identity; invocation/attempt; initial state reference; terminal outcome and reason; resulting versions and output/effect references. |
+| Rule evaluation | Event ID; record IDs or complete membership reference; invocation/attempt and evaluation ordinal; stable rule ID/version; source and target locations; evaluated condition and typed operands or protected immutable references; outcome; reason and action/effect links. |
+| Effect | Event/record/rule links; output location or table/key reference; changed fields with protected before/after evidence; transaction identity; attempted, committed or rolled-back status; errors and rejection reasons. |
+| Lineage edge | Parent and child record-version IDs, generating event, relationship type and contributor membership; cross-program links retain the same process-run identity. |
+
+Distinguish **evaluated true**, **evaluated false**, **not reached**, **error** and
+**unavailable**. A "rule hit" means a recorded evaluation; show true matches and
+actions separately. Record every loop/repeated evaluation and each retry attempt.
+For short-circuit conditions, identify unevaluated operands rather than inventing
+their values. Show not-reached only with captured branch/exit evidence against the
+pinned rule/control-flow map. An absent event alone means unavailable.
+
+Record event sequence and causal parent links. Across distributed partitions use
+causal order; do not invent a global execution order from timestamps. Capture SQL
+and ETL per-record outcomes from the executed transformation, including predicates
+and rejected rows. A later rerun of an expression or a Python imitation is not an
+observation of the original flow.
+
+Keep sensitive values and replay material in approved access-controlled evidence
+storage, with masked authorized views and immutable pointers. Do not put raw PII in
+general logs, model context, Git or workbook exports. Hashes identify snapshots;
+hashes alone cannot explain operands or reproduce a decision. Preserve authorized
+access to the referenced values for the agreed evidence-retention period. Bind
+retention/access and replay resources before accepting a run; expiry must be visible.
+
+### Record explorer and gap-analysis connection
+
+Reuse an approved record/database browser where sufficient. Search by process/run,
+program, record occurrence, permitted business key, rule or outcome. Selecting a
+record shows its intake, causal timeline of evaluations, why each rule matched or
+did not match, field changes, transaction outcome, final disposition, ancestors,
+descendants, and available test/mainframe comparison evidence. Every evaluation
+opens the mainframe-LEFT/Python-RIGHT comparison for that rule and pinned versions.
+From a rule, list all affected record occurrences with pagination and export.
+Pagination must not sample, truncate or discard the underlying evidence.
+
+Label legacy comparisons separately. Target tracing does not prove the mainframe's
+internal path. Display a legacy rule hit only when actual legacy instrumentation
+supports it; output parity alone cannot supply that evidence. Synthetic case results
+are not proof of the path taken by an ordinary processing record.
+
+### Completeness and acceptance
+
+QA verifies record-level set membership against the independent input inventory,
+not just matching totals: every input has an intake and terminal outcome, every
+generated record/effect has valid lineage, every evaluated rule has its event, and
+all evidence references resolve to the pinned versions. Check invocation closure,
+evaluation ordinals, trace-write acknowledgments and declared expected capture
+sites; unexplained gaps, duplicate event IDs or dangling edges block completeness.
+Report separate counts and IDs for inputs, outputs, rejected/no-output records,
+attempts, and incomplete traces. Do not count retries as additional business inputs.
+
+Exercise positive/negative outcomes, short circuits, loops, duplicates, joins,
+splits, aggregates, rejection, rollback, restart, worker crash and evidence-write
+failure. Test that instrumentation preserves behavior and that missing evidence
+is detected. Preserve failed attempts and reconcile uncertain commits before retry.
+Use transactional capture/outbox or durable acknowledgment where the environment
+supports it; otherwise declare the failure window. Trace loss must fail the trace
+acceptance gate and prevent run promotion, never silently mark the run complete.
+
+Index run/record/rule/event relationships; batch and compress evidence writes and
+avoid per-record model calls. Measure throughput, storage and trace overhead on
+representative full-volume runs. Optimize capture without sampling records or
+dropping required events. Store detailed traces in the database/evidence store;
+the SME workbook links to selected record traces instead of holding the event log.
 
 ## 10. Model, autonomy, tokens and durable knowledge
 
@@ -364,6 +448,7 @@ when the approved runtime supports it; measure the trade-off.
 | Analysis ready | All discovered programs inventoried; all source spans classified or named gaps; resolved dependencies |
 | Program ready | Source/target map, accepted behavior, 100+100 cases/rule, applicable technical tests and independent audit |
 | Legacy parity | Comparable observed baseline/run, full required comparisons, no unexplained differences |
+| Full record trace | Every intake and derived record accounted for; complete actual rule events, lineage, effects and source/target links; no unresolved capture loss |
 | Process accepted | Pinned components, real integration/recovery results, current inventory and navigable evidence |
 
 Do not turn one gate into another. A valid kit is not a converted program; a validated
