@@ -146,6 +146,27 @@ export function validateSnapshot(value) {
   return value;
 }
 
+function rejectDuplicateKeys(text) {
+  // JSON.parse has already validated the grammar. Scan tokens so duplicate
+  // properties cannot disappear before schema checks, including escaped names.
+  const stack = [];
+  for (const [token] of text.matchAll(/"(?:[^"\\]|\\[\s\S])*"|[{}\[\],]/g)) {
+    if (token === '{') stack.push({ names: new Set(), key: true });
+    else if (token === '[') stack.push(null);
+    else if (token === '}' || token === ']') stack.pop();
+    else {
+      const object = stack.at(-1);
+      if (token === ',' && object) object.key = true;
+      else if (token[0] === '"' && object?.key) {
+        const name = JSON.parse(token);
+        check(!object.names.has(name), 'Duplicate JSON key. Export a new sanitized snapshot.');
+        object.names.add(name);
+        object.key = false;
+      }
+    }
+  }
+}
+
 export function parseSnapshot(text) {
   check(typeof text === 'string' && new TextEncoder().encode(text).length <= MAX_BYTES, 'File exceeds the 8 MiB limit. Export a smaller snapshot.');
   let value;
@@ -155,6 +176,7 @@ export function parseSnapshot(text) {
       return item;
     });
   } catch { fail('The file is not valid progress JSON. Export a new sanitized snapshot.'); }
+  rejectDuplicateKeys(text);
   return validateSnapshot(value);
 }
 

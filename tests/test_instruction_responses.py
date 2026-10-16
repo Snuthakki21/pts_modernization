@@ -278,6 +278,26 @@ class InstructionResponseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate JSON key: metadata"):
             evaluator.read_json(path)
 
+    def test_non_finite_json_numbers_are_rejected_before_receipt_creation(self):
+        path = self.root / "non-finite.json"
+        receipt_path = self.root / "non-finite-receipt.json"
+        for token in ("NaN", "Infinity", "-Infinity", "1e999", "-1e999"):
+            with self.subTest(token=token):
+                payload = json.dumps(self.response).replace('"metadata": {', '"metadata": {"extra": ' + token + ',')
+                path.write_text(payload, encoding="utf-8")
+                result = self.run_cli(path, "--receipt", receipt_path)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("Non-finite JSON number", result.stdout)
+                self.assertFalse(receipt_path.exists())
+        with self.assertRaises(ValueError):
+            evaluator._write_json(receipt_path, {"value": float("nan")})
+        self.assertFalse(receipt_path.exists())
+
+    def test_ui_instructions_invalidate_recorded_responses(self):
+        path = self.root / "ui/AGENTS.md"
+        path.write_text(path.read_text() + "\nChanged UI instruction.\n", encoding="utf-8")
+        self.assertRejected("metadata.instruction_fingerprint is missing or stale")
+
     def test_malformed_payloads_fail_without_semantic_claims(self):
         for malformed in (None, [], {}, {"metadata": [], "responses": {}},
                           {"metadata": {}, "responses": [None, {"case_id": 7}]}):

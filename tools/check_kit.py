@@ -9,6 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE_COMMIT = "c6834d9b49c3524bf7d987e66d465b964d2805bb"
 BASELINE_SHA256 = "be76b12acc7fe058622f6047dfd784e49e7d81eb5fe489023f3ee7354282c0c9"
+GRAPHIFY_NOTICES = {
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
+    "NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621",
+}
 RETAINED_PACKAGES = {
     "superpowers", "matt-pocock", "ecc", "karpathy-guidelines", "anthropic-testing",
     "ponytail", "ui-ux-pro-max", "caveman", "agent-engineering", "taste",
@@ -30,7 +35,6 @@ REQUIRED_FILES = (
     "docs/PROGRESS_UI.md", "docs/PROGRESS_DESIGN.md", "docs/PUBLIC_SITE_DESIGN.md",
     "docs/SECURITY_REVIEW.md", "docs/SECURITY_EVIDENCE.json", "docs/TOKEN_EFFICIENCY.md", "docs/TOKEN_TOOLS_EVIDENCE.json",
     "docs/design/wells-fargo-reference-20261016.jpg",
-    "docs/licenses/graphify/LICENSE", "docs/licenses/graphify/LICENSE-MIT", "docs/licenses/graphify/NOTICE",
     "knowledge/MEMORY.md", "knowledge/mainframe-catalog.json", "prompts/START_MODERNIZATION.md",
     "prompts/GOAL_WORKFLOW.md",
     "examples/PTS_Modernization_Review_Template.xlsx", "examples/rule_validation/README.md",
@@ -234,20 +238,27 @@ def audit(root=ROOT):
                         f"Asset hash mismatch: {item['path']}")
                 require(len(data) == item["bytes"], f"Asset length mismatch: {item['path']}")
 
-    # New optional tools keep their own license inventory, separate from the
-    # historical instruction-pack preservation snapshot.
+    # Required notices live once in existing provenance metadata. Their pinned
+    # bytes remain checked after removal of the standalone license files.
+    notices = pack.get("notices", {})
+    require(isinstance(notices, dict), "Invalid consolidated notice store")
+    if not isinstance(notices, dict):
+        notices = {}
+
+    def notice_matches(expected_hash):
+        text = notices.get(expected_hash)
+        return isinstance(text, str) and hashlib.sha256(text.encode("utf-8")).hexdigest() == expected_hash
+
     try:
-        graphify_licenses = read_json("config/token-tools.json", root)["selected"]["license_files"]
-        expected_license_paths = {
-            "docs/licenses/graphify/LICENSE", "docs/licenses/graphify/LICENSE-MIT", "docs/licenses/graphify/NOTICE",
-        }
-        require(set(graphify_licenses) == expected_license_paths, "Graphify license inventory differs from contract")
-        for name in expected_license_paths:
-            path = root / name
-            require(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == graphify_licenses.get(name),
-                    f"Graphify license hash mismatch or missing: {name}")
+        selected_tool = read_json("config/token-tools.json", root)["selected"]
+        graphify_notices = selected_tool["license_notices"]
+        require(selected_tool.get("notice_store") == ".claude/skill-pack.json#notices",
+                "Graphify notice store differs from canonical provenance")
+        require(graphify_notices == GRAPHIFY_NOTICES, "Graphify notice inventory differs from pinned contract")
+        for name, expected_hash in GRAPHIFY_NOTICES.items():
+            require(notice_matches(expected_hash), f"Graphify notice hash mismatch or missing: {name}")
     except (OSError, KeyError, ValueError, TypeError) as exc:
-        errors.append(f"Invalid Graphify license inventory: {exc}")
+        errors.append(f"Invalid Graphify notice inventory: {exc}")
 
     # A pinned, historical snapshot keeps preservation checks valid in archives
     # and shallow clones. Available Git objects are an additional comparison.
@@ -261,10 +272,17 @@ def audit(root=ROOT):
         basis = "pinned_baseline_only"
         require(set(baseline["permissions_deny"]) <= set(settings["permissions"]["deny"]),
                 "Historical permission deny entries were removed")
+        package_licenses = {package["name"]: package.get("license", {}) for package in pack["packages"]}
         for name, expected_hash in baseline["licenses"].items():
-            path = root / name
-            require(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == expected_hash,
+            require(notice_matches(expected_hash),
                     f"License changed or missing: {name}")
+            license_info = package_licenses.get(Path(name).parent.name, {})
+            require(isinstance(license_info, dict) and
+                    license_info.get("sha256") == expected_hash and
+                    license_info.get("notice_reference") == "notices/" + expected_hash,
+                    f"Retained notice binding mismatch: {name}")
+        require(set(notices) == set(baseline["licenses"].values()) | set(GRAPHIFY_NOTICES.values()),
+                "Consolidated notice inventory differs from pinned provenance")
         if (root / ".git").exists():
             try:
                 original = subprocess.run(["git", "show", f"{BASE_COMMIT}:.claude/settings.json"],

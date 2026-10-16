@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "kind": "graphify_navigation_refresh_receipt",
-  "observed_at_utc": "20261016T110232Z",
+  "observed_at_utc": "20261016T112041Z",
   "graphify_version": "0.9.91",
   "adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
   "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
   "execution": "actual pinned extract_python via existing read_source/extract_snapshot/select helpers; no upstream CLI, model or network calls",
-  "index_artifact": ".implementation/navigation/graphify-20261016T110232Z.json",
-  "index_sha256": "2a0d154acbfc3c854bce11465baf080eacff16e93079a4243904603374d36c12",
+  "index_artifact": ".implementation/navigation/graphify-20261016T112041Z.json",
+  "index_sha256": "aafba2ca7178c65e7d738e50bd5e27418702587b5ae0e6f44987bbdf455317ad",
   "index_committed": false,
   "canonical_navigation_manifest": "knowledge/local-index.json (ignored local state)",
   "file_count": 12,
-  "symbol_count": 179,
-  "call_count": 271,
+  "symbol_count": 181,
+  "call_count": 272,
   "files": [
     {
       "path": "examples/rule_validation/demo_oracle.py",
@@ -30,16 +30,16 @@
     },
     {
       "path": "tools/check_instruction_responses.py",
-      "sha256": "a9e22d3f7c5f3518118ba18be1248e8bb2c3dc2987fb4f5bde75232e923815e6",
-      "symbols": 15,
+      "sha256": "dfbc0a9f4774f5122a20e13f0cb4ecfc430bbda72760c3e45de622cd42a05033",
+      "symbols": 16,
       "calls": 26,
       "truncated": false
     },
     {
       "path": "tools/check_kit.py",
-      "sha256": "0fcef5693e41a2e2a5e56334cbeee8b59a2dab539fa43a1475d2e2dfd78adbfe",
-      "symbols": 6,
-      "calls": 4,
+      "sha256": "abc1fe1ff35eb720f2cf2c219661238246132cd069626fd2088a5b81ab5002d6",
+      "symbols": 7,
+      "calls": 5,
       "truncated": false
     },
     {
@@ -79,7 +79,7 @@
     },
     {
       "path": "tools/render_migration.py",
-      "sha256": "56628a2887763a5fe23aa525a0e6dca45df5b71b30ece98fb9f8e49363340673",
+      "sha256": "0507c2d4d50c1e0aceaa916156803c6b5b74f15c0e75e015d2db02491caef191",
       "symbols": 22,
       "calls": 40,
       "truncated": false

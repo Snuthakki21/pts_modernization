@@ -103,6 +103,29 @@ class RendererTests(unittest.TestCase):
         self.assertIn("1. MIG-D", text)
         self.assertIn("Blocker count: 3", text)
 
+    def test_non_cycle_blockers_propagate_to_all_descendants(self):
+        self.add_migration("MIG-B", ["MIG-A"])
+        self.add_migration("MIG-C", ["MIG-B"])
+        self.add_migration("MIG-D")
+        for reason in ("blocker", "stage", "artifact"):
+            with self.subTest(reason=reason):
+                first = self.migration("MIG-A")
+                self.inventory["programs"][0]["migrations"][0] = first
+                if reason == "blocker":
+                    first["blocker"] = "Missing approved binding"
+                elif reason == "stage":
+                    first["stage"] = "stale"
+                else:
+                    first["artifacts"][0]["state"] = "access-restricted"
+                text = self.successful_output()
+                self.assertIn("Blocker count: 3", text)
+                for migration_id, predecessor in (("MIG-B", "MIG-A"), ("MIG-C", "MIG-B")):
+                    card = text.split("### Flow " + migration_id, 1)[1].split("### Flow", 1)[0]
+                    self.assertIn("blocked prerequisites&#58; " + predecessor, card)
+                    self.assertNotIn("None declared; readiness unverified", card)
+                unrelated = text.split("### Flow MIG-D", 1)[1]
+                self.assertIn("None declared; readiness unverified", unrelated)
+
     def test_self_cycle_and_separate_cycle_groups(self):
         self.inventory["programs"][0]["migrations"][0]["depends_on"] = ["MIG-A"]
         self.add_migration("MIG-B", ["MIG-C"])

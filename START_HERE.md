@@ -7,7 +7,7 @@ extensions or upstream plugin runtimes.
 ## Bind the workstation once
 
 1. Run `python tools/check_kit.py` (`py` on Windows). It checks kit files and the
-   pinned permission/license baseline, not connectivity or model execution.
+   pinned permission/notice baseline, not connectivity or model execution.
    Through the approved local binding, run `python tools/init_workspace.py --root .`.
    It creates missing state without overwriting decisions or budgets. Use the
    [folder guide](docs/FOLDER_STRUCTURE.md) before supplying program/process IDs.

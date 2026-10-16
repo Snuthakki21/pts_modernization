@@ -52,10 +52,11 @@ class KitIntegrityTests(unittest.TestCase):
     def test_original_history_is_compared_when_available(self):
         (self.root / ".git").mkdir()
         baseline = json.loads((self.root / "config/preservation-baseline.json").read_text())
+        notices = json.loads((self.root / ".claude/skill-pack.json").read_text())["notices"]
         def historical(args, **kwargs):
             path = args[-1].split(":", 1)[1]
             content = (json.dumps({"permissions": {"deny": baseline["permissions_deny"]}}).encode()
-                       if path == ".claude/settings.json" else (self.root / path).read_bytes())
+                       if path == ".claude/settings.json" else notices[baseline["licenses"][path]].encode())
             return subprocess.CompletedProcess(args, 0, content, b"")
         with patch.object(kit.subprocess, "run", side_effect=historical):
             report = self.report()
@@ -116,10 +117,39 @@ class KitIntegrityTests(unittest.TestCase):
                 finally:
                     path.write_bytes(original)
 
-    def test_graphify_license_must_match_its_declared_hash(self):
-        path = self.root / "docs/licenses/graphify/LICENSE"
-        path.write_text("A substituted license\n")
-        self.assertTrue(any("Graphify license hash" in error for error in self.report()["errors"]))
+    def test_graphify_notice_must_match_its_pinned_hash(self):
+        self.edit_json(".claude/skill-pack.json", lambda value: value["notices"].update(
+            {kit.GRAPHIFY_NOTICES["LICENSE"]: "A substituted license\n"}))
+        self.assertTrue(any("Graphify notice hash" in error for error in self.report()["errors"]))
+
+    def test_graphify_notice_reference_cannot_be_replaced_by_a_new_hash(self):
+        self.edit_json("config/token-tools.json", lambda value: value["selected"]["license_notices"].update(
+            LICENSE="0" * 64))
+        self.assertTrue(any("Graphify notice inventory" in error for error in self.report()["errors"]))
+
+    def test_missing_consolidated_notices_fail_even_without_git_history(self):
+        self.edit_json(".claude/skill-pack.json", lambda value: value.pop("notices"))
+        errors = self.report()["errors"]
+        self.assertTrue(any("License changed or missing" in error for error in errors))
+        self.assertTrue(any("Graphify notice hash" in error for error in errors))
+
+    def test_graphify_notice_store_cannot_point_away_from_canonical_provenance(self):
+        self.edit_json("config/token-tools.json", lambda value: value["selected"].update(
+            notice_store="missing-store.json#notices"))
+        self.assertTrue(any("Graphify notice store" in error for error in self.report()["errors"]))
+
+    def test_retained_package_notice_reference_and_hash_remain_pinned(self):
+        baseline = json.loads((self.root / "config/preservation-baseline.json").read_text())
+        expected = baseline["licenses"][".claude/skills/headroom/LICENSE.md"]
+        for notice_hash, reference in ((expected, "notices/" + "0" * 64),
+                                       ("0" * 64, "notices/" + expected)):
+            with self.subTest(reference=reference):
+                def update(value):
+                    package = next(p for p in value["packages"] if p["name"] == "headroom")
+                    package["license"].update(sha256=notice_hash, notice_reference=reference)
+                self.edit_json(".claude/skill-pack.json", update)
+                self.assertTrue(any("Retained notice binding mismatch" in error
+                                    for error in self.report()["errors"]))
 
     def test_design_reference_is_required_without_rea_distribution(self):
         self.assertTrue((self.root / "docs/PUBLIC_SITE_DESIGN.md").is_file())
@@ -152,14 +182,17 @@ class KitIntegrityTests(unittest.TestCase):
 
     def test_changed_license_cannot_be_hidden_by_updating_pack_hash(self):
         import hashlib
-        relative = ".claude/skills/headroom/LICENSE.md"
+        baseline = json.loads((self.root / "config/preservation-baseline.json").read_text())
+        original_hash = baseline["licenses"][".claude/skills/headroom/LICENSE.md"]
         data = b"Replacement license\n"
-        (self.root / relative).write_bytes(data)
+        replacement_hash = hashlib.sha256(data).hexdigest()
         def update(value):
+            value["notices"].pop(original_hash)
+            value["notices"][replacement_hash] = data.decode()
             for package in value["packages"]:
-                for item in package["files"]:
-                    if item["path"] == relative:
-                        item.update(sha256=hashlib.sha256(data).hexdigest(), bytes=len(data))
+                if package["name"] == "headroom":
+                    package["license"].update(sha256=replacement_hash,
+                                              notice_reference="notices/" + replacement_hash)
         self.edit_json(".claude/skill-pack.json", update)
         self.assertTrue(any("License changed" in error for error in self.report()["errors"]))
 

@@ -17,6 +17,11 @@ the retained Headroom instructions are not the Headroom compression runtime.
 Installing more packages does not itself save tokens. Use one applicable tool
 at a time and measure complete tasks, including retries and review.
 
+Required third-party notices are hash-keyed data in the existing
+`.claude/skill-pack.json`; no standalone license files are needed. Retrieve only
+relevant package metadata for agent work, leaving notice payloads outside model
+context. The offline kit checker validates their complete pinned bytes.
+
 **Ponytail is required for design, implementation and repairs.** The lead loads
 the retained local skill, and design/backend/frontend apply it to the affected
 callers, tests and final diff. This is the licensed, pinned instruction adaptation,

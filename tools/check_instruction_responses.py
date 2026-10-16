@@ -24,6 +24,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -40,6 +41,7 @@ REQUIRED_INSTRUCTIONS = (
     "knowledge/MEMORY.md",
     "docs/CLAUDE_CODE_WORKFLOW.md", "prompts/GOAL_WORKFLOW.md", ".claude/loop.md",
     "docs/ENDEVOR_NAVIGATION.md", "Endevor/README.md",
+    "ui/AGENTS.md",
     ".claude/settings.json", ".claude/skill-pack.json",
     ".claude/skills/modernize-process/SKILL.md",
     ".claude/skills/validate-program/SKILL.md",
@@ -77,9 +79,17 @@ def _unique_object(pairs):
     return result
 
 
+def _finite_float(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Non-finite JSON number")
+    return number
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"),
-                      object_pairs_hook=_unique_object)
+                      object_pairs_hook=_unique_object,
+                      parse_constant=_finite_float, parse_float=_finite_float)
 
 
 def _digest(data):
@@ -88,7 +98,7 @@ def _digest(data):
 
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=False).encode("utf-8")
+                      ensure_ascii=False, allow_nan=False).encode("utf-8")
 
 
 def _string_list(value):
@@ -371,7 +381,7 @@ def evaluate(response, root=ROOT):
 def _write_json(path, value):
     # Serialize before creating anything; exclusive creation also rejects aliases
     # and a destination created by another process after an existence check.
-    serialized = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+    serialized = json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
     with Path(path).open("x", encoding="utf-8") as stream:
         stream.write(serialized)
 

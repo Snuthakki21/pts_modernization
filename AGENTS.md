@@ -27,7 +27,8 @@ service. [TECHNICAL_REFERENCE](docs/TECHNICAL_REFERENCE.md) defines acceptance.
 - **Minimal implementation.** Load retained Ponytail for design/build/repair;
   workers without Skill access read its local `SKILL.md`. Prefer existing helpers
   and small clear code; remove duplication, dead code, speculative abstractions,
-  invented defaults and broad exception suppression. Preserve licenses/provenance.
+  invented defaults and broad exception suppression. Preserve required notices
+  and provenance in the existing skill-pack manifest.
   Implement logic and ETL in Python now, with database reference tables. Follow
   technical-reference Section 7 for `ETL-LATER (Sparkflows)` comments and the
   single [migration register](docs/SPARKFLOWS_MIGRATION.md). Sparkflows is deferred.

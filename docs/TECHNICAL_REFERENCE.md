@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 7.4 · 16 October 2026 (UTC) · Condensed entry instructions and repository cleanup
+Version 7.5 · 16 October 2026 (UTC) · Adversarial fixes and consolidated third-party notices
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -34,7 +34,7 @@ The [application operating guide](APP_MODERNIZATION_GUIDE.md) gives the exact
 agent assignments, commands, input contracts and handoffs from intake to acceptance.
 
 Included now: nine role definitions, three core skills, retained optional instruction
-packages/licenses, configuration, playbooks, this specification and the review
+packages/notices, configuration, playbooks, this specification and the review
 workbook. Five small standard-library Python utilities now implement compatibility
 receipt checking, per-rule case generation/execution, portable failed-record replay,
 factual migration rendering and instruction-response regression scoring. Their
@@ -93,9 +93,9 @@ the target implementation. No separate agent is needed for each rule or program.
 
 The 15 inherited optional instruction packages remain available on demand with
 licenses and provenance in `.claude/skill-pack.json`. They are not upstream runtime
-installations. Headroom is a context-selection adapter; Graphify was not found in
-the tracked configuration. Inspect any workstation-installed tools before use.
-Preserve actual existing configuration; do not claim an absent plugin is installed.
+installations. Headroom remains a context-selection adapter; the separately
+reviewed optional Graphify parser is documented in `TOKEN_EFFICIENCY.md`.
+Verify workstation activation before use; repository metadata is not an installed-plugin receipt.
 
 ## 3. Parallel execution and automatic repair
 
@@ -622,7 +622,7 @@ docstring and `--help` define its executable interface.
 
 The separate initializer in Section 6 creates missing files only. The kit checker
 requires the tools, tests, workbook, templates and memory files, verifies preserved
-permissions/licenses against a pinned baseline, and additionally checks historical
+permissions and consolidated notice bytes against a pinned baseline, and checks historical
 Git bytes when available. Archive/shallow-checkout checks state their narrower
 preservation basis; none imply model execution or program acceptance.
 

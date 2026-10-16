@@ -286,6 +286,16 @@ def render(programs, migrations, provenance, output):
         if (migration["blocker"] or migration["stage"] in {"blocked", "stale"}
                 or any(a["state"] in {"missing", "stale", "access-restricted"} for a in migration["artifacts"])):
             blocked.add(key)
+    dependents = {key: [] for key in migrations}
+    for key, migration in migrations.items():
+        for dependency in migration["depends_on"]:
+            dependents[dependency].append(key)
+    pending = list(blocked)
+    while pending:
+        for successor in dependents[pending.pop()]:
+            if successor not in blocked:
+                blocked.add(successor)
+                pending.append(successor)
     lines = ["## Generated migration facts", "",
              f"Programs: {len(programs)}. Migration candidates: {len(migrations)}. Blocker count: {len(blocked)} (distinct candidates).", "",
              "Snapshot only: supplied milestones are declarations, not verified readiness. "
@@ -322,6 +332,8 @@ def render(programs, migrations, provenance, output):
             reasons.append("blocked by cycle dependency")
         elif any(key in group for group in cycles):
             reasons.append("dependency cycle")
+        elif predecessors := [d for d in migration["depends_on"] if d in blocked]:
+            reasons.append("blocked prerequisites: " + ", ".join(sorted(predecessors)))
         if any(a["state"] in {"missing", "stale", "access-restricted"} for a in migration["artifacts"]):
             reasons.append("artifact availability unresolved")
         lines += ["", f"### Flow {md(key)}", "", "| Field | Supplied fact |", "|---|---|",

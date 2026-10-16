@@ -29,11 +29,6 @@
       "tools/",
       "programs/<id>/target/"
     ],
-    "license_files": {
-      "docs/licenses/graphify/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-      "docs/licenses/graphify/LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
-      "docs/licenses/graphify/NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621"
-    },
     "evidence": "docs/TOKEN_TOOLS_EVIDENCE.json",
     "adapter_platforms": [
       "Linux",
@@ -52,7 +47,13 @@
       "guarantees_security": false
     },
     "index_receipt": "docs/GRAPHIFY_INDEX_EVIDENCE.json",
-    "freshness": "No persistent parser cache; each lookup captures current bytes. Existing local-index manifest records source fingerprints; invalidate changed/renamed/deleted entries."
+    "freshness": "No persistent parser cache; each lookup captures current bytes. Existing local-index manifest records source fingerprints; invalidate changed/renamed/deleted entries.",
+    "license_notices": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
+      "NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621"
+    },
+    "notice_store": ".claude/skill-pack.json#notices"
   },
   "native": {
     "mcp_tool_search": "verify existing provider-supported default; no forced override added",

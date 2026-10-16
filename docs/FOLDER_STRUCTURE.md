@@ -21,7 +21,7 @@ model-quality result is implied by the presence of these files.
 | `.claude/skills/modernize-process/` | Application/process modernization procedure |
 | `.claude/skills/validate-program/` | Program validation procedure and mainframe reference |
 | `.claude/skills/consult-modernization/` | Evidence-based clarification and technical decision procedure |
-| `.claude/skill-pack.json`, other `.claude/skills/` | Fifteen retained optional instruction packages with provenance and applicable licenses; not installed runtimes |
+| `.claude/skill-pack.json`, other `.claude/skills/` | Fifteen retained optional instruction packages; provenance and hash-keyed required notices consolidated in the manifest; not installed runtimes |
 | `.claude/settings.json` | Approved model/delegation binding and preserved permission policy |
 | `config/project.json`, `config/source-reference.json` | Non-secret shared bindings, explicit unavailable capabilities and screenshot transcription |
 | `config/preservation-baseline.json` | Pinned historical permission and license baseline for full and shallow/archive checkouts |
@@ -41,7 +41,6 @@ model-quality result is implied by the presence of these files.
 | `docs/SECURITY_EVIDENCE.json` | Dated scoped findings, fixes, independent checks and reviewed file hashes |
 | `docs/TOKEN_EFFICIENCY.md`, `config/token-tools*` | Reviewed optional lookup integration and hash-locked dependencies |
 | `docs/PUBLIC_SITE_DESIGN.md` | Sourced public visual references; temporary research tooling removed |
-| `docs/licenses/` | New optional tool licenses, provenance and available dependency audit receipts |
 | `docs/SPARKFLOWS_MIGRATION.md` | Single migration document with generated facts and preserved commentary |
 | `docs/WORKBOOK_GUIDE.md`, `examples/PTS_Modernization_Review_Template.xlsx` | SME/evidence workbook instructions and clearly fictional example template |
 | `docs/evidence.json` | Recorded kit verification and explicit execution limits |

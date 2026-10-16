@@ -36,6 +36,24 @@ test('reserved properties are rejected before import', () => {
   assert.throws(() => parseSnapshot('{"__proto__":{"polluted":true}}'), /not valid/);
   assert.equal({}.polluted, undefined);
 });
+test('duplicate JSON keys fail before schema values can hide them', () => {
+  const text = JSON.stringify(demo);
+  for (const duplicate of [
+    text.replace('"schema_version":1', '"schema_version":999,"schema_version":1'),
+    text.replace('"schema_version":1', '"schema_vers\\u0069on":999,"schema_version":1'),
+    text.replace('"positive_passed":100', '"positive_passed":0,"positive_passed":100'),
+  ]) {
+    assert.notEqual(duplicate, text);
+    assert.throws(() => parseSnapshot(duplicate), /Duplicate JSON key/);
+  }
+});
+test('string escapes and repeated keys in separate objects stay valid', () => {
+  const text = JSON.stringify(demo).replace('"schema_version"', '"schema_vers\\u0069on"');
+  assert.deepEqual(parseSnapshot(text), demo);
+  // A structural-looking string must reach its ordinary field validation.
+  const value = clone(); value.programs[0].label = '{"a":1,"a":2}';
+  assert.throws(() => parseSnapshot(JSON.stringify(value)), /display label/);
+});
 test('oversized and invalid JSON fail with recoverable errors', () => {
   assert.throws(() => parseSnapshot(' '.repeat(MAX_BYTES + 1)), /8 MiB/);
   assert.throws(() => parseSnapshot('{'), /not valid/);

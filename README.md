@@ -19,7 +19,8 @@ register tracks later Sparkflows replacement. Start with [START_HERE](START_HERE
 | UI research and standards | [Public-site design reference](docs/PUBLIC_SITE_DESIGN.md) |
 
 This branch, `modernization/clean-agent-kit`, preserves the fifteen retained
-instruction packages and licenses from `modernization-factory`; their upstream
+instruction packages from `modernization-factory`; required third-party notices
+are consolidated in `.claude/skill-pack.json`. Their upstream
 runtimes are not installed. Ponytail is required for design/build/repair. The
 previous branch/history remains intact; temporary REA research tooling is removed.
 

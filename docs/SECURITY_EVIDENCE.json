@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "dated_scoped_security_evidence",
-  "recorded_at_utc": "2026-10-16T11:04:51.727055+00:00",
+  "recorded_at_utc": "2026-10-16T11:22:19.220142+00:00",
   "guarantees_complete_security": false,
   "receipt_scope": "Kit UI and optional Graphify adapter only; no real converted application reviewed.",
   "reviews": [
@@ -779,6 +779,334 @@
     "limits": [
       "No new live Claude, Db2, Zowe or browser acceptance.",
       "File hygiene is not a complete security guarantee."
+    ]
+  },
+  "adversarial_review_v7_5": {
+    "recorded_at_utc": "2026-10-16T11:22:19.220142+00:00",
+    "kind": "local_repository_wide_adversarial_review",
+    "baseline_commit": "3e9b1b9cff296eaf51cdda6dbee42ec8988f40ec",
+    "formal_security_plugin_scan": {
+      "status": "not_performed",
+      "reason": "Deep-scan coordinator is unavailable in this authoring session."
+    },
+    "coverage": {
+      "baseline_tracked_paths": 148,
+      "python_paths": 22,
+      "non_python_paths": 126,
+      "final_tracked_paths": 131,
+      "scope": "All baseline tracked code, tests, configs, agents/skills, documentation, templates, dependency locks, workbook and design evidence; independent review of final fixes.",
+      "raw_mainframe_or_customer_data_reviewed": false
+    },
+    "independence": {
+      "implementation_author": "foreground lead",
+      "python_reviewer": "adversarial_python_audit; no tracked edits",
+      "ui_workflow_reviewer": "adversarial_ui_workflow; no tracked edits",
+      "python_receipt": ".implementation/adversarial-python-recheck.json",
+      "python_receipt_sha256": "cab8285e44f208242eb68e79610664174b057c4eddf6d0c5793baba96316cfad",
+      "ui_receipt": ".implementation/adversarial-ui-workflow-review.json",
+      "ui_receipt_sha256": "bc623f9e4b6df9d54c33c41e7df2bb4db9a656eb680efc8f548f1f69c23a4cae",
+      "baseline_discovery_receipt": ".implementation/adversarial-python-review.json",
+      "baseline_discovery_sha256": "5fd397af2dff6919fa6b32a929be7480f0f343a5422e59acc3d002c41b2caac9"
+    },
+    "findings": [
+      {
+        "finding_id": "PY-ADV-01",
+        "severity": "medium",
+        "state": "closed_verified",
+        "category": "migration_dependency_integrity",
+        "affected_paths": [
+          "tools/render_migration.py"
+        ],
+        "fix_and_independent_verification": [
+          {
+            "finding_id": "PY-ADV-01",
+            "variant": "declared_blocker",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-01",
+            "variant": "stale_stage",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-01",
+            "variant": "missing_artifact",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-01",
+            "variant": "unblocked_control",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "finding_id": "PY-ADV-02",
+        "severity": "medium",
+        "state": "closed_verified",
+        "category": "instruction_evidence_freshness",
+        "affected_paths": [
+          "tools/check_instruction_responses.py"
+        ],
+        "fix_and_independent_verification": [
+          {
+            "finding_id": "PY-ADV-02",
+            "variant": "ui_instruction_edit_invalidates_prior_response",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-02",
+            "variant": "restored_control_retains_prior_fingerprint",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "finding_id": "PY-ADV-03",
+        "severity": "low",
+        "state": "closed_verified",
+        "category": "receipt_json_integrity",
+        "affected_paths": [
+          "tools/check_instruction_responses.py"
+        ],
+        "fix_and_independent_verification": [
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "NaN",
+            "passed": true,
+            "exit_code": 1,
+            "receipt_created": false
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "Infinity",
+            "passed": true,
+            "exit_code": 1,
+            "receipt_created": false
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "-Infinity",
+            "passed": true,
+            "exit_code": 1,
+            "receipt_created": false
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "1e999",
+            "passed": true,
+            "exit_code": 1,
+            "receipt_created": false
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "-1e999",
+            "passed": true,
+            "exit_code": 1,
+            "receipt_created": false
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "canonical_rejects_nonfinite_api_input",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-03",
+            "variant": "write_json_rejects_nonfinite_api_input",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "finding_id": "PY-ADV-04",
+        "severity": "low",
+        "state": "closed_verified",
+        "category": "consolidated_notice_reference_integrity",
+        "affected_paths": [],
+        "fix_and_independent_verification": [
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "valid_control",
+            "passed": true
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "wrong_package_reference",
+            "passed": true,
+            "errors": [
+              "Retained notice binding mismatch: .claude/skills/superpowers/LICENSE.md"
+            ]
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "wrong_package_sha",
+            "passed": true,
+            "errors": [
+              "Retained notice binding mismatch: .claude/skills/superpowers/LICENSE.md"
+            ]
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "wrong_notice_store",
+            "passed": true,
+            "errors": [
+              "Graphify notice store differs from canonical provenance"
+            ]
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "wrong_graphify_hash",
+            "passed": true,
+            "errors": [
+              "Graphify notice inventory differs from pinned contract"
+            ]
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "missing_notice_text",
+            "passed": true,
+            "errors": [
+              "License changed or missing: .claude/skills/superpowers/LICENSE.md",
+              "Consolidated notice inventory differs from pinned provenance"
+            ]
+          },
+          {
+            "finding_id": "PY-ADV-04",
+            "variant": "all_original_bytes_and_baseline_preserved",
+            "passed": true,
+            "original_paths": 17,
+            "unique_notices": 16
+          }
+        ]
+      },
+      {
+        "finding_id": "UI-ADV-001",
+        "severity": "low",
+        "state": "closed_verified",
+        "category": "Import input ambiguity and documented-contract violation",
+        "affected_paths": [
+          "ui/src/snapshot.mjs",
+          "docs/PROGRESS_UI.md"
+        ],
+        "fix_and_independent_verification": "All38 boundary/control probes passed; 500 deterministic duplicate injections rejected across96 possible object paths;126 valid escaped-key/string/numeric controls accepted. Existing24 UI tests passed."
+      }
+    ],
+    "open_validated_findings": [],
+    "verification": {
+      "python_regressions": 246,
+      "ui_regressions": 24,
+      "python_additional_hostile_control_checks": 20,
+      "ui_boundary_probes": 38,
+      "ui_duplicate_key_challenges": 500,
+      "ui_valid_parser_controls": 126,
+      "ui_build": "passed",
+      "relative_markdown_links_checked": 212,
+      "missing_relative_markdown_targets": 0,
+      "instruction_rubric": "73/73 synthetic checks; no model run",
+      "dependency_review": "Pinned lockfile/source/integrity metadata and existing audit receipts reviewed; no fresh online advisory scan",
+      "workbook_review": "ZIP/XML/formula package inspected; no external relationships, macros, OLE or ActiveX; native Excel not run"
+    },
+    "license_file_removal": {
+      "standalone_files_removed": 17,
+      "unique_notices_retained": 16,
+      "all_original_byte_sequences_preserved": true,
+      "store": ".claude/skill-pack.json#notices",
+      "pointer_and_hash_tampering_rejected": true,
+      "historical_baseline_unchanged": true
+    },
+    "reviewed_file_sha256": {
+      ".claude/agents/pts-analytics.md": "edd01fce1de844a18353625e8062eee44b3d92ac3cae57742c3d2386fde4df53",
+      ".claude/agents/pts-audit.md": "1a86b001e0dd1cdd8764524d67e1e81514c632d0d45a198c07d276cfd7034eaa",
+      ".claude/agents/pts-backend.md": "592a978f16fe1b75d6deef6451b66699dde9ea66f4d929e04b25d8f3490e4ea4",
+      ".claude/agents/pts-design.md": "5afcb0e30dfc5ced9f410f0fa7c3ba49273e7cdf12d5f7faee4f353b83ad0ed6",
+      ".claude/agents/pts-devops.md": "862bbdebebb57f0beaba0aa328041860f5f68851b6dc4ed3880f7b8e04394193",
+      ".claude/agents/pts-frontend.md": "13a585264551691dbd4953da0988152265608b4d63afe4b14f32d911f207d12f",
+      ".claude/agents/pts-gap-analysis.md": "a9ba72da5b99aad432969a5d437b361bcc6d03a7e10f604c12814762598fcde5",
+      ".claude/agents/pts-orchestrator.md": "d7f2ee1bf1a3fb600665d5975b9f7296fd7c9992e883f621b49af6aad7b90dfe",
+      ".claude/agents/pts-qa.md": "46066bc0623e67c3c5f24b0e1cf08160e4ce903ff43282c37640b18c1fea4be6",
+      ".claude/settings.json": "b6c8fb7a0ff0cb89664d0936e7f17a47e4320ef7e1a22e1bb898211230cf9388",
+      ".claude/skill-pack.json": "2549a28c4a9d58537cf588acf5434747c7d30fbc43637fc145c80fba291abbc8",
+      ".claude/skills/agent-engineering/SKILL.md": "09402aa0ebd906b61778bbbb95a576e21f62262ec3027e444201b86cd4f2e30c",
+      ".claude/skills/anthropic-testing/SKILL.md": "86d7b788ee41142abe3ffc9f66818b4346ba6266f8454fc4e60fadba9215e4f1",
+      ".claude/skills/caveman/SKILL.md": "46ffcf915252fd12f7a442386dfb390e72724018a3a1d0f0a4a184d4ae1c6819",
+      ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
+      ".claude/skills/ecc/SKILL.md": "d2695a8837054f4e9cf6ff09b6b31535b055b1709021982d024a3afd7191a6ca",
+      ".claude/skills/headroom/SKILL.md": "3bdbe3703112bc7e02d48606bcbaadc5757931f3c5ef8f61dc542bc189642222",
+      ".claude/skills/i-have-adhd/SKILL.md": "c6e025b411ebf16f9958013a2deb32065a7c4c34b66a76ab3a00b02e347bb1e2",
+      ".claude/skills/impeccable/SKILL.md": "4b730155bcdaa9eae5a2d280caa9478b6a63876fbf881b938552164aa6214c76",
+      ".claude/skills/karpathy-guidelines/SKILL.md": "8320eafab4b66a72d38dd8342e730e0b4634bd9d6c59683f379328aff12d54ce",
+      ".claude/skills/matt-pocock/SKILL.md": "bbf87e998449dd33ab6968c51c3bbfc9316db938b59f3d5a67feb0c0058d6fe2",
+      ".claude/skills/modernize-process/SKILL.md": "0a0b4cc59ef94c62f82e59ba88d4eb592f009945364b65b14bc887d6ff7dedee",
+      ".claude/skills/oh-my-claudecode/SKILL.md": "0962a0d85f5c5c654d7248281be327182c6dd4df0f1a1b74191f62746db39c0e",
+      ".claude/skills/ponytail/SKILL.md": "a899d98b468831b42f8b16215130645ba42e028f24a9672741cefc63d479a476",
+      ".claude/skills/superpowers/SKILL.md": "c98548f0a63e7a9c3f0a2f9e068f2a5897fa4e81b77d5b9a1c968914f6733c62",
+      ".claude/skills/taste/SKILL.md": "1a93f7edc14ab4fd25d2e4b5b10d8f74ce1796c396f691f95a4b455cfb7681e5",
+      ".claude/skills/ui-ux-pro-max/SKILL.md": "9292bae0ddb2801cafcbdd3b587367ef6d60d97189fefd584ade5febad4d49ed",
+      ".claude/skills/understand-anything/SKILL.md": "2531ffae5cc38365a0e2c1ce8e4a93df1b3fc84873a0acf080928924e308ed44",
+      ".claude/skills/validate-program/SKILL.md": "88111eb92fb8efc254b5a7ccd06d86a7365b906094c7d1590cf0aff73f5d0066",
+      "AGENTS.md": "5a0c664a1d5a8540d091a0b47e0674656e64859e52477da16f40abb809ed882b",
+      "CLAUDE.md": "6456c7a66b23457e561921feb9eea7a74c109424c69512c59d546a6091c4926d",
+      "README.md": "8fbe0e2aa036707e2fb05a59deb1fff10aeec314800a0fd7ef9421b9ac489555",
+      "START_HERE.md": "32ba744a3f7aeadc348beec07bb58a36f52b481d78881d961b9d9db6af1075c8",
+      "config/preservation-baseline.json": "be76b12acc7fe058622f6047dfd784e49e7d81eb5fe489023f3ee7354282c0c9",
+      "config/project.json": "1d96ab51f2955816d41a7906a27b1ac3cd5321070e7a337a995b1bccca7a13e3",
+      "config/token-tools.json": "d9b72b21d376dae73924cf2161480a362a6e90c670850c981d5aabda7e7c77a9",
+      "docs/CLAUDE_CODE_WORKFLOW.md": "e137010a0fef51425bf904b46632ac70ad93cbdfce0a2e589c132eac0662e761",
+      "docs/ENDEVOR_NAVIGATION.md": "3086078c4f5e34f4cd51c381ce12981a8e65fc7a8a31598918a969a2998691fe",
+      "docs/FOLDER_STRUCTURE.md": "98ecfba3be1b55559aff3cdc82f8ee4427e7555217a0361ac39d1b9ad64b23ac",
+      "docs/OPUS_QUALITY.md": "c2af963dc87882e5ef4ed547e8d07ad6b8cf26c8339d6f27d642551d0104ea79",
+      "docs/PROGRESS_UI.md": "4b0eb1d2a3c37dc90b87a3a78e04a19679966a0f8d1a37122bf71267c5e8caab",
+      "docs/SECURITY_REVIEW.md": "f381e618aab6737bb810400e6505dfef0506782f9dd3fd7ea484f1c42bf8a59d",
+      "docs/TECHNICAL_REFERENCE.md": "5b08da102170158f0ccc147db623d41abf4928e0fc7c9b1698a76f6328aa7259",
+      "docs/TOKEN_EFFICIENCY.md": "6a8bba0b859949824601284f7e5f7c62fe92aaed940b4ae5b09ab1da5379e0c5",
+      "examples/PTS_Modernization_Review_Template.xlsx": "e846a8a9ac743e6b39019f285f92ed689dc80373f73e9992cdf679f159f95f12",
+      "examples/rule_validation/demo_oracle.py": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
+      "examples/rule_validation/demo_target.py": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+      "prompts/GOAL_WORKFLOW.md": "c9242c75ed34fe97141275525b6396123354d7fcc36320178dc23b8c0922e48e",
+      "tests/test_compatibility_profile.py": "22b53296be60903d9ecdf9a8cf52ba504f43fce6a9059befafcab699bcd43cb4",
+      "tests/test_endevor_nav.py": "44aa076f64fcaf2f94e2d0dc50ed9dc3160f6fcfd7754a187ff178d1ee8229d8",
+      "tests/test_graphify_lookup.py": "2207ef19d68df7afb87c0d69edb2112b816f8e37f3c0dfafb2030571a184bce4",
+      "tests/test_init_workspace.py": "8f91892c373c99e4df314a2b2e8735665d6e01178c50aef7304ede74a7313565",
+      "tests/test_instruction_responses.py": "4ebcdb0d0134140e4a560a63bef2161c1c4b2968d66749a25f4745e08253747e",
+      "tests/test_kit_integrity.py": "f297820ed42cdb04a79f60a7193b6339f59fdb9b5e03d255e77288c42ddb44b0",
+      "tests/test_progress_snapshot.py": "7b9b3f1b5264e1c4088bc9871400cf89f08f878cca0bdbe88d1a5f398653a082",
+      "tests/test_render_migration.py": "8f64f2a80b5ee8c21421e24c91056fced7fe2b37007d1e76db715c53d9a562a5",
+      "tests/test_replay_record.py": "04ffe9ec56dfe188c0d29cb421c510e0917b03075b1e9629c49909911459dff4",
+      "tests/test_rule_cases.py": "03ddda8488092bcb8cf12b713dd1bddceb8e0ca9e4bc563e283665165fc8319a",
+      "tools/check_instruction_responses.py": "dfbc0a9f4774f5122a20e13f0cb4ecfc430bbda72760c3e45de622cd42a05033",
+      "tools/check_kit.py": "abc1fe1ff35eb720f2cf2c219661238246132cd069626fd2088a5b81ab5002d6",
+      "tools/compatibility_profile.py": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
+      "tools/endevor_nav.py": "a46ef81b4b162307d68aed57710d675cab1801c7ac955acab63603ca5e6c56fd",
+      "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+      "tools/init_workspace.py": "378000e2c1e001ae5a51a90fceb6299a1b8b951dfeb113b412be1033aa757875",
+      "tools/progress_snapshot.py": "efa6da1aca39bfa4bf0aaa4109b04c2458e99ce0c7f730117b6c71f4d5e3c515",
+      "tools/render_migration.py": "0507c2d4d50c1e0aceaa916156803c6b5b74f15c0e75e015d2db02491caef191",
+      "tools/replay_record.py": "93221dd4ec7f74cec2bc66496a619027296689f8f18732e305bd52c5a0291399",
+      "tools/rule_cases.py": "b9a2a18ffc61022f1b6369939a9ff45cac1e15372ab8490668e857082ed9a2ef",
+      "ui/.openai/hosting.json": "d532abb65cf9ae20634b464d954cb4a08a0de9f3cd3cdf7f9c3ec8948826d947",
+      "ui/AGENTS.md": "4e20d00d0612fe53f04c26b11175879780ae6ba4a4d2245af9599f50e448e505",
+      "ui/index.html": "c9c5d456ade6f63361c12eef5f5dff5b325c225923089e81c0830cedc9f59c35",
+      "ui/package-lock.json": "f05740e20b2e2f943a3fd54b51e91cc836cb37184d2ca06e35a1b1a2cebddb89",
+      "ui/package.json": "89fa2a857eda2e7c2cd03f85d880bc042c4c8ea7fa42699e3035f5b62f0eb31f",
+      "ui/scripts/prepare-sites-build.mjs": "b6a6adaa4fab3234676116dd1c9cb6611275ab9d92dd26f5bf402393e3744bf6",
+      "ui/src/App.jsx": "b9aecf74990ec8aaf11676a734b45d5c0f4047291f6ba8cd24600c1d656a405c",
+      "ui/src/ProgramDetail.jsx": "b4df8401499073eacc0500e71ebd9ea4a33ab682f5fd001273c90d82a1babd04",
+      "ui/src/demo-progress.json": "29b77bee5d0c2c8e14e50cbe08b63b6e5416c743421046ed0a40673840efe70e",
+      "ui/src/main.jsx": "832f752c6b6a454a26dbc4f2654f5bd633f2b103516c8c0abac648308c133a7e",
+      "ui/src/snapshot.mjs": "a7e637f776c30c469c0fede0f6f5b6eb256f3a3d9210484089541a7d42495f03",
+      "ui/src/styles.css": "a0ad3494454ab47969190b5a42ee5d36c54c5d681ef1cbcedb0ba618cc8e3716",
+      "ui/tests/sites-worker.test.mjs": "96af7b48906c6460c793356d7b6952f7d5026dbf5a502bec0d9297ff04201c26",
+      "ui/tests/snapshot.test.mjs": "ad98a28da3bc5b161c4db7ce64b8dfd04a145b4cd68621d2a6e5e91953d3b60c",
+      "ui/vite.config.mjs": "6d7ed640cba5ac70d7770420ad8977802f28956df615f203f45ada8d2487b5af",
+      "ui/worker/index.js": "2dd0615a445143933d88d4271f54f5d63ee951421fcd08c5a7617bb09c564389"
+    },
+    "limits": [
+      "Local source review and synthetic execution are not proof of complete security.",
+      "No formal Codex Security coordinator run, live Claude/Opus, protected mainframe source, Db2/Zowe lookup, production hosting or Sparkflows execution.",
+      "No browser visual/accessibility acceptance or native Excel recalculation.",
+      "No fresh online dependency advisory query or exhaustive concurrent same-user filesystem race fuzzing.",
+      "Provider token measurement unavailable; no estimate substituted.",
+      "Subsequent evidence/index receipt updates are integration artifacts; historical review receipts remain preserved."
     ]
   }
 }
