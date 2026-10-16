@@ -39,7 +39,8 @@
   "implementation": {
     "logic_runtime": "python",
     "etl_runtime": "python",
-    "future_etl_runtime": "sparkflows"
+    "future_etl_runtime": "sparkflows",
+    "migration_register": "docs/SPARKFLOWS_MIGRATION.md"
   },
   "validation": {
     "positive_cases_per_rule": 100,

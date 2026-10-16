@@ -5,6 +5,9 @@ conversation coordinates eight specialist roles and three core skills; no conver
 engine or orchestration service is included. Current business logic and simple ETL
 run in Python. Source/test-linked code comments identify simple ETL for later
 Sparkflows migration; Sparkflows setup and execution are deferred.
+Use [the single Sparkflows migration register](docs/SPARKFLOWS_MIGRATION.md) for
+flows to create, artifact links, dependencies, running commentary and the exact
+per-consumer switch/rollback/Python-retirement plan as real programs are analyzed.
 
 Start with [START_HERE.md](START_HERE.md). The full contract is
 [docs/TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md). The editable SME and

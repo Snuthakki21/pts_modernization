@@ -80,6 +80,14 @@ QA runs process integration against pinned program versions when assigned, savin
 interactions, job order, I/O bindings, rollback/restart and repeated execution where
 applicable. Unit counts cannot substitute for these results.
 
+For later ETL cutover, follow `docs/SPARKFLOWS_MIGRATION.md`. Validate the exact
+dependency/consumer closure, mixed Python/flow path, active-provider version pin,
+single-writer effects, actual completion/output receipt, identity/lineage handoff
+and rollback with data repair. An uncertain remote outcome must be reconciled
+before retry or fallback. Python code removal is separately gated on every caller
+and in-flight reference being resolved, retained shared components and passing
+regressions; a flow's success alone does not authorize deleting shared functions.
+
 ## 3. Reconcile legacy and target
 
 Read [mainframe preparation](references/mainframe.md) for read-only discovery,

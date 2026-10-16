@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 5.1 · 15 October 2026 (America/New_York) · Python now, Sparkflows later
+Version 5.2 · 15 October 2026 (America/New_York) · Dependency-aware ETL migration
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -385,6 +385,7 @@ folder serves all consuming processes; process folders link to pinned versions.
 | `inventory.json` | Lead-owned current component/version registry and evidence links |
 | `knowledge/decisions.json` | Accepted reusable findings with applicability, provenance and supersession |
 | `knowledge/handoff.json` | Current task, versions, owned paths, blockers, budget and next action |
+| `docs/SPARKFLOWS_MIGRATION.md` | Lead-owned running migration document: flow catalog/cards, provided artifacts, dependencies, consumer cutovers, retirement and dated commentary; approved sanitized view of canonical program/process state |
 
 The initial registry may be compact JSON; migrate to a small SQLite metadata index
 only if measured volume requires it. Keep application data, metadata and large
@@ -446,12 +447,20 @@ Avoid repeating obvious code or marking every line. Keep detailed mappings in th
 existing `analysis/source-map.json`; record the future target as deferred, with no
 invented flow/node ID and no implementation or verification credit.
 
+Give each migration unit a stable internal `MIG-...` ID and link its Python comment
+to the corresponding card in the single [Sparkflows migration register](SPARKFLOWS_MIGRATION.md).
+The lead maintains that document as analysis and code evolve: proposed flows,
+exact provided/missing artifacts, dependencies, all shared consumers, what stays
+in Python, next actions and dated commentary. It is a readable view of existing
+source maps/inventory, not a new metadata database. Proposed IDs are separate from
+real installed flow/node IDs. Actual cards require real source/code evidence.
+
 Illustrative comment convention (IDs below are fictional, not program evidence):
 
 ```python
-# ETL-LATER (Sparkflows): move this field projection/rename to a mapping step.
+# ETL-LATER (Sparkflows) MIG-DEMO-01: move this field projection/rename to a mapping step.
 # Preserve null values, duplicate occurrences and input-to-output lineage.
-# Source map: DEMO-MAP-01; contract tests: DEMO-ETL-01.
+# Plan: docs/SPARKFLOWS_MIGRATION.md#flow-mig-demo-01; source: DEMO-MAP-01; tests: DEMO-ETL-01.
 ```
 
 Put these comments beside the real Python implementation when source is available.
@@ -476,6 +485,34 @@ before replacement. Test the **actual flow**, not a Python surrogate. Preserve
 rollback to the accepted Python version and measure performance/trace overhead.
 Avoid concurrent Spark writes to one local SQLite file; use an approved staging/load
 path if needed. Do not claim automatic or zero-change migration.
+
+### Dependency-aware switch and retirement
+
+Use ordinary cohesive Python ETL functions with explicit inputs/outputs/effects
+now. Keep business rules and shared utilities outside the replaceable boundary
+where behavior permits; record transaction coupling rather than inventing a split.
+The migration register identifies exact symbols/callers, source and test IDs,
+data/control/schema/reference/transaction/trace dependencies, cycle groups and all
+affected consumers. Compatible Python producers may feed migrated flows; only hard
+dependencies dictate order. Unknown consumers block deletion of shared code.
+
+Once a real flow passes its gates, use one existing process/job/config binding or
+small explicit caller change at the identified step/group. Pin one provider and
+artifact version per run and one side-effect writer. Quiesce or isolate in-flight
+work; wait for actual flow completion and validated output/commit receipts before
+downstream Python consumes it. Preserve full run/occurrence/attempt identity and
+lineage across the boundary. Prove the flow ran and replaced Python ETL did not;
+missing events alone are not proof. Do not fall back after uncertain remote effects.
+
+This permits a quick **disable of the Python invocation**, while retaining its
+accepted build for rollback. Delete the documented ETL symbols/imports only after
+all callers are migrated or pinned to a separately retained old build, no in-flight
+run requires the files, shared dependencies are resolved and affected regressions
+pass after removal. Keep contract tests, trace ownership and historical evidence.
+Prefer a reviewed binding/caller diff to commenting out mixed logic. The flow card
+must contain the exact switch/removal diff and tested rollback/data repair; a
+configuration change cannot undo committed effects. This kit defines the contract,
+not a working runtime selector or automatic deletion tool.
 
 Audit generated code for redundant wrappers, duplicate logic, speculative frameworks,
 dead code, broad exception suppression, hidden defaults, row-by-row SQL and assertions

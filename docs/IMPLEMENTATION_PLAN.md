@@ -58,6 +58,10 @@ approved Db2 metadata and lineage. Lead owns the merged inventory. Skill:
 - Use the supplied workbook for attributed SME behavior decisions. SMEs own
   preserve/remove/clarify choices. Engineers own classification, naming, technical
   treatment, conversion and reuse status.
+- Start real cards in [the single migration register](SPARKFLOWS_MIGRATION.md)
+  from approved artifacts. Record proposed flows, source IDs, dependency edges,
+  shared/dynamic consumers and provided/missing artifact references. The lead owns
+  the document; workers return scoped updates and the lead adds dated commentary.
 
 Checks: source fingerprints match; no unclassified spans without a gap; call/data
 dependencies resolve or block; all source units accounted for; metadata is pinned.
@@ -97,6 +101,9 @@ existing review interface when needed. Skills: `modernize-process`,
   capture. Add concise `ETL-LATER (Sparkflows)` comments at eligible ETL functions
   following technical-reference Section 7. Link source maps/tests and preserve
   semantics; do not create placeholder flows or migration-only abstractions.
+- Link each comment by migration ID to its register card. Keep ETL functions
+  cohesive with explicit I/O/effects; identify exact replace/retain symbols and
+  call sites so later cutover can use the existing step boundary.
 - Generate at least 100 meaningful distinct positive and 100 negative unit data
   cases per business rule. Record expected-result provenance and outcome classes.
   Use appropriate technical tests without an artificial 200-case quota.
@@ -160,6 +167,13 @@ with the accepted Python baseline and original contracts. Repeat affected rule
 cases, technical tests, process integration, full tracing and mainframe parity
 before replacement. Preserve rollback to Python. A planned comment never counts
 as a converted flow; current Python acceptance does not require this later work.
+Follow the register's dependency order or tested atomic group, validate every
+affected consumer and mixed Python/flow path, then change the exact existing
+step/caller binding at a run boundary. Capture completion and provider evidence;
+keep one writer and preserve identity/lineage. Disable the Python invocation before
+considering deletion. Delete only after all callers and in-flight versions are
+accounted for, rollback/data repair is tested and post-removal regressions pass.
+Update the same register and running commentary after each milestone.
 
 ## Parallelism and stop rules
 

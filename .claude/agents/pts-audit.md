@@ -42,6 +42,11 @@ Require concise source/test-linked Sparkflows migration comments where appropria
 not installed or executed flows. Deferred Sparkflows work is not a current gap;
 missing Python behavior or evidence remains a gap. Future flow acceptance requires
 new actual-flow tests, trace evidence and reconciliation.
+Review the single migration register against source maps and inventory: actual
+artifact availability, dependency closure, all consumer bindings, cutover/rollback
+proof and exact replace/retain lists. A verified flow permits only its validated
+consumer switches; Python retirement needs separate no-remaining-reference and
+regression evidence. Unknown dynamic consumers block deletion.
 
 Require Section 9 full-record trace acceptance: independent intake reconciled by
 identity, complete rule events and lineage, current source/target links, explicit

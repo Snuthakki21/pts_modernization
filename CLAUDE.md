@@ -25,6 +25,10 @@ Implement business logic and simple ETL in Python now, using parameterized tests
 and database reference tables. Add concise `ETL-LATER (Sparkflows)` comments at
 eligible transformation functions, linked to source-map/test IDs; follow technical
 reference Section 7. Sparkflows is a later phase, not a current dependency or gate.
+The lead maintains `docs/SPARKFLOWS_MIGRATION.md` as the single running migration
+document: flow cards, artifact links, dependencies, consumer bindings and commentary.
+Link code comments by stable migration ID. Switch verified ETL at an existing
+step boundary; retire Python only after shared-consumer and rollback checks.
 Write the smallest clear implementation that preserves behavior.
 Remove duplicate implementations, speculative abstractions, dead code, broad
 exception suppression, invented defaults and success claims without evidence.

@@ -27,6 +27,10 @@ business and ETL functions plus database I/O now. Sparkflows checks are deferred
 a null `commands.etl` does not block Python ETL covered by unit/integration tests.
 Future migration comments are not execution evidence. When migration is assigned,
 test the actual flow against the pinned Python baseline and original contracts.
+For migration, use `docs/SPARKFLOWS_MIGRATION.md` to test dependency closure, mixed
+Python/flow paths, all affected consumers, one active writer, asynchronous output
+handoff, uncertain commits and rollback/data repair. Code deletion additionally
+requires no unresolved consumers or in-flight references to the removed assets.
 
 Execute configured local bindings in isolated state. Assert effects and prohibited
 effects as well as values. Test interactions, ordering, restart and rollback where

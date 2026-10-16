@@ -21,6 +21,11 @@ Inspect installed tool/model support for the current Python phase. Defer Sparkfl
 example, connector and execution checks until its migration phase; their absence
 does not block Python readiness. A model name or profile in configuration is not
 proof of routing or connectivity.
+For later Sparkflows cutover, contribute actual invocation/completion bindings,
+run-boundary controls, pinned builds, single-writer isolation and tested rollback/
+data-repair artifacts to `docs/SPARKFLOWS_MIGRATION.md`. Reuse the existing runner;
+do not invent an API, toggle or migration engine. Keep post-run provider/dispatch
+receipts separate from the pre-run plan and reconcile uncertain external effects.
 Reuse the user-configured Zowe CLI and Db2 MCP server. Follow technical-reference
 Sections 4.1–4.4 for the readiness receipt, exact tool/resource binding and bounded
 parity packet. Record configured, reachable, permitted and verified separately.

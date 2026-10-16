@@ -48,6 +48,12 @@ and semantics to preserve (for example nulls, duplicates, ordering and lineage).
 Follow technical-reference Section 7. Do not add migration wrappers, placeholder
 flows or a Spark dependency. Python is the real current implementation. Later,
 validate actual installed Sparkflows assets before replacing any Python behavior.
+Give each candidate a stable migration ID and link its comment to the real card in
+`docs/SPARKFLOWS_MIGRATION.md`. Return exact modules/symbols, callers, dependencies,
+tests and proposed replace/retain lists to the lead. Keep ETL boundaries explicit.
+Later provide the minimal existing step-binding/caller diff plus rollback; never
+comment out mixed logic or remove shared code before every consumer is accounted
+for. Preserve one active writer, asynchronous completion and full trace handoff.
 
 Run only configured permitted local commands. Repair a QA reproducer without
 weakening assertions, hardcoding fixtures or changing approved meaning. The lead

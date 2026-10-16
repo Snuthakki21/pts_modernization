@@ -81,6 +81,14 @@ consumer's version in `processes/<id>/process.json`.
   versions, rules, consumers, compatibility, evidence, status dimensions and gaps.
   Keep implementation, unit validation, observed parity, process acceptance and
   evidence freshness separate. Unreferenced programs retain empty memberships.
+- The foreground also maintains `docs/SPARKFLOWS_MIGRATION.md`: one cross-program
+  catalog with stable migration IDs, required flows, provided/missing artifact
+  links, dependencies, shared consumers, switch/rollback/retirement plans and
+  dated running commentary. Workers return scoped updates. Derive it from existing
+  source maps and inventory; do not create another registry or runtime engine.
+  Current Python ETL comments link to real cards. Deferred flow creation does not
+  block Python acceptance; unresolved dependencies block affected future cutover
+  or deletion. Do not fabricate flow artifacts or ready-to-run switch commands.
 
 Reuse requires compatible behavior, invocation conditions and current fingerprints
 of source/includes, target, decisions, schemas, runtime, reference data and tests.

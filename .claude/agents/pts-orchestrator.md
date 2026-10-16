@@ -18,6 +18,10 @@ skills on demand: `modernize-process`, `validate-program`, and
 `knowledge/handoff.json`, process manifests and the single current
 `processes/<id>/review.xlsx`. Preserve issued workbook versions and original SME
 answers. Never supply an answer on the SME's behalf.
+Own the single `docs/SPARKFLOWS_MIGRATION.md` register. Merge workers' migration
+cards, artifact links, dependency edges and dated commentary after each relevant
+handoff. Keep it consistent with canonical source maps, inventory and process
+bindings; never infer a real flow or deletable Python from a planned comment.
 
 Dispatch at most two workers, with disjoint paths and explicit input versions.
 Use gap analysis for source/rules, design for contracts, backend for code/flows,

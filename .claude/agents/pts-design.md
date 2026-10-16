@@ -30,6 +30,11 @@ a connection-string-only migration. Assign current logic and simple ETL to Pytho
 Identify small ETL functions for later Sparkflows migration with source/test links
 and preserved semantics, without new interfaces or duplicate implementations solely
 for migration. Inspect installed Sparkflows only when that later phase begins.
+Propose cards for `docs/SPARKFLOWS_MIGRATION.md`: stable migration IDs, flow grouping,
+explicit input/output/effect contracts, dependencies and every shared consumer.
+Use existing step boundaries for later replacement; group inseparable transactions
+or cycles rather than forcing a split. Specify what Python stays, the exact switch
+and rollback contract, and evidence required before retiring shared code.
 
 Give each transformation one owner and specify independent acceptance measures.
 Avoid service-per-paragraph designs, new engines, speculative frameworks and

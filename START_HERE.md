@@ -69,6 +69,11 @@ Implement business logic and simple ETL in Python now. Put short
 `ETL-LATER (Sparkflows)` comments beside eligible ETL functions using the Section 7
 convention. Keep actual Python source, tests and every-record evidence current;
 future migration annotations are plans, not completed flow evidence.
+The lead maintains [one running migration document](docs/SPARKFLOWS_MIGRATION.md).
+Ask it to show flow cards, available/missing artifacts, dependency order and which
+Python functions/callers each flow will replace. Each code comment links to its
+card. Later, switch a validated step through its documented binding; retire shared
+Python only after every consumer and in-flight version is accounted for.
 
 SMEs edit the business-decision cells in the process review workbook. Engineering
 fills classification, technical treatment, reuse, replacement names and evidence.

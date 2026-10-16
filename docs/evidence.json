@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T01:21:45Z",
+  "recorded_at_utc": "2026-10-16T01:32:50.877Z",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -64,29 +64,30 @@
     "sparkflows_execution": "not performed"
   },
   "sha256": {
-    "CLAUDE.md": "e4d280e2b6bdf0e76b2fb1af96a275d430d7efbfdad7f7d7d04e0d6012596f0b",
-    "config/project.json": "1c3e9bb248dc97f4d5c71565e2361487c9514487268029f1da83c65ac0761dd1",
+    "CLAUDE.md": "489394e71c0981c73f58e9f6036484504f65755c4d1708ccd4a1e0ac14a46d24",
+    "config/project.json": "bdc45f5311e4feea87dd89c52c8a12d81803ad09864d8589bce2c26970decd5c",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "3b771384ecbf991fb2b9cab9ede4b19ce9bcb10aef8c3e91a7fc08cfa21db84e",
+    "docs/TECHNICAL_REFERENCE.md": "32696de812f798f6d66c519f228ed45748986bf68403071e0a380d8975ec343f",
     "examples/PTS_Modernization_Review_Template.xlsx": "49a141b0f92d0b4dab7b9fdf9ba6d1e8d3f178243690774cfb7146d7c975188e",
     ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
-    ".claude/agents/pts-audit.md": "1e1801a151e4ede9c1b8e03f5d3cb50c9392ff67be49fe42d75c32213be3cb46",
-    ".claude/agents/pts-backend.md": "c814bf81e49697422873f1f377d9b4b5fd82082b828c8791ae1a5ea8681d74ec",
-    ".claude/agents/pts-design.md": "33b80664d25b7f4d4a4d37e1a606d9023299eb7bc879557c4b44765127ddc526",
-    ".claude/agents/pts-devops.md": "1a85a68873fa47249db62926763b603cc2ecba838028a1fe865d28f0bccbad1c",
+    ".claude/agents/pts-audit.md": "c9ccb6ad591edf8c31474db8fca5c42e160928c0bfdc751008095c0b8df9eed0",
+    ".claude/agents/pts-backend.md": "170f0c88968a5b4e344dfeaae3bc6668a6f7f9836a0ccda2ce75b73768395a9e",
+    ".claude/agents/pts-design.md": "92bea4de108c6b9cc5e53a97996e46d5234bc409f9ebb46201636d1016dd82e5",
+    ".claude/agents/pts-devops.md": "2b7b3be88a0d482262eec3d9a354529ab7793d002ea1b8434b6ed520fb410e4d",
     ".claude/agents/pts-frontend.md": "433bdff0559b7b8f6f29204eeb9514d9a045ca3ecd608d7b8a09d881e69353ac",
-    ".claude/agents/pts-gap-analysis.md": "7c48aaa458730633ba85bfaa1e86423402c19cc65e7381695f067f40c9edd103",
-    ".claude/agents/pts-orchestrator.md": "5baa1137a04f098f40a765b5df765a1da396dc26b46c28cf49d434f717424e12",
-    ".claude/agents/pts-qa.md": "7e60dfda43b6d68b0231e3a880c4e18394a1a6d9923d67df0645d767c57f58a2",
-    ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
-    ".claude/skills/validate-program/SKILL.md": "f765feb3d9b2e782b2d4035fbaefe0f87e714ba3bafd884d67ee9a5a05c3bf32",
+    ".claude/agents/pts-gap-analysis.md": "4a34c322780f52c8a2f86db4a53f913bb3bcd89a0f1c25e516c1bf01445b1414",
+    ".claude/agents/pts-orchestrator.md": "fbbeaf76891c3dcb55f4a572d2c97de2deaec87af45227bdf1e1cb575ce5536b",
+    ".claude/agents/pts-qa.md": "b62ead5aedd624ce26837c5dafd7b545116670a4cc58e3e27d7e0aa1d799cfb2",
+    ".claude/skills/modernize-process/SKILL.md": "995dbd3af24ac3dc20af537f4fcad99f061a0d71c55a422686d0abd7c1ec658c",
+    ".claude/skills/validate-program/SKILL.md": "d8054f509d04fc3e353067a67bda6a49b3a968466ca616c98c3b7bc9608ca5e9",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
-    "START_HERE.md": "e26f0489759eee29fc80097e55fc60c99effc8e32138c8b2bc20df05f706bb85",
-    "README.md": "f9a1f19a5d13a6d7ff5c55d9bc791f0e6127cdf8f2d8537380f5ef9222ca60e4",
-    "docs/IMPLEMENTATION_PLAN.md": "419f215ef9f8fc6667602929c55d44408a159356376a6e2c4a2a799edb3e92ef",
+    "START_HERE.md": "0cb23c86315c01cb8abdf19b2c9d27dd758acfccb45aa0119feb2f29db8a670f",
+    "README.md": "d874831786f799103cc9c51e441fcad9fd468e5be47baed19f8ed1d55efa6b2c",
+    "docs/IMPLEMENTATION_PLAN.md": "1a4e0cf5a8931aae648554cbcbe03a74917636d3200b877837a7104c64a9bc21",
     ".claude/skills/validate-program/references/mainframe.md": "b84ea9eb978b8fc9b023833644f77b2cda9e35ad16487090bdb4d25605ba8348",
     "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d",
-    "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d"
+    "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d",
+    "docs/SPARKFLOWS_MIGRATION.md": "30d5384c45d513e4f691c81415ddc8632a236d8e0f50ebf221dccf8156073394"
   },
   "clean_branch_specification_v5": {
     "branch": "modernization/clean-agent-kit",
@@ -142,6 +143,34 @@
     ],
     "preserved": "100 positive and 100 negative cases per business rule, independent oracle, mainframe comparison, every-record trace, model pin, permissions, workbook and retained packages",
     "execution_limit": "No actual business-program conversion, host connectivity, Sparkflows execution or mainframe validation performed"
+  },
+  "migration_register_update_v5_2": {
+    "parent_commit": "b48af29dbf3a60a94755383c0f473ed4362bb1f2",
+    "delivery": "One lead-owned Sparkflows migration register, linked agent/skill instructions and dependency-aware cutover/retirement contract",
+    "register": "docs/SPARKFLOWS_MIGRATION.md",
+    "inventory_state": "Unpopulated pending approved actual source/Python/flow artifacts; no real candidates or deletion claims",
+    "checks": [
+      "Offline kit integrity passed",
+      "modernize-process and validate-program metadata validators passed",
+      "git diff --check passed",
+      "Six provided-artifact links and configuration register binding passed",
+      "Independent scoped review found no material defects"
+    ],
+    "offline_scenario": {
+      "status": "passed",
+      "conditions": "Shared Python ETL serves A and B; A flow has output comparison; B still needs Python; Db2-writing flow timed out with unknown commit; upstream stage remains Python",
+      "observed_response": [
+        "Reconcile actual job/Db2 outcome before retry or fallback",
+        "Retain shared Python for B and in-flight consumers; block global comment-out",
+        "Prepare only a scoped A switch after complete gates, single-writer and rollback proof",
+        "Permit compatible pinned upstream Python with validated mixed-path contract",
+        "Keep output comparison distinct from complete flow acceptance and retirement",
+        "Update one register with real artifact availability, dependencies, consumers and dated blocker commentary"
+      ],
+      "limit": "Independent-agent application scenario; no live execution or runtime selector test"
+    },
+    "not_implemented": "Actual flow inventory/build, provider switch, Python deletion, mainframe validation or runtime trace capture",
+    "recorded_at_utc": "2026-10-16T01:32:50.877Z"
   },
   "gap_comparison_checks": {
     "sheets": 9,

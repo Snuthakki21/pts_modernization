@@ -45,6 +45,10 @@ not ask SMEs to select reuse or name technical replacements. Use
 `consult-modernization` for consequential interpretation options. Propose all
 inventory changes to the foreground lead; never write its canonical files.
 The screenshot confirms the prefix visually, not live access or completeness.
+Propose migration-register dependency updates from actual calls, data/state,
+schemas, reference inputs, job/config entry points and trace identity. Include
+shared/dynamic consumers and cycles. Preserve the canonical source map; missing
+dependencies block migration or deletion, not unrelated Python work.
 
 Return a compact handoff with input/output hashes, owned paths, facts versus
 assumptions, checks actually run, blockers and next action. Stop before exhausting
