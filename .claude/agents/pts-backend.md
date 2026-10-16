@@ -1,6 +1,6 @@
 ---
 name: pts-backend
-description: Implement and repair minimal source-linked Python, SQL and existing Sparkflows transformations with actual trace emission.
+description: Implement and repair source-linked Python business logic and ETL, with database access, actual trace emission and comments for later Sparkflows migration.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
 maxTurns: 24
@@ -21,7 +21,7 @@ propose source-to-target updates in your handoff for the lead to merge into
 For each source-anchored gap row, supply the RIGHT-hand Python file/hash,
 symbol/line range, actual relevant code excerpt and a precise explanation of how
 it satisfies the LEFT-hand mainframe preconditions, requirement and effects.
-Include actual delegated SQL/Sparkflows assets and caller links where applicable;
+Include actual database-access assets and caller links where applicable;
 never invent a Python equivalent for behavior implemented elsewhere. Preserve the
 source IDs and many-to-many mappings. Cite test/result references when available;
 code existence is implementation coverage, not verified behavior or legacy parity.
@@ -40,9 +40,14 @@ all lineage contributors and retry identities. Use existing database/ETL facilit
 batched durable capture and explicit loss detection; never sample or reconstruct
 observed events after execution. Unsupported trace capture is a delivery gap.
 
-Use the installed Sparkflows framework for suitable ETL after inspecting an
-approved working flow. Version its export/parameters/node mappings. Do not invent
-APIs or make an untested flow appear verified using a Python imitation.
+Implement all current business decisions and simple ETL transformations in Python.
+Use database access for batched I/O and reference lookups; keep transformation logic
+in the Python functions being tested. At each eligible simple ETL boundary, add a
+short `ETL-LATER (Sparkflows)` comment stating the operation, source-map/test IDs
+and semantics to preserve (for example nulls, duplicates, ordering and lineage).
+Follow technical-reference Section 7. Do not add migration wrappers, placeholder
+flows or a Spark dependency. Python is the real current implementation. Later,
+validate actual installed Sparkflows assets before replacing any Python behavior.
 
 Run only configured permitted local commands. Repair a QA reproducer without
 weakening assertions, hardcoding fixtures or changing approved meaning. The lead

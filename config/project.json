@@ -36,6 +36,11 @@
       "capability_receipt": null
     }
   },
+  "implementation": {
+    "logic_runtime": "python",
+    "etl_runtime": "python",
+    "future_etl_runtime": "sparkflows"
+  },
   "validation": {
     "positive_cases_per_rule": 100,
     "negative_cases_per_rule": 100
@@ -63,6 +68,8 @@
     "mainframe": null
   },
   "sparkflows": {
+    "phase": "deferred",
+    "required_for_current_acceptance": false,
     "kind": "unconfirmed",
     "example_flow": null,
     "profile": null

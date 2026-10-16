@@ -42,12 +42,17 @@ boundary, failure and performance tests without a 200-case quota.
 
 ## 2. Execute and preserve evidence
 
-Validate configured `commands.unit`, `commands.integration` and `commands.etl`
-bindings before their relevant execution. A null binding blocks that execution;
+Validate configured `commands.unit` and `commands.integration` bindings for current
+Python business logic and ETL. `commands.etl` is deferred with Sparkflows; its null
+value does not block Python ETL tested through unit/integration bindings. If a later
+flow is assigned, require its actual execution binding. A null required binding blocks that execution;
 report the exact missing binding and do useful preparation. Do not guess commands,
 install tooling or change permissions to proceed. Use isolated local run databases
-and outputs; preserve baseline inputs. Run the actual target and the exact deployed
-SQL/Sparkflows artifact, not a surrogate Python version of a flow.
+and outputs; preserve baseline inputs. Run the actual Python functions and database
+I/O now. Python is the accepted current target, not an imitation of an unimplemented
+flow. Migration comments do not establish Sparkflows coverage. In the later phase,
+run the actual flow and compare it to pinned Python results and original contracts;
+refresh affected tests, full traces and parity before replacing Python behavior.
 
 Write new `programs/<id>/runs/<run-id>/results.json`, actual outputs and emitted
 full per-record trace evidence in the approved indexed database/evidence store,

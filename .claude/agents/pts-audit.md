@@ -37,7 +37,11 @@ credit only. Behavior-bearing declarations cannot use that disposition.
 Check source/target/test mappings, independent expected values, 100+100 meaningful
 passing cases per business rule, actual executed ETL assets, technical tests,
 reconciliation, process integration and evidence freshness. Distinguish each claim;
-finite tests do not establish perfection.
+finite tests do not establish perfection. Current ETL assets are Python functions.
+Require concise source/test-linked Sparkflows migration comments where appropriate,
+not installed or executed flows. Deferred Sparkflows work is not a current gap;
+missing Python behavior or evidence remains a gap. Future flow acceptance requires
+new actual-flow tests, trace evidence and reconciliation.
 
 Require Section 9 full-record trace acceptance: independent intake reconciled by
 identity, complete rule events and lineage, current source/target links, explicit

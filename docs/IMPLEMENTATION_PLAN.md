@@ -8,9 +8,10 @@
 program reuse, then expand across the discovered inventory with current evidence.
 
 **Architecture:** nine role definitions, three core skills, at most two active
-workers; existing Zowe CLI, Db2 MCP and Sparkflows; small Python/SQL components and
+workers; existing Zowe CLI and Db2 MCP; Python logic/ETL with database access and
 database-backed evidence. Opus 4.7 only. The technical reference is the acceptance
 contract. Paths below are relative to the repository root.
+Sparkflows ETL migration is a later phase and does not gate current Python delivery.
 
 **Delivery boundary:** this branch supplies instructions, configuration, source
 reference, review workbook and offline kit checks. Actual connection binding,
@@ -24,7 +25,7 @@ Owner: DevOps; independent check: audit. Skill: `consult-modernization`.
 - Read `START_HERE.md`, `config/project.json` and technical-reference Section 4.
 - Record the installed Claude extension/runtime, effective model/delegation,
   Zowe version and non-secret profile reference, actual Db2 MCP server/tool names,
-  platform, permitted resource patterns and one installed Sparkflows flow.
+  platform and permitted resource patterns. Defer Sparkflows flow/connector checks.
 - Keep receipts in `.implementation/workstation.json` and
   `.implementation/readiness.md`; do not commit credentials, raw source or rows.
 - Bind exact tools to role and host permissions through the environment owner's
@@ -67,13 +68,13 @@ Owners in parallel: design/backend for the smallest existing-runtime capture
 approach; QA for independent acceptance and fault cases. Audit reviews results.
 Skills: `consult-modernization`, `validate-program`.
 
-- Pick a representative shared program with a business rule, Db2 access and an
-  applicable installed Sparkflows transformation; record why it is representative.
+- Pick a representative shared program with a business rule, Db2 access and simple
+  ETL implemented in Python; record why it is representative. No flow is required.
 - Define stable occurrence/version, rule, invocation, attempt, event and lineage
   identities. Use the logical entities in technical-reference Section 9.
 - Add only the minimal versioned contracts and validators needed by the existing
   test stack. Validate source maps, cases, manifests and trace references.
-- Capture actual Python/SQL/flow outcomes and complete contributors; never claim a
+- Capture actual Python ETL/rule outcomes, database effects and complete contributors; never claim a
   later expression rerun observed the original execution. Check available legacy
   instrumentation separately from output parity.
 - Exercise duplicate input keys, rejection, no-output, short circuits, joins,
@@ -92,12 +93,15 @@ existing review interface when needed. Skills: `modernize-process`,
 `validate-program`.
 
 - Pin accepted SME decisions and source/DB/reference/runtime fingerprints.
-- Keep business logic small; isolate codecs, I/O, transactions and capture. Use
-  actual Sparkflows processors where applicable and version the executed flow.
+- Keep Python business logic and ETL small; isolate codecs, I/O, transactions and
+  capture. Add concise `ETL-LATER (Sparkflows)` comments at eligible ETL functions
+  following technical-reference Section 7. Link source maps/tests and preserve
+  semantics; do not create placeholder flows or migration-only abstractions.
 - Generate at least 100 meaningful distinct positive and 100 negative unit data
   cases per business rule. Record expected-result provenance and outcome classes.
   Use appropriate technical tests without an artificial 200-case quota.
-- Execute tests on actual target units, SQL and flows. Add interaction, restart,
+- Execute unit/integration tests on actual Python logic/ETL and database I/O;
+  null Sparkflows/`commands.etl` bindings do not block this phase. Add interaction, restart,
   idempotency, rollback and selected mutation/fault tests.
 - Record commands, inputs, assertions, results and immutable receipts under the
   program's tests/runs/evidence structure. Keep real data outside model context.
@@ -146,6 +150,16 @@ Owner: lead; assign specialists only when needed. Skill: `modernize-process`.
 Checks: no stale evidence or orphan programs; denied/unknown remains visible;
 handoff survives session restart; permissions and model pin preserved; every
 accepted run satisfies full trace and every claimed consumer has integration proof.
+
+## Later phase — migrate simple ETL to Sparkflows
+
+Begin only when this phase is assigned. Design/backend use the existing Python
+comments and source maps to select eligible ETL; DevOps verifies installed flow
+capabilities and execution bindings then. QA compares the actual versioned flow
+with the accepted Python baseline and original contracts. Repeat affected rule
+cases, technical tests, process integration, full tracing and mainframe parity
+before replacement. Preserve rollback to Python. A planned comment never counts
+as a converted flow; current Python acceptance does not require this later work.
 
 ## Parallelism and stop rules
 

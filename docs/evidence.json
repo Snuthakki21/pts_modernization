@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T01:04:46Z",
+  "recorded_at_utc": "2026-10-16T01:21:45Z",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -64,26 +64,26 @@
     "sparkflows_execution": "not performed"
   },
   "sha256": {
-    "CLAUDE.md": "b7f7793bd9f2720dad72c2d3595ef8b952cef1de87f4ff558108a50f2f0951ec",
-    "config/project.json": "a12822a04f5ff49d2810369d57156508c46720ad5dd54cc32b9e4dff7eef4821",
+    "CLAUDE.md": "e4d280e2b6bdf0e76b2fb1af96a275d430d7efbfdad7f7d7d04e0d6012596f0b",
+    "config/project.json": "1c3e9bb248dc97f4d5c71565e2361487c9514487268029f1da83c65ac0761dd1",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "6d6517107c4980752e80895bcada80a06bedcf0145ad795fc2b4e5283a5185b6",
+    "docs/TECHNICAL_REFERENCE.md": "3b771384ecbf991fb2b9cab9ede4b19ce9bcb10aef8c3e91a7fc08cfa21db84e",
     "examples/PTS_Modernization_Review_Template.xlsx": "49a141b0f92d0b4dab7b9fdf9ba6d1e8d3f178243690774cfb7146d7c975188e",
     ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
-    ".claude/agents/pts-audit.md": "6703445d8707c03cfda5734d76af2e295df322c263b5e10a617b91616f9af369",
-    ".claude/agents/pts-backend.md": "0bc64f0269852bc9fbeb98e0d5f77949bdfb318ccd650a15da11790304cb3a6d",
-    ".claude/agents/pts-design.md": "f06ecbf91081d9448390d3cd305b02f974542d4579d861b6fa1849f9545d9202",
-    ".claude/agents/pts-devops.md": "69ceb3d491c676f33d0ccf17a5a9d1bdd0d75ef6c138ee85ecbfb968f40ad53c",
+    ".claude/agents/pts-audit.md": "1e1801a151e4ede9c1b8e03f5d3cb50c9392ff67be49fe42d75c32213be3cb46",
+    ".claude/agents/pts-backend.md": "c814bf81e49697422873f1f377d9b4b5fd82082b828c8791ae1a5ea8681d74ec",
+    ".claude/agents/pts-design.md": "33b80664d25b7f4d4a4d37e1a606d9023299eb7bc879557c4b44765127ddc526",
+    ".claude/agents/pts-devops.md": "1a85a68873fa47249db62926763b603cc2ecba838028a1fe865d28f0bccbad1c",
     ".claude/agents/pts-frontend.md": "433bdff0559b7b8f6f29204eeb9514d9a045ca3ecd608d7b8a09d881e69353ac",
     ".claude/agents/pts-gap-analysis.md": "7c48aaa458730633ba85bfaa1e86423402c19cc65e7381695f067f40c9edd103",
     ".claude/agents/pts-orchestrator.md": "5baa1137a04f098f40a765b5df765a1da396dc26b46c28cf49d434f717424e12",
-    ".claude/agents/pts-qa.md": "12e3d7dd8571a3b088b6a48b3eae93caa585fa0bb7bae86a8e989f26fe9a6d3b",
+    ".claude/agents/pts-qa.md": "7e60dfda43b6d68b0231e3a880c4e18394a1a6d9923d67df0645d767c57f58a2",
     ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
-    ".claude/skills/validate-program/SKILL.md": "00a844eafdb9ea78d6fc5e39908f108107fb0623780976b28c82f74d2c4555e7",
+    ".claude/skills/validate-program/SKILL.md": "f765feb3d9b2e782b2d4035fbaefe0f87e714ba3bafd884d67ee9a5a05c3bf32",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
-    "START_HERE.md": "e5d709d429aa269e5342e793d5b4e59357761b96cbd9c675a9ff5cc4b6ce324b",
-    "README.md": "4afd591852b5cbae7033fe43f56f7530a70debc23958d161b3b1e3138a26de8a",
-    "docs/IMPLEMENTATION_PLAN.md": "ddbfe94053ba47877d767c7eee4c330cc11f7f98824a9965b97a10c516847f47",
+    "START_HERE.md": "e26f0489759eee29fc80097e55fc60c99effc8e32138c8b2bc20df05f706bb85",
+    "README.md": "f9a1f19a5d13a6d7ff5c55d9bc791f0e6127cdf8f2d8537380f5ef9222ca60e4",
+    "docs/IMPLEMENTATION_PLAN.md": "419f215ef9f8fc6667602929c55d44408a159356376a6e2c4a2a799edb3e92ef",
     ".claude/skills/validate-program/references/mainframe.md": "b84ea9eb978b8fc9b023833644f77b2cda9e35ad16487090bdb4d25605ba8348",
     "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d",
     "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d"
@@ -125,6 +125,23 @@
       "Runtime trace feasibility, performance or mainframe parity",
       "Native Excel verification"
     ]
+  },
+  "python_phase_update_v5_1": {
+    "recorded_at_utc": "2026-10-16T01:21:45Z",
+    "parent_commit": "58bf2c4282d29f13a35cee6584dd90bf997ea524",
+    "delivery": "Instructions/configuration only; current logic and ETL in Python, Sparkflows migration deferred",
+    "comment_contract": "ETL-LATER (Sparkflows) comments beside eligible functions; operation, preserved semantics and source-map/test references",
+    "checks": [
+      "Offline kit integrity passed",
+      "validate-program metadata validator passed",
+      "git diff --check passed",
+      "Independent scoped review found no material defects",
+      "Offline scenario: absent Sparkflows and null commands.etl do not block configured Python validation",
+      "Offline scenario: missing current Python lineage still blocks acceptance",
+      "Offline scenario: later migration requires actual flow execution and renewed tests, trace and parity"
+    ],
+    "preserved": "100 positive and 100 negative cases per business rule, independent oracle, mainframe comparison, every-record trace, model pin, permissions, workbook and retained packages",
+    "execution_limit": "No actual business-program conversion, host connectivity, Sparkflows execution or mainframe validation performed"
   },
   "gap_comparison_checks": {
     "sheets": 9,

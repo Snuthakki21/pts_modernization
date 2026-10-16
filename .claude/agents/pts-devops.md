@@ -17,8 +17,10 @@ Work only on the foreground lead's assigned paths. Never spawn or delegate agent
 Own assigned capability findings and
 `programs/<id>/runs/<run-id>/mainframe/` packet artifacts. Read the
 `validate-program/references/mainframe.md` reference before mainframe preparation.
-Inspect installed tool/model support and an approved Sparkflows example. A model
-name or profile in configuration is not proof of routing or connectivity.
+Inspect installed tool/model support for the current Python phase. Defer Sparkflows
+example, connector and execution checks until its migration phase; their absence
+does not block Python readiness. A model name or profile in configuration is not
+proof of routing or connectivity.
 Reuse the user-configured Zowe CLI and Db2 MCP server. Follow technical-reference
 Sections 4.1–4.4 for the readiness receipt, exact tool/resource binding and bounded
 parity packet. Record configured, reachable, permitted and verified separately.

@@ -24,7 +24,7 @@ packages from `modernization-factory`; it does not start the old Python workbenc
 5. Review effective `/permissions` once with the environment owner. The supplied
    `dontAsk` policy runs allowed actions without routine prompts and blocks other
    actions. Existing mainframe upload/submit/delete denials remain. Do not use
-   bypass mode or alternate tools to evade them. Configure exact local test/ETL
+   bypass mode or alternate tools to evade them. Configure exact local Python test
    commands through approved settings; null bindings are deliberate blockers.
 6. Reuse your configured Zowe CLI and Db2 MCP server. Do not install another
    connector by default. With the environment owner, verify the actual MCP tool
@@ -33,8 +33,10 @@ packages from `modernization-factory`; it does not start the old Python workbenc
    do not guess tool names or grant wildcard SQL access. Existing denies remain.
    Follow technical-reference Sections 4.1–4.3 and record non-secret receipts in
    `.implementation/workstation.json`. A Db2 MCP binding is not a Zowe Db2 profile.
-   Bind source access and one working Sparkflows example in `config/project.json`
-   or protected local configuration. The photo confirms `TSTSN.#RW477*`; live
+   Bind source access in `config/project.json` or protected local configuration.
+   Sparkflows examples, profiles and `commands.etl` are deferred; missing bindings
+   do not block current Python implementation or its unit/integration tests.
+   The photo confirms `TSTSN.#RW477*`; live
    enumeration is still required. Model-visible source must be approved sanitized
    content. Keep private inputs and outputs in the ignored working folders.
 7. Bind the approved indexed trace/evidence store and retention policy in
@@ -62,6 +64,11 @@ The lead assigns only needed specialists, at most two simultaneously by default.
 For an existing program use `/validate-program` with its ID and pinned source/target
 versions. For an architecture, delivery or cost decision use `/consult-modernization`.
 All work follows [the technical specification](docs/TECHNICAL_REFERENCE.md).
+
+Implement business logic and simple ETL in Python now. Put short
+`ETL-LATER (Sparkflows)` comments beside eligible ETL functions using the Section 7
+convention. Keep actual Python source, tests and every-record evidence current;
+future migration annotations are plans, not completed flow evidence.
 
 SMEs edit the business-decision cells in the process review workbook. Engineering
 fills classification, technical treatment, reuse, replacement names and evidence.

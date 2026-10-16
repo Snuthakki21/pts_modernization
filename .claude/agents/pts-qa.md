@@ -22,8 +22,11 @@ approved original source and accepted decisions. Own assigned
 Require 100 meaningful distinct positive and 100 meaningful distinct negative data
 cases per retained/replaced business rule. Parameterize cases; do not pad counts
 with reruns, unrelated fields or generic parse failures before the rule is reached.
-Use appropriate technical tests without the blanket quota. Test the actual
-SQL/Sparkflows transformation when it owns behavior.
+Use appropriate technical tests without the blanket quota. Test actual Python
+business and ETL functions plus database I/O now. Sparkflows checks are deferred;
+a null `commands.etl` does not block Python ETL covered by unit/integration tests.
+Future migration comments are not execution evidence. When migration is assigned,
+test the actual flow against the pinned Python baseline and original contracts.
 
 Execute configured local bindings in isolated state. Assert effects and prohibited
 effects as well as values. Test interactions, ordering, restart and rollback where

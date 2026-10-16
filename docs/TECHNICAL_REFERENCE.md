@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 5.0 · 15 October 2026 (America/New_York) · Clean agent kit
+Version 5.1 · 15 October 2026 (America/New_York) · Python now, Sparkflows later
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -14,6 +14,12 @@ The user also confirms an existing **Db2 MCP server and Zowe CLI** on their
 workstation. Reuse them. No replacement connector, new MCP server or workflow engine
 is required. This authoring environment has not exercised those workstation tools.
 Configured, reachable, permitted and behaviorally verified are separate states.
+
+Current delivery implements business logic and simple ETL in **Python**. Add concise
+code comments identifying simple ETL for later Sparkflows migration. Sparkflows
+installation, connectivity, flow generation and execution are deferred and do not
+block current Python acceptance. All current behavior still needs actual tests,
+mainframe comparison and complete record-level evidence.
 
 ### Reading map and delivery boundary
 
@@ -36,8 +42,9 @@ mainframe test execution or production deployment. Each requires observed eviden
 Modernize each canonical program once, preserve verified behavior, and reuse its
 version across compatible processes. Support the stated planning scale of roughly
 300 processes through incremental analysis and bounded parallel work. Use the
-existing Claude Code VS Code extension, Python, SQL, Sparkflows and approved
-mainframe tools. Build no orchestration engine, agent framework or scheduling service.
+existing Claude Code VS Code extension, Python, database access and approved
+mainframe tools. Use Sparkflows in a later ETL migration phase. Build no
+orchestration engine, agent framework or scheduling service.
 
 Requirements are: all-program inventory; business/technical classification per
 program; one SME-readable review workbook per process; original-to-target-to-test
@@ -59,7 +66,7 @@ throughput, token cost and environment capacity.
 | `pts-orchestrator` | Team lead; work allocation, SME coordination, state, reuse acceptance | Task/handoff records, single review workbook, inventory, final evidence index |
 | `pts-gap-analysis` | Discover every program; analyze source, dependencies and missing behavior | Artifact inventory, source ledger, classified rules, dependency graph, questions |
 | `pts-design` | Architecture, contracts, naming, reuse decisions and consulting trade-offs | Source-linked design, component/DB/ETL boundaries, acceptance measures |
-| `pts-backend` | Minimal Python/SQL/Sparkflows implementation and repairs | Versioned code/flow, schemas, source mappings and emitted trace events |
+| `pts-backend` | Python logic/ETL, database access and repairs; later ETL migration annotations | Versioned Python code, schemas, source mappings, migration comments and emitted trace events |
 | `pts-frontend` | SME/report navigation and requested database/record explorer | Minimal accessible views, diagrams, actual-record trace navigation |
 | `pts-qa` | Independent expected data, cases, local and process tests | Case catalog, synthetic fixtures, actual results, regression findings |
 | `pts-devops` | Runtime/model checks, environment bindings, test isolation, mainframe packets | Capability findings, reproducible run packet, authorized execution receipts |
@@ -146,7 +153,7 @@ unrecognized artifact and source span with its finding; no silent omissions.
 |---|---|---|
 | Zowe CLI | Authorized dataset/member inventory and acquisition; permitted JES job/status/spool operations | Db2 connectivity, source-to-load correspondence or business parity |
 | Db2 MCP server | Advertised, approved metadata queries; separately authorized synthetic-state checks and reconciliation | Dataset access, permission to run arbitrary SQL, production-data approval or job execution |
-| Existing Sparkflows framework | Execute supported ETL transformations and provide approved node/run evidence | Per-record capture for every node merely because aggregate metrics exist |
+| Existing Sparkflows framework — later phase | Migrate eligible simple ETL after installed capabilities are verified; provide actual node/run evidence then | Current Python dependency, completed migration or per-record capture merely because aggregate metrics exist |
 | Python and normal test tools | Deterministic fixture generation, target execution, comparison and small artifact validators | COBOL/mainframe equivalence without the corresponding comparison evidence |
 | Approved database/evidence storage | Indexed record/event/lineage metadata plus protected immutable payload references | A reason to place production/customer data into model context |
 
@@ -177,7 +184,7 @@ cannot certify a different operation. Reverify after tool, account or policy cha
 | Db2 test writes/reset | Separate authorized principal/resource boundary, transaction and commit behavior, reset script/hash, recovery evidence and permitted write list |
 | Mainframe submission | Reviewed packet/hash, isolated datasets/schema, executable identity, job/step limits, approved account/host permissions and submission receipt |
 | Output acquisition | Business output datasets plus Db2 effects, JES receipt/spool and complete comparison input manifests |
-| Sparkflows execution | Actual product/version, one runnable approved flow, connectors, parameter schema, execution command/API and trace-capture evidence |
+| Sparkflows execution — deferred | Required only for later migration: actual product/version, approved runnable flow, connectors, parameter schema, execution binding and trace-capture evidence; not a Python readiness gate |
 | Evidence store | Connection/profile reference, logical schema version, access/retention policy, atomicity/failure contract and a tested record lookup |
 
 Within Claude Code, the environment owner checks `/mcp` for connection and tool
@@ -393,11 +400,11 @@ conditions. New consumers still require process integration. Changed source,
 decisions, target, fixtures, expected results, schema, runtime or relevant reference
 data invalidate affected evidence. Preserve history and pin consumer versions.
 
-## 7. Implementation, databases and Sparkflows
+## 7. Python implementation now; Sparkflows ETL later
 
 Prefer small functions, explicit contracts and existing libraries/processors. Keep
 business behavior separate from database access, record codecs, job sequencing and
-trace capture. Use set-based SQL, batched reads/writes, bounded memory and suitable
+trace capture. Use batched database reads/writes/lookups, bounded memory and suitable
 algorithms. Compare representative batch duration, statement count, throughput and
 memory; do not optimize from intuition alone.
 
@@ -409,7 +416,7 @@ when a correctly versioned batch lookup suffices.
 
 Use the existing Db2 MCP connection for approved source metadata and validation
 access. Select the target database through an explicit architecture decision based
-on the installed ETL connectors, transaction needs, data types, volume and operating
+on current Python connectivity, transaction needs, data types, volume and operating
 constraints; the presence of an MCP server does not choose the target database.
 Do not introduce a second production database by default. SQLite is optional for
 small local metadata or synthetic prototypes, not a prescribed production or full
@@ -420,14 +427,55 @@ with deliberate arithmetic/comparison. Reproduce COBOL precision, intermediate
 rounding, signs, overflow and error behavior. Test schema constraints, rollback,
 null/blank handling, duplicates, key order and concurrency on each actual backend.
 
-Use the existing Sparkflows framework for applicable extraction, joins, mappings,
-lookups, transformations and loads. First inspect a working approved flow, installed
-processors/connectors, data types, versions and execution interface. The product
-may be public Sparkflows or an internal Spark framework. Public capabilities are
-not proof of installed support [S5]. Version flow exports, parameters, field maps
-and source-to-node/SQL mappings. Test the **executed flow artifact**, not a separate
-Python imitation. Avoid concurrent Spark writes to one local SQLite file; use an
-approved staging/load path if direct connectivity is unsuitable.
+### Current Python contract
+
+Implement business decisions and simple ETL transformations in ordinary, tested
+Python functions now. Keep database access for efficient I/O, reference data and
+evidence storage; do not silently move transformation or business-rule logic into
+SQL or an unimplemented flow. Python is the authoritative current target, not a
+temporary mock. Keep transformations easy to identify without adding a framework,
+unneeded wrappers, duplicate implementations or a dependency on Spark/PySpark.
+
+At the function or cohesive block implementing a simple ETL operation, add one
+short `ETL-LATER (Sparkflows)` comment. State the planned operation, source-map/test
+references and the non-obvious semantics to preserve. Typical candidates include
+field selection/renaming, contract-defined casts, filters, lookups, joins, sorting
+and aggregation. Classification follows behavior: an eligibility filter or a sort
+that selects a winner can carry business rules and retain their validation quota.
+Avoid repeating obvious code or marking every line. Keep detailed mappings in the
+existing `analysis/source-map.json`; record the future target as deferred, with no
+invented flow/node ID and no implementation or verification credit.
+
+Illustrative comment convention (IDs below are fictional, not program evidence):
+
+```python
+# ETL-LATER (Sparkflows): move this field projection/rename to a mapping step.
+# Preserve null values, duplicate occurrences and input-to-output lineage.
+# Source map: DEMO-MAP-01; contract tests: DEMO-ETL-01.
+```
+
+Put these comments beside the real Python implementation when source is available.
+Do not fabricate business code or flow exports merely to populate the template.
+Current unit/integration runs must execute Python ETL, including its technical
+contracts, business-rule cases, database effects and full trace. A null
+`commands.etl`, absent Sparkflows profile or missing installed flow is **not a
+current blocker**. Current Python command/access/evidence gaps still block their
+affected work. Migration comments are neither tests nor runtime evidence.
+
+### Later Sparkflows migration
+
+When that phase is assigned, inspect an approved installed flow, processors,
+connectors, types, versions and execution interface. The product may be public
+Sparkflows or an internal Spark framework; public documentation does not prove
+installed support [S5]. Move eligible simple ETL incrementally while retaining
+Python business functions where appropriate. Version actual flow exports,
+parameters, field maps and source/node/Python caller mappings. Compare the executed
+flow against pinned Python baselines and original mainframe/accepted contracts;
+refresh affected rule tests, integration, full record trace and parity evidence
+before replacement. Test the **actual flow**, not a Python surrogate. Preserve
+rollback to the accepted Python version and measure performance/trace overhead.
+Avoid concurrent Spark writes to one local SQLite file; use an approved staging/load
+path if needed. Do not claim automatic or zero-change migration.
 
 Audit generated code for redundant wrappers, duplicate logic, speculative frameworks,
 dead code, broad exception suppression, hidden defaults, row-by-row SQL and assertions
@@ -451,7 +499,8 @@ support the quota, report the evidence and unmet requirement; do not pad it.
 
 Technical sorting, codec, I/O and database tests have no blanket 200-case quota.
 Add linked-file, program integration, job ordering, restart, rollback, idempotency
-and performance tests as applicable. Test actual converted units and flow nodes.
+and performance tests as applicable. Test actual Python units now; test executed
+flow nodes when the later migration phase is assigned.
 Expected values must not come from the target function being tested.
 
 Compare local and mainframe runs from equivalent logical inputs and initial state.
@@ -476,7 +525,9 @@ Every processed record requires a complete, queryable evidence trace in every
 accepted execution, including ordinary processing runs, not only synthetic tests.
 Sampling, aggregate rule counters and error-only logging do not satisfy this
 requirement. Capture business rules and relevant technical transformations from
-the actual Python, SQL and Sparkflows execution. Unsupported capture is an explicit
+the actual Python execution and database effects now, and actual Sparkflows execution
+when later migrated. Deferred flows do not need current execution evidence.
+Unsupported capture in an active component is an explicit
 delivery blocker. Do not infer a path afterward and label it observed.
 
 ### Record identity and lineage
@@ -518,7 +569,7 @@ pinned rule/control-flow map. An absent event alone means unavailable.
 
 Record event sequence and causal parent links. Across distributed partitions use
 causal order; do not invent a global execution order from timestamps. Capture SQL
-and ETL per-record outcomes from the executed transformation, including predicates
+and ETL per-record outcomes from the active implementation (Python now, flows later), including predicates
 and rejected rows. A later rerun of an expression or a Python imitation is not an
 observation of the original flow.
 
@@ -647,8 +698,8 @@ program does not accept all consumers. Missing evidence remains visible.
 | Priority | Recommendation | Why / evidence of completion |
 |---|---|---|
 | Before the pilot | One-time workstation and authorization binding, using the existing Zowe CLI and Db2 MCP | Exact tools, resource allowlists, read/test-write separation, model routing and budgets have current receipts. No new connector is required unless a proven capability gap warrants one. |
-| Before scale-out | Full-trace feasibility spike on actual Python, SQL and Sparkflows execution, plus available legacy instrumentation | Demonstrate duplicates, joins/aggregates, rejects, retries and capture failure. Prove actual evaluations and complete contributor lineage; measure overhead/storage. SQL/ETL optimization may prevent observing procedural evaluation order; never invent it. Unsupported required evidence blocks that implementation choice. |
-| First end-to-end pilot | Choose a representative shared program with Db2 access and an applicable Sparkflows transformation | Validate the canonical conversion and a second consuming process. Include 100+100 meaningful cases per business rule, full output/DB reconciliation and every-record trace. A trivial isolated program cannot establish reuse or ETL viability. |
+| Before scale-out | Full-trace feasibility spike on actual Python logic/ETL and database effects, plus available legacy instrumentation | Demonstrate duplicates, joins/aggregates, rejects, retries and capture failure. Prove actual evaluations and complete contributor lineage; measure overhead/storage. Unsupported required capture blocks the active implementation. Repeat the flow-specific gate when Sparkflows migration begins. |
+| First end-to-end pilot | Choose a representative shared program with Db2 access and a simple ETL operation implemented in Python | Validate the canonical conversion and a second consuming process. Include 100+100 meaningful cases per business rule, output/DB reconciliation and every-record trace. Mark later Sparkflows migration in code; no installed flow is needed for this pilot. |
 | First end-to-end pilot | Prove source-to-load-module correspondence and freeze reproducible inputs/state | Exported source alone does not prove the executing binary. Pin compiler/runtime, load library, JCL/PROC expansion, schema, reference data, clock and fixtures. |
 | Before accepting evidence | Add small versioned data contracts and validators to the existing test stack | Validate source maps, case catalogs, manifests, trace keys/lineage and evidence references. Reject stale fingerprints or unresolved references. The kit checker only checks the kit; it is not this runtime validator. No general-purpose engine is needed. |
 | Before accepting evidence | Challenge the tests with deliberate faults and interaction/recovery cases | Show that wrong thresholds, dropped records, duplicate effects, missing events and stale lookups fail the relevant gates. Keep the expected-result oracle independent of target code. |
@@ -656,7 +707,8 @@ program does not accept all consumers. Missing evidence remains visible.
 
 Avoid adding dashboards, vector databases, agent frameworks or extra plugins until
 a measured unmet need justifies them. Start with the existing workbook, database,
-ETL runtime and Claude Code capabilities. These are engineering recommendations,
+Python runtime and Claude Code capabilities; reuse Sparkflows when its later phase
+begins. These are engineering recommendations,
 not claims about NVIDIA or Google standards. The execution roadmap is in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 

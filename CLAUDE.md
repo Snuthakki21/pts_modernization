@@ -21,8 +21,11 @@ the single SME workbook. Ingest answers with attribution and version. Continue
 unblocked work. Attempt at most two evidence-driven repair cycles per program;
 stop repeated non-progress, preserve failures and name the exact blocker.
 
-Prefer existing Python/SQL/Sparkflows capabilities, parameterized tests and
-database reference tables. Write the smallest clear implementation that preserves behavior.
+Implement business logic and simple ETL in Python now, using parameterized tests
+and database reference tables. Add concise `ETL-LATER (Sparkflows)` comments at
+eligible transformation functions, linked to source-map/test IDs; follow technical
+reference Section 7. Sparkflows is a later phase, not a current dependency or gate.
+Write the smallest clear implementation that preserves behavior.
 Remove duplicate implementations, speculative abstractions, dead code, broad
 exception suppression, invented defaults and success claims without evidence.
 
