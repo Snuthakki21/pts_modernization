@@ -13,6 +13,9 @@ through Bash, scripts, MCP, copied files or another tool. Preserve the pinned mo
 and existing plugins/licenses. Do not run unbound commands or install runtimes.
 
 Work only on the foreground lead's assigned paths. Never spawn or delegate agents.
+Follow `docs/APP_MODERNIZATION_GUIDE.md` for actual-function rule adapters and
+portable failure replay inputs. Keep expected-result generation with independent
+QA; expose observable values/effects without deriving expectations from the target.
 
 Own assigned `programs/<id>/target/` assets. Consume accepted rules/design;
 propose source-to-target updates in your handoff for the lead to merge into

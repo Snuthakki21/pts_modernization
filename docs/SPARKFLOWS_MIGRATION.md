@@ -36,6 +36,15 @@ Publish only approved sanitized summaries and safe artifact references here. Kee
 raw code/data, credentials and protected evidence in their permitted locations.
 An inaccessible or expired reference is shown as such, never claimed reviewed.
 
+Generate the factual block below with `tools/render_migration.py`, supplying
+`inventory.json` and every program's current source map. The
+[application guide](APP_MODERNIZATION_GUIDE.md) gives its exact input contract and
+command. The utility hashes its inputs, verifies supplied local artifacts and
+derives dependency order/cycle blockers. It does not infer readiness from code,
+test counts or an inventory stage label. Keep cards and running commentary outside
+the markers; the renderer preserves that text byte for byte. Do not place secrets
+or protected artifact contents in the generated view.
+
 ## 2. Artifacts already provided
 
 | Artifact | What it provides | Current limit |
@@ -53,9 +62,11 @@ fabricated links simply to fill the register.
 
 ## 3. Flow catalog — what needs to be created
 
-| Migration ID / proposed name | Programs and consumers | Python ETL / source-map IDs | Flow to create and retained Python | Predecessors / cutover group | Stage / blocker | Card / next action |
-|---|---|---|---|---|---|---|
-| — | Not yet discovered | Not yet provided | Not yet determined | Unresolved | Inventory not populated | Acquire approved artifacts; identify real candidates |
+<!-- BEGIN GENERATED MIGRATION FACTS -->
+No canonical program inventory or source maps have been supplied. No factual
+render has been performed for an actual application. Candidate counts, dependencies
+and artifact availability remain unknown.
+<!-- END GENERATED MIGRATION FACTS -->
 
 For every real candidate, add one card using Section 5. Proposed flow names are
 engineering decisions. Record actual installed flow ID, export hash and node IDs
@@ -66,9 +77,9 @@ is not flow-verified; one accepted consumer does not accept all consumers.
 
 ## 4. Dependencies and migration order
 
-| From → to | Type | Required version / contract | Evidence | Migration consequence |
-|---|---|---|---|---|
-| Not yet inventoried | — | — | — | No order asserted |
+The generated block above owns factual predecessor lists, consumers and structural
+ordering. The following guidance and per-flow cards describe engineering decisions
+and conditions; they do not form a second dependency registry.
 
 For real edges, identify **data**, **invocation/control**, **schema/reference**,
 **shared helper**, **transaction/state**, and **trace/identity** dependencies.

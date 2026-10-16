@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "program_id": "SYNTHETIC-RULE-FRAGMENTS",
+  "fixture_scope": "Invented source fragments only; not a complete application or compiled COBOL program.",
+  "seed": 7,
+  "source_files": [
+    {
+      "path": "synthetic_rules.cob",
+      "sha256": "e12eea8d8675376dba2d1048ff75f863e55dd6628acedf4efec366e564e8cd91"
+    }
+  ],
+  "source_units": [
+    {
+      "source_id": "SRC-DECLARATIONS",
+      "kind": "non_executable",
+      "reason": "Comments and reference interface declarations; no executable statements.",
+      "source_path": "synthetic_rules.cob",
+      "start_line": 1,
+      "end_line": 13
+    },
+    {
+      "source_id": "SRC-ELIGIBILITY",
+      "kind": "executable",
+      "source_path": "synthetic_rules.cob",
+      "start_line": 14,
+      "end_line": 20
+    },
+    {
+      "source_id": "SRC-NAME-FORMAT",
+      "kind": "executable",
+      "source_path": "synthetic_rules.cob",
+      "start_line": 21,
+      "end_line": 28
+    }
+  ],
+  "target": {
+    "path": "demo_target.py",
+    "sha256": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+    "entrypoint": "evaluate",
+    "dependencies": []
+  },
+  "oracle": {
+    "path": "demo_oracle.py",
+    "sha256": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
+    "dependencies": [],
+    "provenance": {
+      "kind": "source_derived",
+      "reference": "synthetic_rules.cob:SRC-ELIGIBILITY,SRC-NAME-FORMAT; independent human/mainframe verification not claimed"
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "R-ELIGIBILITY",
+      "kind": "business",
+      "source_ids": [
+        "SRC-ELIGIBILITY"
+      ],
+      "python_path": "demo_target.py",
+      "python_symbol": "eligibility",
+      "positive_meaning": "An in-contract amount satisfies the source eligibility condition and returns eligible true.",
+      "negative_meaning": "An in-contract amount does not satisfy the condition and correctly returns eligible false.",
+      "distinction_fields": [
+        "amount"
+      ],
+      "required_coverage": [
+        "minimum_amount",
+        "below_threshold",
+        "just_below_threshold",
+        "at_threshold",
+        "at_or_above_threshold",
+        "maximum_amount"
+      ]
+    },
+    {
+      "rule_id": "R-NAME-FORMAT",
+      "kind": "technical",
+      "source_ids": [
+        "SRC-NAME-FORMAT"
+      ],
+      "python_path": "demo_target.py",
+      "python_symbol": "format_name",
+      "positive_meaning": "An in-contract ASCII input fits the display width; preserve content and right-pad to 20 with truncated false.",
+      "negative_meaning": "An in-contract ASCII input exceeds the display width; preserve its first 20 characters and set truncated true.",
+      "distinction_fields": [
+        "name"
+      ],
+      "required_coverage": [
+        "fits_width",
+        "empty_input",
+        "one_character",
+        "width_minus_one",
+        "exact_width",
+        "over_width",
+        "width_plus_one",
+        "maximum_input_width"
+      ]
+    }
+  ]
+}

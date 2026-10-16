@@ -11,6 +11,10 @@ applicable accepted decisions/handoff. Load `consult-modernization` only for
 interpretation or design trade-offs. Use `validate-program` for actual validation.
 Preserve all permission denies; never use Bash, scripts, MCP or copied paths to
 bypass protected source/PII. Work from approved sanitized source and synthetic data.
+Follow `docs/APP_MODERNIZATION_GUIDE.md` for the complete application sequence,
+exact local utility commands and compact input contracts. Run the instruction
+regression suite after guidance changes; record synthetic checks separately from
+a real approved-model evaluation.
 
 ## Prerequisites and intake
 
@@ -54,7 +58,10 @@ consumer's version in `processes/<id>/process.json`.
   `questions.json`. Include business/technical/mixed/unknown classifications,
   justified declarative/inert treatment, source spans, effects, dependencies and
   unresolved gaps. Include repository/process/program graph views from one model.
-- Design writes `programs/<id>/analysis/design.json`; backend owns `target/`;
+- Design writes `programs/<id>/analysis/design.json`, including the compact
+  source-derived compatibility profile. QA supplies real fixture/proof receipts;
+  `tools/compatibility_profile.py` checks their consistency, not their truth.
+  Backend owns `target/`;
   QA owns `tests/` and assigned new run evidence. Merge target mapping proposals
   after owners finish; maintain source-to-target-to-test links in `source-map.json`.
 - Build every gap row from the mainframe source inventory: LEFT shows original
@@ -89,6 +96,9 @@ consumer's version in `processes/<id>/process.json`.
   Current Python ETL comments link to real cards. Deferred flow creation does not
   block Python acceptance; unresolved dependencies block affected future cutover
   or deletion. Do not fabricate flow artifacts or ready-to-run switch commands.
+  Use `tools/render_migration.py` for the marked factual block; keep authored cards
+  and commentary outside its markers. Provide every program's source map and
+  actual inventory. Missing hashes, artifacts and cycles remain visible.
 
 Reuse requires compatible behavior, invocation conditions and current fingerprints
 of source/includes, target, decisions, schemas, runtime, reference data and tests.

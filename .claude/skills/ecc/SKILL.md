@@ -21,7 +21,7 @@ Build synthetic fixtures with explicit setup and cleanup, isolated databases and
 
 Test positive, negative and boundary outcomes, NULL/blank distinctions, precision, duplicates, empty inputs, sequential effects, rollbacks, stale revisions and malformed interfaces as applicable. Mock an external boundary only when the test is about that boundary; execute the actual exported target for conversion assertions.
 
-For each business rule, create at least 100 distinct positive and 100 distinct negative unit data cases derived from the COBOL behavior. Negative cases pass when the expected alternate behavior or rejection is verified. Repeated runs or irrelevant data changes do not add cases. Technical operations have appropriate semantic tests without this quota. Preserve historical receipts; unsupported behavior or infeasible case obligations remain explicit gaps, not invented credit.
+For each executable business, technical or mixed rule, create at least 100 distinct positive and 100 distinct negative unit data cases derived from the COBOL behavior. Negative cases pass when the expected alternate behavior or rejection is verified. Repeated runs or irrelevant data changes do not add cases. Technical rules have the same quota plus appropriate semantic and performance checks. Preserve historical receipts; unsupported behavior or infeasible case obligations remain explicit gaps, not invented credit.
 
 Run focused regressions, then the complete mandatory release checks. Coverage percentages alone do not establish business correctness or observed mainframe parity.
 

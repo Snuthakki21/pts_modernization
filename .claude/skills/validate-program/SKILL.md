@@ -18,7 +18,9 @@ Derive expectations from original semantics and accepted business changes before
 reading target code. Record source/hash/span, rule preconditions/outcomes, data
 contracts, declared precision, reference snapshot, clock context and side effects.
 The tested function must not calculate its own expected answer. Mark expectation
-basis as source-derived, accepted specification, observed legacy or unresolved.
+basis as source-derived, accepted specification, separately verified Python reference,
+observed legacy or unresolved. A Python reference must have independent verification
+and must not import or wrap the target under test.
 Unresolved proposals cannot count as passing evidence.
 
 Create `programs/<id>/tests/cases.json`, executable parameterized tests and coherent
@@ -28,7 +30,7 @@ and boundary/outcome rationale. Keep exact data in fixture files rather than
 expanding hundreds of cases into model prompts.
 
 Require at least **100 positive and 100 negative meaningful distinct data cases
-per retained or replaced business rule**. Positive means its condition is met and
+per retained or replaced executable business, technical or mixed rule**. Positive means its condition is met and
 required behavior occurs; negative means the correct alternative/no action occurs.
 Count invalid input only where that rule defines rejection; a parser failure before
 reaching the rule is not a business-rule negative. A passing negative is a passing
@@ -36,9 +38,19 @@ assertion, not a failed test. Repeats or irrelevant-field changes do not count.
 
 Cover every applicable outcome, boundary and important interaction; counts alone
 are insufficient. If a finite domain cannot justify the quota, report the unmet
-requirement and evidence; do not pad it or silently waive it. Mechanical sorting,
-codecs, file/DB access and other technical units receive appropriate contract,
-boundary, failure and performance tests without a 200-case quota.
+requirement and evidence; do not pad it or silently waive it. Define meaningful
+positive/negative outcomes for technical rules too. Keep additional contract,
+boundary, interaction and performance checks appropriate to the operation.
+
+Follow `docs/APP_MODERNIZATION_GUIDE.md` to freeze the source-linked rule catalog,
+hash-pinned independent generator and known Python target. Use `tools/rule_cases.py`
+to generate cases and run the actual mapped functions. Every executable source
+unit declared in the catalog needs a rule, and every rule appears in the result,
+including zero cases. Audit source completeness and semantic distinctness separately;
+structural checks cannot prove that no COBOL behavior was omitted.
+Check each program's compact `design.json` compatibility profile with
+`tools/compatibility_profile.py`; run the actual byte/semantic fixtures before
+issuing its proof receipt. Hash consistency is not test execution.
 
 ## 2. Execute and preserve evidence
 
@@ -111,6 +123,14 @@ handoff so resuming does not reset it. Group failures by root cause; send a mini
 reproducer, rule/source reference, expected-result basis and actual difference to
 the responsible owner. Preserve the failing receipt. Add a meaningful regression
 case for a new scenario; rerun affected checks, then required regressions.
+
+Capture each failed record as a hash-pinned bundle with the input occurrence,
+transitive parents, contextual/full-partition records when needed, initial state,
+reference data, clock, runtime and trusted replay adapter. Use
+`tools/replay_record.py` to verify/materialize it, then explicit permitted execution
+to reproduce it. Preserve expected and failed-observed outcomes separately.
+Reproducing a failure is not correctness. Missing dependency context is a gap;
+the utility cannot discover omitted external state or instrument a program for you.
 
 Stop on the same failure without progress, exhausted budget, new business ambiguity,
 missing expected-result evidence, denied actions or unbound resources. Correct an

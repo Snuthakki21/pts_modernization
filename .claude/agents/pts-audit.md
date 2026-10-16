@@ -35,9 +35,14 @@ Require a reason for non-executable source dispositions; they earn source-accoun
 credit only. Behavior-bearing declarations cannot use that disposition.
 
 Check source/target/test mappings, independent expected values, 100+100 meaningful
-passing cases per business rule, actual executed ETL assets, technical tests,
+passing cases per executable business, technical or mixed rule, actual executed ETL assets,
+additional technical checks,
 reconciliation, process integration and evidence freshness. Distinguish each claim;
 finite tests do not establish perfection. Current ETL assets are Python functions.
+Review compatibility proofs, every rule in the generated result, frozen oracle
+provenance and replay closure. Hashes and declared completeness are not authenticated
+semantic evidence. Review instruction-scenario rationales after structured scoring;
+an answer-key fixture is not an actual Opus regression run.
 Require concise source/test-linked Sparkflows migration comments where appropriate,
 not installed or executed flows. Deferred Sparkflows work is not a current gap;
 missing Python behavior or evidence remains a gap. Future flow acceptance requires

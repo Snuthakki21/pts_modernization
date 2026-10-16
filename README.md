@@ -25,3 +25,12 @@ bindings become gates only for the later migration phase.
 The supplied photo confirms listing prefix `TSTSN.#RW477*`; live discovery is pending.
 Use [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the staged execution
 roadmap, ownership, parallel work and acceptance checks.
+
+Use [APP_MODERNIZATION_GUIDE.md](docs/APP_MODERNIZATION_GUIDE.md) for the full
+application workflow, exact agent/skill prompts and executable local commands.
+Five small Python utilities check compatibility receipts, generate and execute
+100 positive plus 100 negative cases per executable rule, replay captured failures,
+render factual migration tables, and regression-score instruction scenarios.
+They use the standard library and require reviewed program-specific inputs.
+Run `python -m unittest discover -s tests -v` for their synthetic regression suite.
+The [rule-validation example](examples/rule_validation/README.md) is runnable locally.

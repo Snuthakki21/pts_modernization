@@ -22,6 +22,11 @@ Process Intake, Workflow, Agent Map and Illustrative Review retain their support
 content. SMEs supply business decisions and genuine clarifications. Engineering
 supplies classification, implementation mappings, reuse decisions and evidence.
 Do not use an implementation status as proof of successful execution.
+Rule Evidence and Case Catalog now cover every executable business, technical and
+mixed rule: 100 meaningful distinct passing positive cases and 100 negative cases
+for each. Import actual per-rule results from the application guide's validation
+process, including zero coverage and finite-domain gaps. The workbook does not
+generate or execute these cases and its fictional examples establish no acceptance.
 The original nine tabs retain their order. Use **Review home** and **Record trace**
 links on those tabs to open the added views.
 

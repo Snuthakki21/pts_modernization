@@ -43,6 +43,7 @@
     "migration_register": "docs/SPARKFLOWS_MIGRATION.md"
   },
   "validation": {
+    "rule_scope": "all_executable",
     "positive_cases_per_rule": 100,
     "negative_cases_per_rule": 100
   },

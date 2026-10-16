@@ -105,8 +105,10 @@ existing review interface when needed. Skills: `modernize-process`,
   cohesive with explicit I/O/effects; identify exact replace/retain symbols and
   call sites so later cutover can use the existing step boundary.
 - Generate at least 100 meaningful distinct positive and 100 negative unit data
-  cases per business rule. Record expected-result provenance and outcome classes.
-  Use appropriate technical tests without an artificial 200-case quota.
+  cases per executable business, technical or mixed rule. Record expected-result
+  provenance, meaningful distinction fields and outcome classes. Report finite-domain
+  shortfalls without padding. Use the implemented rule catalog/generator/runner in
+  [the application operating guide](APP_MODERNIZATION_GUIDE.md).
 - Execute unit/integration tests on actual Python logic/ETL and database I/O;
   null Sparkflows/`commands.etl` bindings do not block this phase. Add interaction, restart,
   idempotency, rollback and selected mutation/fault tests.

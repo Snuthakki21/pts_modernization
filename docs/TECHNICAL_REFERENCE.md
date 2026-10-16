@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 5.2 · 15 October 2026 (America/New_York) · Dependency-aware ETL migration
+Version 6.0 · 16 October 2026 (UTC) · Executable validation and evidence utilities
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -30,10 +30,16 @@ Sections 8–9 define unit data validation, mainframe parity and full record evi
 Sections 10–11 define model/cost controls, release gates and recommendations.
 The [implementation plan](IMPLEMENTATION_PLAN.md) orders the remaining environment
 and pilot work; the [workbook guide](WORKBOOK_GUIDE.md) defines evidence review.
+The [application operating guide](APP_MODERNIZATION_GUIDE.md) gives the exact
+agent assignments, commands, input contracts and handoffs from intake to acceptance.
 
 Included now: nine role definitions, three core skills, retained optional instruction
 packages/licenses, configuration, playbooks, this specification and the review
-workbook. Not implemented by a specification or configuration file: real program
+workbook. Five small standard-library Python utilities now implement compatibility
+receipt checking, per-rule case generation/execution, portable failed-record replay,
+factual migration rendering and instruction-response regression scoring. Their
+synthetic tests exercise local contracts; none invokes an LLM, mainframe or Sparkflows.
+Not implemented by a specification or configuration file: real program
 conversion, runtime instrumentation, evidence ingestion, Sparkflows execution,
 mainframe test execution or production deployment. Each requires observed evidence.
 
@@ -48,7 +54,7 @@ orchestration engine, agent framework or scheduling service.
 
 Requirements are: all-program inventory; business/technical classification per
 program; one SME-readable review workbook per process; original-to-target-to-test
-traceability; 100 positive and 100 negative passing data cases per business rule;
+traceability; 100 positive and 100 negative passing data cases per executable rule;
 local and observed legacy comparison; readable efficient code; database-backed
 maintained values; process integration; running converted-code inventory; durable
 knowledge; and actual record-level trace views. Configuration is not execution evidence.
@@ -287,8 +293,8 @@ Classify logical units using effects and dependencies, not keywords alone:
 | Class | Meaning | Validation |
 |---|---|---|
 | Business | Eligibility, calculation, routing, limits, business data validation or outcomes | 100 positive + 100 negative meaningful data cases per rule |
-| Technical | Encoding, I/O, allocation, mechanical sorting, connection or transport behavior | Contract, boundary, failure, recovery and performance cases |
-| Mixed | Technical operation determines business outcome, such as tie order selecting a winner | Separate the business decision and technical contract; test both |
+| Technical | Encoding, I/O, allocation, mechanical sorting, connection or transport behavior | 100 positive + 100 negative meaningful data cases per executable rule, plus contract, boundary, failure, recovery and performance checks |
+| Mixed | Technical operation determines business outcome, such as tie order selecting a winner | Separate the business decision and technical contract; every resulting executable rule needs 100 positive + 100 negative cases and applicable interaction checks |
 | Unknown | Evidence is incomplete or semantics cannot yet be established | Named gap; no conversion or verification credit |
 
 Attach source file/member, immutable hash, original line range, effective expanded
@@ -520,11 +526,11 @@ that reproduce the implementation. Remove unjustified code while preserving beha
 
 ## 8. Data validation and reconciliation
 
-For each retained or replaced business rule, derive at least **100 distinct positive
+For each retained or replaced executable business, technical or mixed rule, derive at least **100 distinct positive
 and 100 distinct negative unit data cases from COBOL and accepted decisions**.
 Negative cases pass by asserting the correct negative outcome. Repeated runs,
 irrelevant-field variations and a parser rejection before the rule is reached do
-not create meaningful business cases. Record category definitions, boundary and
+not create meaningful cases for that rule. Record category definitions, boundary and
 outcome classes, meaningful distinctness and expected-result provenance.
 
 Use deterministic fixture generators and parameterized tests. Freeze seed, logical
@@ -534,11 +540,16 @@ effects and forbidden side effects. Cover all material outcomes, interactions an
 multi-record state, not merely the two category totals. If a true domain cannot
 support the quota, report the evidence and unmet requirement; do not pad it.
 
-Technical sorting, codec, I/O and database tests have no blanket 200-case quota.
+The latest requirement extends the same quota to technical rules, including sorting,
+codec, I/O and database logic. Define their positive/negative outcomes from the
+source contract. Finite domains with fewer meaningful combinations remain explicit
+shortfalls; exhaustive coverage of a small domain does not silently waive the quota.
 Add linked-file, program integration, job ordering, restart, rollback, idempotency
 and performance tests as applicable. Test actual Python units now; test executed
 flow nodes when the later migration phase is assigned.
 Expected values must not come from the target function being tested.
+An independently verified, version-pinned Python reference may supply expectations
+when its provenance is recorded. It must not wrap/import the candidate implementation.
 
 Compare local and mainframe runs from equivalent logical inputs and initial state.
 Capture executable identity, source correspondence, JCL parameters, encoding,
@@ -555,6 +566,64 @@ uploads/submission in this branch. DevOps reports the precise policy/resource ga
 it must not route around it. After an authorized environment owner supplies permitted
 bindings, the workflow can execute reviewed test work without asking again within
 the agreed authorization envelope. This setup has not executed such a run.
+
+### 8.1 Implemented local evidence utilities
+
+These are five single-purpose commands, called by the existing agents and skills.
+They add no runtime service or orchestration engine. Use Python 3.11 or later and
+the repository root as the working directory. Full schemas, examples and operating
+sequence are in [the application guide](APP_MODERNIZATION_GUIDE.md); each module's
+docstring and `--help` define its executable interface.
+
+| Utility | Owner and input | Result and limit |
+|---|---|---|
+| `tools/compatibility_profile.py` | Design/QA; approved source and `design.json` | Initializes/checks eight semantic domains: numeric, characters, layouts, initialization, dates, database, ordering, errors. Unknown entries block; applicable entries need hashed fixtures and matching proof receipts. Checks receipt consistency, not execution or authenticity. |
+| `tools/rule_cases.py` | QA; source-linked catalog, reviewed independent generator, pinned target | Freezes deterministic cases, de-duplicates declared meaningful inputs, observes actual mapped synchronous Python functions, checks outputs/events and reports each rule's separate passing counts/coverage. Declared source coverage is not independent COBOL completeness. |
+| `tools/replay_record.py` | QA/DevOps; captured failure bundle and record occurrence | Validates hashes and materializes a portable dependency closure; explicit execution replays a trusted local adapter. Expected comparison and failure reproduction are separate; neither sets program acceptance. |
+| `tools/render_migration.py` | Lead; canonical inventory and all source maps | Replaces only the migration document's generated facts. Verifies supplied artifact hashes and exposes missing/stale artifacts and cyclic dependencies. Stages are reported, never certified. |
+| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores eight public scenarios with 34 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
+
+Keep `analysis/rule-catalog.json` as a frozen executable projection of `rules.json`
+and `source-map.json`, using their stable IDs. Gap analysis owns source completeness;
+QA owns case definitions; backend owns target code. The lead reconciles versions
+before running. Unknown classifications must be resolved or remain blockers. All
+retained executable source units need rules; non-executable/removal dispositions
+require reasons and removal decision references. Review those declarations against
+the entire approved source inventory. A catalog cannot prove its own completeness.
+
+The rule runner executes trusted local modules, not arbitrary source safely. Its
+small adapter contract supports top-level synchronous Python functions and pinned
+sibling `.py` modules. Package/relative/unpinned third-party imports are unsupported
+by this utility; use the existing permitted test runner for unsupported production
+layouts, retain equivalent evidence and report the utility coverage limit. Do not
+replace actual target execution with a copied implementation to satisfy the tool.
+The required minima are 100 per category; generator budgets limit search, not the
+acceptance requirement. Extra generated failures still block its data gate.
+
+QA defines outcome categories, meaningful input fields and required outcome tags
+from COBOL semantics before execution. Expected outputs, effects and forbidden
+effects must be observable in the adapter result and verified independently.
+The runner confirms a mapped function was called and that its adapter reported the
+rule event; it does not prove the event truthful or provide complete runtime tracing.
+Review instrumentation and keep Section 9's all-record gate separate.
+
+Capture failed-record bundles at the failure's actual source/build/reference/state
+versions. Include transitive parents and any sibling/window/aggregate/DB context
+needed to reproduce it. Partition completeness is a supplied attestation; omitted
+external state cannot be recovered by the tool. Use protected immutable references
+where required, and do not move protected values into Git or model prompts. The
+current replay utility needs approved local JSON fixtures; inaccessible or expired
+dependencies explicitly block replay. Keep the failed bundle when repairing code
+and create a new version for the corrected build. Replay adapters run with current
+process privileges; explicit execution flags do not grant new permissions.
+
+Run instruction regressions after agent/skill/config changes and before upgrading
+the host/model binding. Pin the exact instructions and scenario version before
+collecting responses in an actual approved Opus session. Review rationales, proposed
+actions and observed tool use independently of the structured score. The public
+synthetic answer-key check only tests the evaluator; it is never model-performance
+evidence. Retain failure receipts and review changes against the original requirement.
+Instruction tuning cannot guarantee another model's quality or capability.
 
 ## 9. Full evidence trace for every processed record
 
@@ -736,7 +805,7 @@ program does not accept all consumers. Missing evidence remains visible.
 |---|---|---|
 | Before the pilot | One-time workstation and authorization binding, using the existing Zowe CLI and Db2 MCP | Exact tools, resource allowlists, read/test-write separation, model routing and budgets have current receipts. No new connector is required unless a proven capability gap warrants one. |
 | Before scale-out | Full-trace feasibility spike on actual Python logic/ETL and database effects, plus available legacy instrumentation | Demonstrate duplicates, joins/aggregates, rejects, retries and capture failure. Prove actual evaluations and complete contributor lineage; measure overhead/storage. Unsupported required capture blocks the active implementation. Repeat the flow-specific gate when Sparkflows migration begins. |
-| First end-to-end pilot | Choose a representative shared program with Db2 access and a simple ETL operation implemented in Python | Validate the canonical conversion and a second consuming process. Include 100+100 meaningful cases per business rule, output/DB reconciliation and every-record trace. Mark later Sparkflows migration in code; no installed flow is needed for this pilot. |
+| First end-to-end pilot | Choose a representative shared program with Db2 access and a simple ETL operation implemented in Python | Validate the canonical conversion and a second consuming process. Include 100+100 meaningful cases per executable rule, output/DB reconciliation and every-record trace. Mark later Sparkflows migration in code; no installed flow is needed for this pilot. |
 | First end-to-end pilot | Prove source-to-load-module correspondence and freeze reproducible inputs/state | Exported source alone does not prove the executing binary. Pin compiler/runtime, load library, JCL/PROC expansion, schema, reference data, clock and fixtures. |
 | Before accepting evidence | Add small versioned data contracts and validators to the existing test stack | Validate source maps, case catalogs, manifests, trace keys/lineage and evidence references. Reject stale fingerprints or unresolved references. The kit checker only checks the kit; it is not this runtime validator. No general-purpose engine is needed. |
 | Before accepting evidence | Challenge the tests with deliberate faults and interaction/recovery cases | Show that wrong thresholds, dropped records, duplicate effects, missing events and stale lookups fail the relevant gates. Keep the expected-result oracle independent of target code. |

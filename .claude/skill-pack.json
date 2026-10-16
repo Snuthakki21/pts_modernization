@@ -128,8 +128,8 @@
       "files": [
         {
           "path": ".claude/skills/ecc/SKILL.md",
-          "sha256": "747a432fa9a4027e013c85c0b73108367be7bbd72826b011c7e562028af26208",
-          "bytes": 2840,
+          "sha256": "d2695a8837054f4e9cf6ff09b6b31535b055b1709021982d024a3afd7191a6ca",
+          "bytes": 2884,
           "previous_sha256": "1d02c988c9f29bab21f62358ea0f4c6e850051bfeefa88839dca03406f1d2eaa"
         },
         {
@@ -140,7 +140,15 @@
         }
       ],
       "file_count": 2,
-      "installed_bytes": 3911
+      "installed_bytes": 3955,
+      "local_amendments": [
+        {
+          "date": "2026-10-16",
+          "reason": "Latest user requirement extends100 positive and100 negative meaningful cases to every executable business, technical and mixed rule.",
+          "previous_sha256": "747a432fa9a4027e013c85c0b73108367be7bbd72826b011c7e562028af26208",
+          "sha256": "d2695a8837054f4e9cf6ff09b6b31535b055b1709021982d024a3afd7191a6ca"
+        }
+      ]
     },
     {
       "name": "karpathy-guidelines",

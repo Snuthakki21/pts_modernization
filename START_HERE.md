@@ -64,6 +64,12 @@ The lead assigns only needed specialists, at most two simultaneously by default.
 For an existing program use `/validate-program` with its ID and pinned source/target
 versions. For an architecture, delivery or cost decision use `/consult-modernization`.
 All work follows [the technical specification](docs/TECHNICAL_REFERENCE.md).
+Follow [the application operating guide](docs/APP_MODERNIZATION_GUIDE.md) for the
+complete sequence, exact commands and required artifacts per phase. Each program
+gets a compact compatibility profile, all-rule data cases, current Python results
+and reproducible bundles for failures. The local rule runner requires 100 passing
+positive and 100 passing negative cases per executable business, technical or mixed
+rule; it does not establish whole-program or mainframe acceptance by itself.
 
 Implement business logic and simple ETL in Python now. Put short
 `ETL-LATER (Sparkflows)` comments beside eligible ETL functions using the Section 7
@@ -104,6 +110,8 @@ Existing verified baselines may be reused only when their fingerprints match.
 - Included: lead plus eight specialist definitions, three core skills, fifteen
   retained optional instruction packages/licenses, single-model settings,
   source-reference transcription, workbook and compact operating specification.
+  Five standard-library evidence utilities and their synthetic regression tests
+  are executable locally. Run `python -m unittest discover -s tests -v`.
 - Not established by this kit: installed runtime plugins, Graphify availability,
   live mainframe/Db2/Sparkflows connectivity, real source conversion, Claude-host
   execution, performance improvements or parity. Record each only after observation.

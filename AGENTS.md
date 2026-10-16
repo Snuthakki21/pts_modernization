@@ -26,9 +26,16 @@ classification, reuse, replacement names and target design. Never manufacture
 SME answers. Use one versioned review workbook per process; ingest genuine replies
 and batch only unresolved questions. No out-of-scope disposition.
 
-Every business rule requires 100 distinct positive and 100 distinct negative
-passing data cases. Technical operations receive appropriate contract tests.
+Every retained or replaced executable rule requires 100 distinct positive and
+100 distinct negative passing data cases, including business, technical and mixed
+rules. A finite domain with insufficient meaningful cases remains an explicit gap.
 Never relabel a rule, duplicate cases or weaken expectations to pass a gate.
+
+Use `docs/APP_MODERNIZATION_GUIDE.md` for the application-wide sequence and local
+evidence utilities. Keep compatibility inside each program's design, derive cases
+from an independent oracle, capture portable failed-record bundles, and generate
+only the factual block of the single migration document. Regression-check changed
+instructions with the pinned scenario suite; synthetic checks are not an Opus run.
 
 Keep sources, rules, target mappings, cases and observed results linked by IDs,
 versions and hashes. An unavailable result remains unverified. Reuse only compatible
@@ -38,8 +45,9 @@ Use disjoint program paths and at most the configured workers. Repair locally
 within the configured budget; preserve failures and continue other independent
 programs when a program is blocked. Do not add another orchestration layer.
 
-Before publishing kit changes, run `python tools/check_kit.py` and independent
-scoped review. Business-program changes also require their real focused and
+Before publishing kit changes, run `python tools/check_kit.py`,
+`python -m unittest discover -s tests -v`, and independent scoped review.
+Business-program changes also require their real focused and
 affected integration tests. Configuration checks are not Claude-host or mainframe
 acceptance. Keep private working files under ignored program/process directories
 or `.implementation/`; do not publish them with the operating kit.

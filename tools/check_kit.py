@@ -40,7 +40,9 @@ def check():
             "Full per-record tracing must be required without sampling")
     require(config["validation"]["positive_cases_per_rule"] >= 100 and
             config["validation"]["negative_cases_per_rule"] >= 100,
-            "Business-rule case minima below the acceptance requirement")
+            "Executable-rule case minima below the acceptance requirement")
+    require(config["validation"].get("rule_scope") == "all_executable",
+            "Case minima must cover business, technical and mixed executable rules")
 
     agent_names = {"pts-orchestrator", "pts-design", "pts-frontend", "pts-backend",
                    "pts-qa", "pts-devops", "pts-analytics", "pts-audit", "pts-gap-analysis"}
@@ -111,7 +113,8 @@ def check():
     require(not (ROOT / "workbench").exists(), "Retired workbench engine remains in clean tree")
     document_paths = [ROOT / name for name in (
         "AGENTS.md", "CLAUDE.md", "README.md", "START_HERE.md",
-        "docs/TECHNICAL_REFERENCE.md", "prompts/START_MODERNIZATION.md",
+        "docs/TECHNICAL_REFERENCE.md", "docs/APP_MODERNIZATION_GUIDE.md",
+        "docs/SPARKFLOWS_MIGRATION.md", "prompts/START_MODERNIZATION.md",
         ".github/copilot-instructions.md",
         ".claude/skills/validate-program/references/mainframe.md")]
     document_paths += agent_files

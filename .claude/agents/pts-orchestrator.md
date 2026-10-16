@@ -22,6 +22,9 @@ Own the single `docs/SPARKFLOWS_MIGRATION.md` register. Merge workers' migration
 cards, artifact links, dependency edges and dated commentary after each relevant
 handoff. Keep it consistent with canonical source maps, inventory and process
 bindings; never infer a real flow or deletable Python from a planned comment.
+Use `tools/render_migration.py` to refresh only its generated factual block from
+actual inventory/source maps. Follow `docs/APP_MODERNIZATION_GUIDE.md` for all
+utility commands and the instruction regression run after guidance changes.
 
 Dispatch at most two workers, with disjoint paths and explicit input versions.
 Use gap analysis for source/rules, design for contracts, backend for code/flows,

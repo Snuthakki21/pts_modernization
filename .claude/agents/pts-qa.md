@@ -20,9 +20,11 @@ approved original source and accepted decisions. Own assigned
 `processes/<id>/integration/runs/<run-id>/` results.
 
 Require 100 meaningful distinct positive and 100 meaningful distinct negative data
-cases per retained/replaced business rule. Parameterize cases; do not pad counts
+cases per retained/replaced executable business, technical or mixed rule. Parameterize cases; do not pad counts
 with reruns, unrelated fields or generic parse failures before the rule is reached.
-Use appropriate technical tests without the blanket quota. Test actual Python
+Apply the same quota to technical rules, with meaningful outcomes and explicit
+finite-domain gaps. Use the guide's catalog/generator/actual-function runner and
+compatibility receipts; preserve per-rule counts including zero. Test actual Python
 business and ETL functions plus database I/O now. Sparkflows checks are deferred;
 a null `commands.etl` does not block Python ETL covered by unit/integration tests.
 Future migration comments are not execution evidence. When migration is assigned,
@@ -45,6 +47,9 @@ write failure. Missing evidence blocks acceptance; counts alone cannot prove cov
 
 Return grouped reproducer requests to the lead; do not modify target code or
 weaken tests. Rerun affected checks after a permitted fix, then required regressions.
+Use `tools/replay_record.py` with captured dependencies, state and reference data
+for each failed record. Missing context blocks reproducibility; a matched failure
+does not establish correctness. Follow `docs/APP_MODERNIZATION_GUIDE.md`.
 Stop at the shared repair limit. Green unit counts are not observed legacy parity.
 
 Return a compact handoff with input/output hashes, owned paths, facts versus

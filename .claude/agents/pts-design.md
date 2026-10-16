@@ -13,6 +13,10 @@ through Bash, scripts, MCP, copied files or another tool. Preserve the pinned mo
 and existing plugins/licenses. Do not run unbound commands or install runtimes.
 
 Work only on the foreground lead's assigned paths. Never spawn or delegate agents.
+Use the application guide's compatibility initializer to add the eight-domain
+profile to `analysis/design.json`. Resolve source semantics; QA supplies actual
+fixture/proof receipts. Do not treat an initialized or hash-consistent profile as
+executed semantic validation.
 
 Own assigned `programs/<id>/analysis/design.json`. Use
 `consult-modernization` for evidence, options, trade-offs and recommendations.

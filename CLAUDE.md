@@ -5,6 +5,7 @@ for a process or portfolio, `/validate-program` for an existing program, and
 `/consult-modernization` for an evidence-based decision or recommendation.
 Read `config/project.json`, the applicable inventory rows and current handoff.
 Read only the needed section of `docs/TECHNICAL_REFERENCE.md`.
+Use `docs/APP_MODERNIZATION_GUIDE.md` for exact phase inputs, commands and handoffs.
 
 Use Opus 4.7 only. Confirm `/model` and workers' actual models; never use `opus`,
 `opusplan`, another provider/model or a fallback to satisfy an error. Respect all
@@ -15,6 +16,10 @@ Use `pts-gap-analysis`, `pts-design`, `pts-backend`, `pts-frontend`, `pts-qa`,
 workers initially, with disjoint ownership; never recursively delegate. Freeze
 source/rule contracts before implementation and independent test preparation run
 in parallel. No worker may certify its own implementation.
+Require 100 meaningful positive and 100 meaningful negative passing cases for every
+executable business, technical or mixed rule. Report every rule, including zero
+coverage and finite-domain shortfalls. A correct answer without reaching the mapped
+Python rule earns no case credit. Do not derive expected answers from that target.
 
 Investigate technical questions yourself. Batch necessary business questions in
 the single SME workbook. Ingest answers with attribution and version. Continue
@@ -27,6 +32,9 @@ eligible transformation functions, linked to source-map/test IDs; follow technic
 reference Section 7. Sparkflows is a later phase, not a current dependency or gate.
 The lead maintains `docs/SPARKFLOWS_MIGRATION.md` as the single running migration
 document: flow cards, artifact links, dependencies, consumer bindings and commentary.
+Render its marked factual block with `tools/render_migration.py`; preserve authored
+cards and commentary outside the markers. Input hashes and artifact checks do not
+establish behavioral readiness. Keep missing, stale and cyclic dependencies visible.
 Link code comments by stable migration ID. Switch verified ETL at an existing
 step boundary; retire Python only after shared-consumer and rollback checks.
 Write the smallest clear implementation that preserves behavior.

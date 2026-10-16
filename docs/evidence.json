@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T01:32:50.877Z",
+  "recorded_at_utc": "2026-10-16T02:44:21.831856+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -64,30 +64,50 @@
     "sparkflows_execution": "not performed"
   },
   "sha256": {
-    "CLAUDE.md": "489394e71c0981c73f58e9f6036484504f65755c4d1708ccd4a1e0ac14a46d24",
-    "config/project.json": "bdc45f5311e4feea87dd89c52c8a12d81803ad09864d8589bce2c26970decd5c",
-    ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "32696de812f798f6d66c519f228ed45748986bf68403071e0a380d8975ec343f",
-    "examples/PTS_Modernization_Review_Template.xlsx": "49a141b0f92d0b4dab7b9fdf9ba6d1e8d3f178243690774cfb7146d7c975188e",
     ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
-    ".claude/agents/pts-audit.md": "c9ccb6ad591edf8c31474db8fca5c42e160928c0bfdc751008095c0b8df9eed0",
-    ".claude/agents/pts-backend.md": "170f0c88968a5b4e344dfeaae3bc6668a6f7f9836a0ccda2ce75b73768395a9e",
-    ".claude/agents/pts-design.md": "92bea4de108c6b9cc5e53a97996e46d5234bc409f9ebb46201636d1016dd82e5",
+    ".claude/agents/pts-audit.md": "82845d8b205301c74ff51e6c45a52e20678e3acd3e79cff034f37213aeaaa14f",
+    ".claude/agents/pts-backend.md": "e0435987262ae52088aaf0c09dfc8638512a3afe46c9ec6ff1d795532c538001",
+    ".claude/agents/pts-design.md": "bfcb88da7532e78822a449575beaa2692761484ecdd44d0e2192e0039cd82db9",
     ".claude/agents/pts-devops.md": "2b7b3be88a0d482262eec3d9a354529ab7793d002ea1b8434b6ed520fb410e4d",
     ".claude/agents/pts-frontend.md": "433bdff0559b7b8f6f29204eeb9514d9a045ca3ecd608d7b8a09d881e69353ac",
     ".claude/agents/pts-gap-analysis.md": "4a34c322780f52c8a2f86db4a53f913bb3bcd89a0f1c25e516c1bf01445b1414",
-    ".claude/agents/pts-orchestrator.md": "fbbeaf76891c3dcb55f4a572d2c97de2deaec87af45227bdf1e1cb575ce5536b",
-    ".claude/agents/pts-qa.md": "b62ead5aedd624ce26837c5dafd7b545116670a4cc58e3e27d7e0aa1d799cfb2",
-    ".claude/skills/modernize-process/SKILL.md": "995dbd3af24ac3dc20af537f4fcad99f061a0d71c55a422686d0abd7c1ec658c",
-    ".claude/skills/validate-program/SKILL.md": "d8054f509d04fc3e353067a67bda6a49b3a968466ca616c98c3b7bc9608ca5e9",
+    ".claude/agents/pts-orchestrator.md": "ba1e87c9f20ce5ba6c1dec1266c89ebc78ceca2990918bc887042c1377383f40",
+    ".claude/agents/pts-qa.md": "41a8776b921737c89fd0275560d0ff3b5c8a23bd356e5ed736b0f001ab855849",
+    ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
+    ".claude/skill-pack.json": "73cd1d5a26e66b7c9c262182e3a918f5a22ed1fca31ec5fe8500462694f8eabe",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
-    "START_HERE.md": "0cb23c86315c01cb8abdf19b2c9d27dd758acfccb45aa0119feb2f29db8a670f",
-    "README.md": "d874831786f799103cc9c51e441fcad9fd468e5be47baed19f8ed1d55efa6b2c",
-    "docs/IMPLEMENTATION_PLAN.md": "1a4e0cf5a8931aae648554cbcbe03a74917636d3200b877837a7104c64a9bc21",
+    ".claude/skills/ecc/SKILL.md": "d2695a8837054f4e9cf6ff09b6b31535b055b1709021982d024a3afd7191a6ca",
+    ".claude/skills/modernize-process/SKILL.md": "2ef6d1dd5569526a2f5bb28ef644f42fa8fe565be4df5d4afcd909115e636320",
+    ".claude/skills/validate-program/SKILL.md": "84c15e03d603bb5f239cee7b62d078076a9f7a790eb89e8ab114b05274561d14",
     ".claude/skills/validate-program/references/mainframe.md": "b84ea9eb978b8fc9b023833644f77b2cda9e35ad16487090bdb4d25605ba8348",
-    "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d",
-    "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d",
-    "docs/SPARKFLOWS_MIGRATION.md": "30d5384c45d513e4f691c81415ddc8632a236d8e0f50ebf221dccf8156073394"
+    "AGENTS.md": "7cc0dae11bddfc623098962ec9aacd4a5be382de932aef98fd448aae53874bc0",
+    "CLAUDE.md": "aa14bdadd086c3a8600e7ddaeb8eafe90dd1fd0c927002676e1ac7b0cfd48f33",
+    "README.md": "255fbf361a6e7e9eccd712174976344652161ca68789a30cb3611e20b53965a2",
+    "START_HERE.md": "8cb6b5e1bd885a91a3c3a5b817af1613d4570999786e2be3edc4751fe36e072e",
+    "config/project.json": "bcfc3c9a1f9289fc8f4bed05be94b17ce2dea252ce813ab4d74dad4fab6c697b",
+    "docs/APP_MODERNIZATION_GUIDE.md": "6543d07fd7889e10652e2b0e8664fb8bf27c3d611a34cfb76fa7f8e479ce8385",
+    "docs/IMPLEMENTATION_PLAN.md": "55dcbe4fdcce1b65bb6eee7e20f3ef55d652d293b2c0d82473776e2d63e8c2ee",
+    "docs/SPARKFLOWS_MIGRATION.md": "4f9e84cad9d7d390e0c8a408c23d7ab240f42b8f171f0ebd4f05a3d72606fb32",
+    "docs/TECHNICAL_REFERENCE.md": "aba5773feab0b99116e038087c82789f2a5da9e2ff97ce2275a414767f9e5259",
+    "docs/WORKBOOK_GUIDE.md": "d96adbfc61962fc661719868002f0342baac1ac3617ef532fe57bf09c20430ee",
+    "examples/PTS_Modernization_Review_Template.xlsx": "e846a8a9ac743e6b39019f285f92ed689dc80373f73e9992cdf679f159f95f12",
+    "examples/rule_validation/README.md": "92e081e4b98567dbb671557f8dc3761a2182ef903c83e2bc7291a226793900d3",
+    "examples/rule_validation/catalog.json": "589ea976c7d46c4e30f03ac3820babb2b6f26ee4d67c7d43b8aef1da46d51a5b",
+    "examples/rule_validation/demo_oracle.py": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
+    "examples/rule_validation/demo_target.py": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+    "examples/rule_validation/synthetic_rules.cob": "e12eea8d8675376dba2d1048ff75f863e55dd6628acedf4efec366e564e8cd91",
+    "tests/instruction_cases.json": "2941e5d426be89417ee6a38e56c5c561009607a9e3bb101e4b5f4b36109a3f70",
+    "tests/test_compatibility_profile.py": "22b53296be60903d9ecdf9a8cf52ba504f43fce6a9059befafcab699bcd43cb4",
+    "tests/test_instruction_responses.py": "6c01a5db63b643312ab3192c89fab02ee15c4d94d746c43d162d938ea366321f",
+    "tests/test_render_migration.py": "d8a0dd5365d525cd727a4f0ed401022a07496a520f450c20eb547455d90cba9d",
+    "tests/test_replay_record.py": "04ffe9ec56dfe188c0d29cb421c510e0917b03075b1e9629c49909911459dff4",
+    "tests/test_rule_cases.py": "03ddda8488092bcb8cf12b713dd1bddceb8e0ca9e4bc563e283665165fc8319a",
+    "tools/check_instruction_responses.py": "6c61071fa56a0466fabb59228f175e2dff2ccd6d015f3e058fd93f6def68622b",
+    "tools/check_kit.py": "ebdb737d66f6b423d0295cb6cbb2fbf5622df986d5704a9883501c51e73c24ff",
+    "tools/compatibility_profile.py": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
+    "tools/render_migration.py": "56628a2887763a5fe23aa525a0e6dca45df5b71b30ece98fb9f8e49363340673",
+    "tools/replay_record.py": "93221dd4ec7f74cec2bc66496a619027296689f8f18732e305bd52c5a0291399",
+    "tools/rule_cases.py": "b9a2a18ffc61022f1b6369939a9ff45cac1e15372ab8490668e857082ed9a2ef"
   },
   "clean_branch_specification_v5": {
     "branch": "modernization/clean-agent-kit",
@@ -301,5 +321,99 @@
     "independent_review": "Passed; fixed bounded selectors and documented formula-helper extension and evidence limits.",
     "native_excel": "Not performed; verify recalculation and hyperlink behavior in supported Excel before acceptance.",
     "runtime_capture": "Not implemented or executed. Demonstration data is fictional; real evidence import remains an environment task."
+  },
+  "executable_utilities_v6": {
+    "specification_version": "6.0",
+    "parent_commit": "a94b331bbc92d478e2815c8eaac9e95003817e1d",
+    "delivery": "Five local standard-library utilities, complete application operating guide, synthetic runnable example, and aligned agent/skill/workbook instructions. No orchestration service.",
+    "python_verified": "3.12.14",
+    "python_minimum": "3.11",
+    "validation_policy": {
+      "rule_scope": "all_executable",
+      "positive_cases_per_rule": 100,
+      "negative_cases_per_rule": 100,
+      "finite_domain_shortfall": "explicit gap; no padding"
+    },
+    "unit_regression": {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "passed",
+      "tests": 105,
+      "by_utility": {
+        "compatibility_profile": 18,
+        "instruction_responses": 22,
+        "render_migration": 19,
+        "replay_record": 20,
+        "rule_cases": 26
+      }
+    },
+    "example_execution": {
+      "status": "passed",
+      "program_id": "SYNTHETIC-RULE-FRAGMENTS",
+      "cases": 400,
+      "rules": [
+        {
+          "rule_id": "R-ELIGIBILITY",
+          "kind": "business",
+          "passing": {
+            "positive": 100,
+            "negative": 100
+          },
+          "missing_coverage": [],
+          "meets_quota": true
+        },
+        {
+          "rule_id": "R-NAME-FORMAT",
+          "kind": "technical",
+          "passing": {
+            "positive": 100,
+            "negative": 100
+          },
+          "missing_coverage": [],
+          "meets_quota": true
+        }
+      ],
+      "unit_data_gate_passed": true,
+      "program_acceptance_established": false,
+      "cases_sha256": "eb14cd9191680f5084d08ff7d80098d7e7839b9a8aad661f5d2c008283ebbfe5",
+      "catalog_sha256": "589ea976c7d46c4e30f03ac3820babb2b6f26ee4d67c7d43b8aef1da46d51a5b",
+      "source": "examples/rule_validation/catalog.json"
+    },
+    "instruction_evaluation": {
+      "scenarios": 8,
+      "structured_checks": 34,
+      "actual_model_run": "not performed",
+      "synthetic_evaluator": "tested; not an Opus behavior claim"
+    },
+    "independent_review": {
+      "status": "material findings fixed and regression-tested",
+      "corrections": [
+        "Pinned fresh dependency imports and exact mapped function identity",
+        "Copied target dependencies rejected from oracle closure",
+        "Valid failure receipts for non-JSON observations",
+        "Hardlink/symlink overwrite protection and source preservation",
+        "Nested nonfinite JSON rejection",
+        "Sanitized interrupted replay reports",
+        "All-executable quota reconciled across instructions and workbook"
+      ],
+      "renderer_contract": "Documented shape rendered against a temporary register copy; authored text preserved"
+    },
+    "workbook_update": {
+      "changed_cells": 14,
+      "populated_cells_compared": 1002,
+      "unrelated_formulas_preserved": 126,
+      "authorized_formula_change": "Home!B18 hyperlink display wording only",
+      "sheets": 14,
+      "tables": 17,
+      "formula_errors": 0,
+      "rendered_views": 10,
+      "active_formatting_preserved": true,
+      "native_excel": "not performed"
+    },
+    "limits": [
+      "No real program source conversion, mainframe/Db2/Sparkflows execution or full application trace capture performed.",
+      "Compatibility and replay provenance/completeness declarations require independent review.",
+      "Rule utility supports pinned synchronous top-level sibling Python modules; unsupported production layouts need the approved existing test runner.",
+      "Instruction scorer evaluates supplied structured decisions; no model invocation or routing authentication."
+    ]
   }
 }
