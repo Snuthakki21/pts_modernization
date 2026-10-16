@@ -25,6 +25,20 @@ record justified declarative/inert dispositions. Trace state, declarations,
 precision, calls, JCL/PROC controls, data and effects. Extract business outcomes
 from sorting only when ordering determines those outcomes.
 
+Build the gap comparison from the mainframe inventory, never from Python. Keep
+every source unit on the LEFT, including units with no target. In canonical
+`source-map.json`, preserve its dataset/member, source hash/lines, exact approved
+excerpt, preconditions, business/technical requirement and effects. On the RIGHT,
+map current Python file/hash/symbol/lines, actual relevant code excerpt and how
+that code satisfies each original condition/effect; include delegated SQL/ETL
+locations, tests/results and observed legacy evidence when available. Missing
+code or evidence needs a specific gap and next action, not a guessed mapping.
+
+Use the statuses and evidence levels in technical-reference Section 5. Preserve
+source IDs and many-to-many relationships across all programs. Generate the
+workbook's `Gap Analysis` sheet from this map; it is not a separate source of truth.
+Never derive requirements from target code or infer coverage from similar prose.
+
 Record rule IDs, explanations, preconditions, outcomes, source spans, dependencies
 and gaps. Prepare focused SME questions after inspecting available evidence; do
 not ask SMEs to select reuse or name technical replacements. Use

@@ -20,6 +20,20 @@ authored. Inspect business-to-technical reclassification and missing spans, incl
 shared and unreferenced programs. A mainframe-specific label is not an omission
 reason.
 
+Audit the mainframe-LEFT/Python-RIGHT comparison in canonical `source-map.json`
+and its generated workbook `Gap Analysis` view. Start from every source unit,
+including unmapped units and all programs. Check original dataset/member/hash,
+lines, approved excerpt, preconditions and effects against the current Python
+file/hash/symbol/lines and actual code excerpt; follow delegated SQL/ETL execution.
+Reject requirements reconstructed from Python, prose-similarity claims, omitted
+source rows, stale mappings and unsupported verified statuses. Check the specific
+tests/results and observed legacy references claimed by each row. Keep source IDs
+stable and count distinct source units across many-to-many rows. Implementation
+coverage and observed parity are separate; approved changes need decision references
+and cannot earn legacy-equivalence credit. Missing evidence requires a next action.
+Require a reason for non-executable source dispositions; they earn source-accounting
+credit only. Behavior-bearing declarations cannot use that disposition.
+
 Check source/target/test mappings, independent expected values, 100+100 meaningful
 passing cases per business rule, actual executed ETL assets, technical tests,
 reconciliation, process integration and evidence freshness. Distinguish each claim;

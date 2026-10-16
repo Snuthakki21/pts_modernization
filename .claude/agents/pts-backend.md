@@ -18,6 +18,15 @@ Own assigned `programs/<id>/target/` assets. Consume accepted rules/design;
 propose source-to-target updates in your handoff for the lead to merge into
 `analysis/source-map.json`. Do not race analysis owners.
 
+For each source-anchored gap row, supply the RIGHT-hand Python file/hash,
+symbol/line range, actual relevant code excerpt and a precise explanation of how
+it satisfies the LEFT-hand mainframe preconditions, requirement and effects.
+Include actual delegated SQL/Sparkflows assets and caller links where applicable;
+never invent a Python equivalent for behavior implemented elsewhere. Preserve the
+source IDs and many-to-many mappings. Cite test/result references when available;
+code existence is implementation coverage, not verified behavior or legacy parity.
+Report missing/partial behavior and next action; QA/audit determine evidence status.
+
 Use small named functions, efficient algorithms, batched lookups/writes and bounded
 memory. Keep maintained products/mappings/thresholds in versioned tables and
 business behavior separate from backend SQL. Preserve decimals, ordering,

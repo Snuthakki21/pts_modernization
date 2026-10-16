@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-15T23:35:44.257135+00:00",
+  "recorded_at_utc": "2026-10-16T00:03:42.258094+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -44,7 +44,7 @@
     ],
     "separatePositiveNegativeChecked": true,
     "blankRestored": true,
-    "sheets": 8
+    "sheets": 9
   },
   "independent_review": {
     "status": "findings addressed",
@@ -52,7 +52,8 @@
       "Readability instruction wording",
       "Integrity check limited to kit documents",
       "Lead delegation tool access",
-      "Skill-calling specialist tool access"
+      "Skill-calling specialist tool access",
+      "Non-executable source disposition added without implementation/parity credit"
     ]
   },
   "runtime": {
@@ -63,22 +64,59 @@
     "sparkflows_execution": "not performed"
   },
   "sha256": {
-    "CLAUDE.md": "a1a1c6780eb9d494d7dec27a5ff434c12ae81f7d9f5f3098bbda88b1aeb61ba7",
+    "CLAUDE.md": "29d4e261399ae4b828fb60e2463e4f8c6018353a4eeac6e72a51dd459ac8d8d5",
     "config/project.json": "6052781125a6c440506b472d464fa7b7c2af588a2370eab9bc082fec179a6e8d",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "4f9fe837bd27fb617befc3240aea002246a41115ace44f9e21cf2450bcc78a94",
-    "examples/PTS_Modernization_Review_Template.xlsx": "d45dc0e1faa4e92a3719b5abef513af83843e65edf5998cb53bf3dc15f3dda9c",
+    "docs/TECHNICAL_REFERENCE.md": "32ecf87f79a06ff9ecf8f5e071ac5a5226fb472e843c67e3ca630d243fcd602f",
+    "examples/PTS_Modernization_Review_Template.xlsx": "b500fdef2ee66d5da5e172bbcdba706fd4dc91c56b4a0f1569c9897088954d2b",
     ".claude/agents/pts-analytics.md": "f3c02338a049aa045455c5b1bdaee6f9678b30470d6b63c6b91a8c0c5b3b2818",
-    ".claude/agents/pts-audit.md": "3aa5c178eabda7b1c730f42b86f8fa6cdf245d3434eaafe6389d6bb8703956cb",
-    ".claude/agents/pts-backend.md": "c9e77834e92f3ddfd90ecd8e841caceaa145c42c9d8791edade3c4175bee49ac",
+    ".claude/agents/pts-audit.md": "41af38e3c92ce6c5f8a3404e47ba5c89f0e333e1c44c589648b677d7caffac55",
+    ".claude/agents/pts-backend.md": "e98719f20411371bb665989d86e134d8ada0c77742f0e2fdb3a7be229c188f01",
     ".claude/agents/pts-design.md": "865df136d9ddc087f33d9b09dd1ab28186f8d6653f276646f7583cc1c73583f9",
     ".claude/agents/pts-devops.md": "0317e94ae0483bdf5aba630abfa793334cd64f4a87742c7b6d3c72ecbc26c270",
-    ".claude/agents/pts-frontend.md": "06ceb18f452822840f18cbca1e6955cc4b05c33fbf23673d2962ad08e1a356f1",
-    ".claude/agents/pts-gap-analysis.md": "d293cf5aae378062e7838d41729d3083387daffbba20ccb00bc06ffdc06f7273",
+    ".claude/agents/pts-frontend.md": "4124a307a7a39bd24dd3daaa2b41bf1f707ed7137413a57ec594ecbe756ef710",
+    ".claude/agents/pts-gap-analysis.md": "7c48aaa458730633ba85bfaa1e86423402c19cc65e7381695f067f40c9edd103",
     ".claude/agents/pts-orchestrator.md": "5baa1137a04f098f40a765b5df765a1da396dc26b46c28cf49d434f717424e12",
     ".claude/agents/pts-qa.md": "0f828e90639d43a4b167141191de819304a09e740a5d2d99cc3dafdb83304ea4",
-    ".claude/skills/modernize-process/SKILL.md": "fdd99e3544e348735326e18fcbad4aeeb6ed42ce8591c613a85eb1023804cfe9",
+    ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
     ".claude/skills/validate-program/SKILL.md": "8e774f0c0077ccc0f8b7a72bc417ee89f0980a87c7118202512859e7e41c6d06",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b"
+  },
+  "gap_comparison_checks": {
+    "sheets": 9,
+    "newSheet": "Gap Analysis",
+    "mainframeLeft": true,
+    "pythonRight": true,
+    "liveRowsBlank": true,
+    "fictionalExampleLabeled": true,
+    "existingCellsChecked": 11928,
+    "existingFormulasUnchanged": true,
+    "changedExistingCells": {
+      "SME Review": [
+        "A4"
+      ],
+      "Workflow": [
+        "A3",
+        "C8",
+        "D8",
+        "C11",
+        "D11"
+      ],
+      "Agent Map": [
+        "C15",
+        "D15"
+      ]
+    },
+    "coverageStatuses": [
+      "Missing",
+      "Partial",
+      "Implemented but unverified",
+      "Verified with evidence",
+      "Approved change/removal",
+      "Unknown",
+      "Non-executable source"
+    ],
+    "exported_existing_formulas_and_feature_counts_preserved": true,
+    "visual_review": "new comparison, fictional example and affected existing views checked"
   }
 }

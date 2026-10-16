@@ -57,10 +57,20 @@ consumer's version in `processes/<id>/process.json`.
 - Design writes `programs/<id>/analysis/design.json`; backend owns `target/`;
   QA owns `tests/` and assigned new run evidence. Merge target mapping proposals
   after owners finish; maintain source-to-target-to-test links in `source-map.json`.
+- Build every gap row from the mainframe source inventory: LEFT shows original
+  dataset/member/hash/lines, exact approved excerpt, preconditions, requirement
+  and effects; RIGHT shows current Python file/hash/symbol/lines, actual code
+  excerpt, how it satisfies that behavior, delegated SQL/ETL, tests/results and
+  observed legacy evidence. Preserve unmapped source, stable IDs and many-to-many
+  links across all programs. Never derive requirements from Python or count prose
+  similarity as evidence. Use technical-reference Section 5 statuses; include
+  each gap and next action. Keep implementation coverage and parity separate.
 - Keep one current `processes/<id>/review.xlsx`. Show exact approved source
   excerpts, explanation, generated technical treatment, target/evidence links and
   SME choices: preserve behavior, remove behavior, clarify behavior. SMEs do not
   select reuse or technologies. Preserve issued versions and attributed replies.
+  Generate its `Gap Analysis` sheet directly from canonical `source-map.json`,
+  with mainframe on the LEFT and Python satisfaction/evidence on the RIGHT.
 - Ingest each answer against its question/source version into
   `knowledge/decisions.json`. Detect conflicts, revise rules and invalidate affected
   results. Never infer approval from silence. Continue independent unblocked work.

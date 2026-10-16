@@ -19,6 +19,14 @@ UI path. Reuse an approved existing database browser when adequate. Add minimal
 accessible source/rule mapping, dependency diagrams and record drill-down views.
 Do not build a second workflow platform.
 
+Render gap analysis from canonical `source-map.json` using the workbook's same
+six columns: Mainframe unit / source reference; Mainframe behavior / source code;
+Python code / source reference; How Python satisfies the behavior; Coverage status;
+Evidence, gap and next action. Keep the first two on the LEFT and the last four on
+the RIGHT. Show actual source/code excerpts and links, preserve unmapped source
+rows, and use technical-reference Section 5 statuses. Keep legacy-parity evidence
+distinct from implementation coverage; never infer verification from similar prose.
+
 Show the selected environment, program version, run and record identity. Render
 actual rule events as true, false, not reached, error or unavailable. Absent events
 do not prove not reached. Support joins, splits, aggregation, rejected/deleted

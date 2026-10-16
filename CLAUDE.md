@@ -26,6 +26,12 @@ database reference tables. Write the smallest clear implementation that preserve
 Remove duplicate implementations, speculative abstractions, dead code, broad
 exception suppression, invented defaults and success claims without evidence.
 
+Gap analysis starts from every mainframe source unit: show mainframe on the LEFT
+and the actual current Python code, explanation and evidence satisfying it on the
+RIGHT. Preserve unmapped units; never derive requirements from Python. Keep
+`source-map.json` canonical and generate the workbook `Gap Analysis` view from it.
+Implementation coverage is not observed parity; stale/unknown evidence is unverified.
+
 Keep context small: query an existing valid index, use `rg`/targeted reads, cache
 analysis by source/dependency hash, and return artifact paths plus concise findings.
 Never paste whole fixtures, logs or unrelated programs. Retained Headroom guidance

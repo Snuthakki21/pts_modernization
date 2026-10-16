@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 4.0 · 15 October 2026 · Agent-first branch
+Version 4.1 · 15 October 2026 · Agent-first branch
 
 This contract replaces the legacy engine workflow on `modernization/agents-only`.
 The existing branches and their historical evidence remain in Git. The deliverable
@@ -126,6 +126,63 @@ rationale, desired behavior, technical treatment and target references. Support
 many-to-many mappings across Python symbols, SQL statements, schema objects and
 Sparkflows nodes. Preserve old line maps when source changes; never rely on line
 numbers alone. Audit reviews any change from business to technical.
+
+### Mainframe-left, Python-right gap comparison
+
+Start with the mainframe source inventory for **every program**, including
+unreferenced programs. Each original logical unit anchors a row in
+`programs/<id>/analysis/source-map.json`; preserve its stable source ID even when
+no Python exists. Do not derive original requirements from Python, match only
+implemented code, or infer satisfaction from similar descriptions.
+
+| LEFT: original mainframe behavior | RIGHT: exactly how Python satisfies it |
+|---|---|
+| Dataset/library, member, source version/hash, original lines and expanded-source mapping | Current Python file, build/hash, symbol and lines; actual relevant code excerpt |
+| Exact approved source excerpt; retain original-span mapping and identify any redaction/unavailable excerpt | Explanation linking the actual code to each original precondition, requirement, outcome and effect |
+| Preconditions, business/technical classification and requirement, inputs, state and effects | Actual delegated SQL/schema/Sparkflows asset/hash/node and Python caller where applicable; never fabricate a Python implementation for delegated behavior |
+| Stable source/rule IDs, dependencies and accepted business-decision reference | Case IDs, actual results/run references, verification level, observed legacy evidence when available, status, specific gap and next action |
+
+Support many-to-many relationships: one source unit may need multiple target
+assets, and one target component may satisfy several source units. Retain the
+original IDs and count distinct source units for coverage; repeated display rows
+must not inflate totals. Keep exact excerpts within approved data-handling rules;
+missing safe content remains unavailable, never invented.
+
+Use these explicit row statuses:
+
+| Status | Meaning |
+|---|---|
+| `missing` | Known required behavior has no target implementation; name the next action. |
+| `partial` | Target covers only part of the original requirement/effects; identify the remainder. |
+| `implemented-unverified` | Target mapping exists, but current required verification is absent or stale. |
+| `verified-with-evidence` | Current referenced results substantiate the explicitly named verification claim; record its level and limits. |
+| `approved-change/removal` | An attributed decision intentionally changes/removes behavior; link the decision and affected consumers. |
+| `unknown` | Original meaning or target correspondence is unresolved; identify the missing evidence. |
+| `non-executable` | Source material has no executable behavior, with an evidenced reason; count it as source accounted for, never as implemented or behaviorally verified. |
+
+Use `non-executable` only for justified inert material such as comments. Declarations
+that affect layouts, defaults, precision, state or other behavior still require
+target mappings and appropriate verification.
+
+Track implementation coverage, local behavioral verification and observed legacy
+parity separately. A locally tested row does not establish mainframe parity.
+Unknown or stale evidence cannot support `verified-with-evidence`; preserve its
+historical references while marking current verification unmet. Approved changes
+remain visible and cannot count as exact legacy equivalence.
+
+Generate the process workbook's **Gap Analysis** sheet from this canonical map,
+with mainframe columns on the LEFT and Python satisfaction/evidence on the RIGHT.
+Use six visible columns: **Mainframe unit / source reference**; **Mainframe behavior
+/ source code**; **Python code / source reference**; **How Python satisfies the
+behavior**; **Coverage status**; **Evidence, gap and next action**. The first two
+form the LEFT baseline; the last four form the RIGHT comparison. Display statuses
+as `Missing`, `Partial`, `Implemented but unverified`, `Verified with evidence`,
+`Approved change/removal`, `Unknown`, and `Non-executable source`, mapped to the canonical values above. Keep the
+separate legacy-parity basis explicit in the evidence cell; retain full metadata
+and multi-span links in `source-map.json`.
+Do not create a second mapping store or runtime engine. Backend supplies exact
+target mappings; gap analysis preserves source completeness; QA/analytics attach
+results; independent audit checks the comparison before the lead promotes status.
 
 SMEs choose **preserve behavior**, **remove behavior**, or **clarify behavior**.
 They confirm meaning and intended changes. Agents determine reuse, target names,
