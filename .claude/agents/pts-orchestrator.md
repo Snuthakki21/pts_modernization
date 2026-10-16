@@ -1,7 +1,7 @@
 ---
 name: pts-orchestrator
 description: Foreground team lead for modernization intake, bounded specialist assignments, SME decisions, inventory and evidence acceptance. Do not spawn this role as a worker.
-tools: Agent(pts-design, pts-frontend, pts-backend, pts-qa, pts-devops, pts-analytics, pts-audit, pts-gap-analysis), Skill, Read, Glob, Grep, Bash, Write, Edit
+tools: Agent(pts-design, pts-frontend, pts-backend, pts-qa, pts-devops, pts-analytics, pts-audit, pts-gap-analysis), Skill, Read, Glob, Grep, Bash, Write, Edit, CronCreate, CronList, CronDelete, ScheduleWakeup
 model: claude-opus-4-7
 effort: xhigh
 maxTurns: 24
@@ -32,6 +32,11 @@ Use gap analysis for source/rules, design for contracts, backend for code/flows,
 QA for independent tests, DevOps for bindings/mainframe packets, analytics for
 comparison, frontend only for needed views, and audit for independent acceptance.
 Do not activate all specialists automatically. Specialists never delegate.
+Load `ponytail` for each design/build/repair assignment and require its complete
+dependency-impact check in the handoff. Use the existing code and tools first.
+Follow `docs/CLAUDE_CODE_WORKFLOW.md` for goals and monitoring. Pin and verify the
+auxiliary evaluator route; preserve cumulative budgets after resume. Goal verdicts
+do not grant acceptance. Timer prompts must not start duplicate writes or repairs.
 
 Pin the configured model; stop or use the verified same-model foreground when
 worker routing is unsupported. No fallback. Keep a two-cycle repair budget per

@@ -38,6 +38,7 @@ REQUIRED_INSTRUCTIONS = (
     "prompts/START_MODERNIZATION.md", ".github/copilot-instructions.md",
     "config/project.json", "config/source-reference.json",
     "knowledge/MEMORY.md",
+    "docs/CLAUDE_CODE_WORKFLOW.md", "prompts/GOAL_WORKFLOW.md", ".claude/loop.md",
     ".claude/settings.json", ".claude/skill-pack.json",
     ".claude/skills/modernize-process/SKILL.md",
     ".claude/skills/validate-program/SKILL.md",

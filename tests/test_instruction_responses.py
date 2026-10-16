@@ -91,6 +91,10 @@ class InstructionResponseTests(unittest.TestCase):
             ("independent_security_and_progress", "promotion", "complete_from_unit_pass"),
             ("independent_security_and_progress", "fix_review", "implementer_self_certifies"),
             ("independent_security_and_progress", "plugin_activation", "enable_for_claimed_savings"),
+            ("bounded_goals_and_fresh_navigation", "goal_evaluator", "use_native_goal_from_main_pin"),
+            ("bounded_goals_and_fresh_navigation", "resume_budget", "renew_from_host_counters"),
+            ("bounded_goals_and_fresh_navigation", "graph_freshness", "reuse_prior_index"),
+            ("bounded_goals_and_fresh_navigation", "ponytail_use", "drop_required_trace_for_brevity"),
         ]
         original = copy.deepcopy(self.response)
         for case_id, field_id, wrong in traps:

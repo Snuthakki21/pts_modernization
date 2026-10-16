@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "kind": "graphify_navigation_refresh_receipt",
+  "observed_at_utc": "20261016T094815Z",
+  "graphify_version": "0.9.91",
+  "adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+  "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+  "execution": "actual pinned extract_python via existing read_source/extract_snapshot/select helpers; no upstream CLI, model or network calls",
+  "index_artifact": ".implementation/navigation/graphify-20261016T094815Z.json",
+  "index_sha256": "af3cd3d2f8a83d2855e4ff8d2121f30a5d8e90f353993455d196cbac58e703d9",
+  "index_committed": false,
+  "canonical_navigation_manifest": "knowledge/local-index.json (ignored local state)",
+  "file_count": 11,
+  "symbol_count": 148,
+  "call_count": 224,
+  "files": [
+    {
+      "path": "examples/rule_validation/demo_oracle.py",
+      "sha256": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
+      "symbols": 2,
+      "calls": 0,
+      "truncated": false
+    },
+    {
+      "path": "examples/rule_validation/demo_target.py",
+      "sha256": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+      "symbols": 4,
+      "calls": 2,
+      "truncated": false
+    },
+    {
+      "path": "tools/check_instruction_responses.py",
+      "sha256": "dca934edef2e27115eb82dd7ba677dcb0b8abcacf37715e7b719b0ef50f151be",
+      "symbols": 15,
+      "calls": 26,
+      "truncated": false
+    },
+    {
+      "path": "tools/check_kit.py",
+      "sha256": "2d1704223416a3bf2e4203f3330d8d729d3453bd681826a6c2cdbea33edacefc",
+      "symbols": 6,
+      "calls": 4,
+      "truncated": false
+    },
+    {
+      "path": "tools/compatibility_profile.py",
+      "sha256": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
+      "symbols": 17,
+      "calls": 27,
+      "truncated": false
+    },
+    {
+      "path": "tools/graphify_lookup.py",
+      "sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+      "symbols": 9,
+      "calls": 6,
+      "truncated": false
+    },
+    {
+      "path": "tools/init_workspace.py",
+      "sha256": "378000e2c1e001ae5a51a90fceb6299a1b8b951dfeb113b412be1033aa757875",
+      "symbols": 10,
+      "calls": 7,
+      "truncated": false
+    },
+    {
+      "path": "tools/progress_snapshot.py",
+      "sha256": "efa6da1aca39bfa4bf0aaa4109b04c2458e99ce0c7f730117b6c71f4d5e3c515",
+      "symbols": 22,
+      "calls": 50,
+      "truncated": false
+    },
+    {
+      "path": "tools/render_migration.py",
+      "sha256": "56628a2887763a5fe23aa525a0e6dca45df5b71b30ece98fb9f8e49363340673",
+      "symbols": 22,
+      "calls": 40,
+      "truncated": false
+    },
+    {
+      "path": "tools/replay_record.py",
+      "sha256": "93221dd4ec7f74cec2bc66496a619027296689f8f18732e305bd52c5a0291399",
+      "symbols": 19,
+      "calls": 37,
+      "truncated": false
+    },
+    {
+      "path": "tools/rule_cases.py",
+      "sha256": "b9a2a18ffc61022f1b6369939a9ff45cac1e15372ab8490668e857082ed9a2ef",
+      "symbols": 22,
+      "calls": 25,
+      "truncated": false
+    }
+  ],
+  "verification": "Parsed bytes and advertised hashes match; each source reread after extraction matches captured bytes.",
+  "unsupported": [
+    "React/JavaScript",
+    "Markdown semantics",
+    "COBOL",
+    "JCL",
+    "SQL semantics",
+    "dynamic/cross-file dependencies"
+  ],
+  "artifact_retention": "The ignored local index is rebuildable and not shipped as immutable application evidence. This committed receipt records exact parsed file hashes.",
+  "application_acceptance": false
+}

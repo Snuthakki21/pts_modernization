@@ -17,6 +17,10 @@ regression suite after guidance changes; record synthetic checks separately from
 a real approved-model evaluation.
 Apply `docs/SECURITY_REVIEW.md` to converted code and dependencies: backend repairs,
 QA tests, and an independent audit rechecks the pinned version before promotion.
+Load the retained `ponytail` skill for design, implementation and repair. Reuse
+existing helpers or standard facilities before adding code; retain every required
+rule, trust boundary, trace and test. Read `docs/CLAUDE_CODE_WORKFLOW.md` for
+goal/loop operation; checkpoint budgets in the existing handoff, not a new engine.
 
 ## Remove previously converted logic
 

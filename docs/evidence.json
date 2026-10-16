@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T04:55:01.648082+00:00",
+  "recorded_at_utc": "2026-10-16T09:53:32.037002+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -67,15 +67,16 @@
   "sha256": {
     ".claude/agents/pts-analytics.md": "3249d3c62a270bcf47ba604ddaf356cf68a524b904ccba60a844d1fa18bfebbe",
     ".claude/agents/pts-audit.md": "278814da8982d84dc8af2be32ec137104868e668a302ed515115992b41335a5c",
-    ".claude/agents/pts-backend.md": "a6928e94b1f8216a6d3e146d6a895db0d63ae01e9d9c9de1ee7f4859c7ae36c2",
-    ".claude/agents/pts-design.md": "53e32fe846af221ad1e6fe7e0822d819f6b69fcbc845fa98a7355a53ffab05d9",
+    ".claude/agents/pts-backend.md": "7a09e75e1bacd928c354cff7d6030809df5781512ba9f75ad8e593dd8245e01f",
+    ".claude/agents/pts-design.md": "9f0b362e16391ed66aa6d0d94f4af2088c8971cd439f4ec44f68c5486c7bd184",
     ".claude/agents/pts-devops.md": "4c1d2d2058fd5aa04659b1b9ff1869cede77430f17ddfd742ee8f2dd5691be35",
-    ".claude/agents/pts-frontend.md": "ce731324075fe71b40ba39113e800a04f168f85f263b07e4146c97838495067a",
+    ".claude/agents/pts-frontend.md": "a416423dd9c5ffdc55e5ace8ffa418f28a454da29211c6f9b9acdecc09b09191",
     ".claude/agents/pts-gap-analysis.md": "1b68644511b9898333f8e52f95d49c42d70895bbc9ff2dd53bbd66e178355c3e",
-    ".claude/agents/pts-orchestrator.md": "550eb276c6be126b3575589fbea0a08887e9e1435dae08e45d577443c2d423ec",
+    ".claude/agents/pts-orchestrator.md": "73213116230d410c402bf5d207194b8a9794c84fda55ff3b2df96bedb94cf30d",
     ".claude/agents/pts-qa.md": "fb2e4663eaec817aba89f11b2842d34235a85fecf808f525959315ad72a9b63e",
-    ".claude/settings.json": "5ea298c3c26e74a2cf0a4aa40214c96136c9e15a045968398b715bc2a5534905",
-    ".claude/skill-pack.json": "5d31866b13b6c5b0d6cd29e07c806c6813393ec4963863e7f9a4665f8a2d948d",
+    ".claude/loop.md": "4c99a4171f9119aa44727e4e93d7072e115e870aef51a4e97a260cce88136c4a",
+    ".claude/settings.json": "fdbdae218e07a579065dcae4471de86be12807c27376d851ee2ab9b3d2d026aa",
+    ".claude/skill-pack.json": "01d84ec85058b9c3c4d394ecb224d826aa49131361b87ca75e4b4fbb57bd2e46",
     ".claude/skills/agent-engineering/LICENSE.md": "6f202f8bd568cd730dbb2b0d1f8e243bc74c2fa1f64dbce9b2c7ea08bd5c9fd7",
     ".claude/skills/agent-engineering/SKILL.md": "09402aa0ebd906b61778bbbb95a576e21f62262ec3027e444201b86cd4f2e30c",
     ".claude/skills/anthropic-testing/LICENSE.md": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362",
@@ -94,7 +95,7 @@
     ".claude/skills/karpathy-guidelines/SKILL.md": "8320eafab4b66a72d38dd8342e730e0b4634bd9d6c59683f379328aff12d54ce",
     ".claude/skills/matt-pocock/LICENSE.md": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
     ".claude/skills/matt-pocock/SKILL.md": "bbf87e998449dd33ab6968c51c3bbfc9316db938b59f3d5a67feb0c0058d6fe2",
-    ".claude/skills/modernize-process/SKILL.md": "447061545fbf7384f2dccbb3fd7d12388f045d8d609bdaaf868dec85875aae5f",
+    ".claude/skills/modernize-process/SKILL.md": "07b7e89c4b81f789151e9c6c4b7f3df8d1cadb31382e0d7cb74e01fe0c0e06ba",
     ".claude/skills/oh-my-claudecode/LICENSE.md": "1d2b966f93feaa8928a57a69868388ee9016c86a341299fc5261ded44249af79",
     ".claude/skills/oh-my-claudecode/SKILL.md": "0962a0d85f5c5c654d7248281be327182c6dd4df0f1a1b74191f62746db39c0e",
     ".claude/skills/ponytail/LICENSE.md": "fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab",
@@ -115,41 +116,39 @@
     ".gitignore": "f20014e7afd31b4516a2b30f2a9089a53f70b1aeb8fc38789e633469c10a98d6",
     ".impeccable/design.json": "64bdee95053dff6618657958232d90552e5e3c3024bd3e694b46322ec3cbb882",
     ".vscode/extensions.json": "45715e9a8e7657cc14abaa5a9d1884e632b9caae761c3fdaa359c09a5892a1c6",
-    "AGENTS.md": "1abfacf9ceb831ebe16e299557291db9e6fb589f73ca526b74cb82e2753af5d7",
-    "CLAUDE.md": "63bc3dab523a6b58194bd969f50140036e1a969abb27051a8634394055857d93",
+    "AGENTS.md": "9d51d61f7367eff1b2b7f3a344798068dbd8f82e4811ce76089242fa42781734",
+    "CLAUDE.md": "298808652d83accb2218e67d1235234528548337849cd57c0741739e07d3bcb7",
     "DESIGN.md": "33852b2a7f8b55bf2e2a4b8d38d4813e7eda73bbeec93a1e36100774d7cb3fcd",
     "PRODUCT.md": "c8135f282dac412dbc93c8210cf28395b5ea7418cdede8225176c0744918b2e3",
-    "README.md": "ef9f0c8db3c50e172537c64728b26c09b1b375761605c5c42a5a6a1d2a2834f5",
-    "START_HERE.md": "134386fa9cf8cea013385939e65376b85bd951964df012199338e4a05a9fccae",
+    "README.md": "6527b84c89dea11041ec18bbbedbd55661e4f14a007f4b0e4e12d315e23df27a",
+    "START_HERE.md": "8c48675d03a9228f5f23f031734ba00206cc6880df1bc79557f71f37d714044f",
     "config/preservation-baseline.json": "be76b12acc7fe058622f6047dfd784e49e7d81eb5fe489023f3ee7354282c0c9",
     "config/project.json": "394fc9d6f45dc69e41d0f819789ecd9915c909a3406eff017112e95c1856e1ca",
     "config/source-reference.json": "e5a5113fc6451f2c25ea4a302b0c2cbd4ebf2c6682d277c4cfefeebe904a1258",
-    "config/token-tools.json": "fbc27664dd09f0f683361668bc01863a5f15bfcd258dd408b362287f31f6c177",
+    "config/token-tools.json": "1229ebcb236cef798c0291ff5ca221bb1bbfd6c761b706cc03cfc55bac510661",
     "config/token-tools.requirements.in": "f05bafb178a6c7293d04693cfd33b2bad6b3b1c23c68455f2b3edb543c3591d0",
     "config/token-tools.requirements.txt": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
-    "docs/APP_MODERNIZATION_GUIDE.md": "39be1cbd320c0f4a20aace96cdf847f08d58ca84a79eb3f83acb92003fc5618f",
-    "docs/FOLDER_STRUCTURE.md": "eb636e742239f3d57eb770bb2b2000790a3653ddd61928c0ea1fbb5f64f4b8c2",
+    "docs/APP_MODERNIZATION_GUIDE.md": "1554cbe339d4ca85931169921521a3980cef15bce54ac3b11b3ca9f4822939ff",
+    "docs/CLAUDE_CODE_WORKFLOW.md": "e137010a0fef51425bf904b46632ac70ad93cbdfce0a2e589c132eac0662e761",
+    "docs/FOLDER_STRUCTURE.md": "979b1ddc0de3a3db641071d4b1145f8422b652ffa85f23538e13aba3af04ca52",
+    "docs/GRAPHIFY_INDEX_EVIDENCE.json": "78516d7ea3636be18b2af743f16f821ce8242004d0a59c26f98ef0242e124a52",
     "docs/IMPLEMENTATION_PLAN.md": "f96c8ceeb1d754c4b5cb7dbbc5bbfc3c5f608b5a1f2f83dc5f641fdbe585ce93",
-    "docs/OPUS_QUALITY.md": "4b081c43a808dd23bc75e86fe516fd91d6054c2080b0497bc75563a433f27a32",
-    "docs/PROGRESS_DESIGN.md": "6c2f0e70216cabf27c51c52d65f4fdef6a37dcd8813760ab1f27f27c736af8f3",
+    "docs/OPUS_QUALITY.md": "c2af963dc87882e5ef4ed547e8d07ad6b8cf26c8339d6f27d642551d0104ea79",
+    "docs/PROGRESS_DESIGN.md": "1da7b7d6eb014596d6180b68f2c682efafe9608233281260f3f1a8094276a3dc",
     "docs/PROGRESS_UI.md": "5f7fe6d5c8b862f8a1baa08dc9a46991b2fdcab9591f5761dc7cb11de8de02df",
-    "docs/REA_DESIGN_RESEARCH.md": "77b3205991ccf2d7a46c41142f4791b6e71432471ee32dbbab4913ea09764ff9",
+    "docs/PUBLIC_SITE_DESIGN.md": "a60e5a61223859221668754a515a77f6f0b025cb03a870c359068bac2be25076",
     "docs/RULE_REMOVAL.md": "b74ba46b3b019b4afcad91ab43c9d176eea3347dd779cf81e1e9055cfa4207d9",
-    "docs/SECURITY_EVIDENCE.json": "d4bdbb3201fe3d2144925d237d5e77e34dbf3e2750d3b3ece7cf03a9b92d2d41",
+    "docs/SECURITY_EVIDENCE.json": "fa8ddadc72ca3f95046f6554f722a9d90eabde4cfb72f14e5989b734f6a836aa",
     "docs/SECURITY_REVIEW.md": "f381e618aab6737bb810400e6505dfef0506782f9dd3fd7ea484f1c42bf8a59d",
     "docs/SPARKFLOWS_MIGRATION.md": "4f9e84cad9d7d390e0c8a408c23d7ab240f42b8f171f0ebd4f05a3d72606fb32",
-    "docs/TECHNICAL_REFERENCE.md": "5d30fd0664f8517358d39eea2af05dd4e61bdf45d3f17b318239dce5ead5d62b",
-    "docs/TOKEN_EFFICIENCY.md": "0a653b58385bdeaa4335a17a0e285d1fa33e4e91e5a1ae91aff984bb13f89f01",
+    "docs/TECHNICAL_REFERENCE.md": "41cba2ec825bccaeff684c12943810873ac4ced735776e30a5948f38b543c975",
+    "docs/TOKEN_EFFICIENCY.md": "1d7b620c8e204679ec3b17b2b7ac9696e09b238f13ad18cc307426dc6a770521",
     "docs/TOKEN_TOOLS_EVIDENCE.json": "dea664bf02acda6641d9dfd8295683e39f0d6efd546c096d5f39abeeac0d8ced",
     "docs/WORKBOOK_GUIDE.md": "d96adbfc61962fc661719868002f0342baac1ac3617ef532fe57bf09c20430ee",
     "docs/design/wells-fargo-reference-20261016.jpg": "07a317474eda5d8ad96e99077e52c2c2c88891a0a5ecc1cbd3a4f5d192743dab",
     "docs/licenses/graphify/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "docs/licenses/graphify/LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
     "docs/licenses/graphify/NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621",
-    "docs/licenses/rea/LICENSE": "798f9e4d18e49b30bf2f12696c8ced73dc4e1413da375a333d01281543a1ea8b",
-    "docs/licenses/rea/PROVENANCE.md": "dec17d0e72a18322b738ba91dea2a22fe06bdb4eaee6c8fe6c691c966b70d53b",
-    "docs/licenses/rea/THIRD_PARTY_NOTICES.md": "43e579cc53ead3b9ebe1ca78b594bf8acabd341eab8065194e4226bc11d0ac12",
-    "docs/licenses/rea/npm-audit-2026-10-16.json": "653e57129766e819506777a5ce7dc26549cf1a249181468661f8b536f308c04e",
     "examples/PTS_Modernization_Review_Template.xlsx": "e846a8a9ac743e6b39019f285f92ed689dc80373f73e9992cdf679f159f95f12",
     "examples/progress-demo.json": "29b77bee5d0c2c8e14e50cbe08b63b6e5416c743421046ed0a40673840efe70e",
     "examples/rule_validation/README.md": "92e081e4b98567dbb671557f8dc3761a2182ef903c83e2bc7291a226793900d3",
@@ -157,9 +156,10 @@
     "examples/rule_validation/demo_oracle.py": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
     "examples/rule_validation/demo_target.py": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
     "examples/rule_validation/synthetic_rules.cob": "e12eea8d8675376dba2d1048ff75f863e55dd6628acedf4efec366e564e8cd91",
-    "knowledge/MEMORY.md": "497c63baadc43c4ea3693d394416d2d60968b7bcf6bd88051555f745bc7b4ee7",
+    "knowledge/MEMORY.md": "a6bb08da617cb4d957e522b2d4712d3b583c4b3050ae189ff4a4685fbbfa61f8",
     "knowledge/mainframe-catalog.json": "2b02e0cd636b3454f3a2498873d06c844eef37754e831f71846f9a026b1c0f74",
-    "prompts/START_MODERNIZATION.md": "f41a8897cbd2c342ba12d7d6e0a3c497be14f2d626c9095db380c245599e3a28",
+    "prompts/GOAL_WORKFLOW.md": "c9242c75ed34fe97141275525b6396123354d7fcc36320178dc23b8c0922e48e",
+    "prompts/START_MODERNIZATION.md": "40bfeb4652e7db2b64ec1ee66e4a7acd123badf200f3dfed0e7ae07b4fda31b7",
     "templates/process/process.json": "09898ae995ccb80d5e787cd03e90b9d0b9652a57859a2dc03da30f0c1650d9e6",
     "templates/program/design.json": "b0b497c5114a28a9ee40763ad2a6c6721b32ae2da93baab3741a680ce2dd87a1",
     "templates/program/program.json": "b6ea47f193b3a0b3705f68e553e047f2aaac17b6fca348d2c8e66a0813e4d795",
@@ -170,24 +170,22 @@
     "templates/state/handoff.json": "6f5df041b7fee54b1ee8e92e545e86f6b5cefb7b44f964bc20725fddb5be6fee",
     "templates/state/inventory.json": "b444f2359a545e8c4f95e4a3ec4665866f2ef908b3d0b397abe47d26e2a0ba13",
     "templates/state/local-index.json": "76739336ab913f6996cf99c4bf8a678868269925c96691dfe19a11f832bd6182",
-    "tests/instruction_cases.json": "ae332cc7179a03719c5ff01b6b54766bbe01af5152f1efc07f9bcc327885e0e8",
+    "tests/instruction_cases.json": "c8a9048eb9ece9444038fd4e4afd4b4150f043ae74acb75d7135d3056450e7d4",
     "tests/test_compatibility_profile.py": "22b53296be60903d9ecdf9a8cf52ba504f43fce6a9059befafcab699bcd43cb4",
     "tests/test_graphify_lookup.py": "2207ef19d68df7afb87c0d69edb2112b816f8e37f3c0dfafb2030571a184bce4",
     "tests/test_init_workspace.py": "8f91892c373c99e4df314a2b2e8735665d6e01178c50aef7304ede74a7313565",
-    "tests/test_instruction_responses.py": "113653256b3ffde38be450d3f273663feeaf9502c1949cb7aece806a8db3d272",
-    "tests/test_kit_integrity.py": "1eb3699e6e615d384b7311c94982fc60b81b7de33def21a825b637807b81183a",
+    "tests/test_instruction_responses.py": "d3d0b7ff9e6cd7bb21ec3f4946aa4d9bbf25502e9dfcac490ac125f61c373dbf",
+    "tests/test_kit_integrity.py": "e992a0c641e38076732427ef4003309e340d59bd9433f2e708dd67e5aa5ec27c",
     "tests/test_progress_snapshot.py": "7b9b3f1b5264e1c4088bc9871400cf89f08f878cca0bdbe88d1a5f398653a082",
     "tests/test_render_migration.py": "d8a0dd5365d525cd727a4f0ed401022a07496a520f450c20eb547455d90cba9d",
     "tests/test_replay_record.py": "04ffe9ec56dfe188c0d29cb421c510e0917b03075b1e9629c49909911459dff4",
     "tests/test_rule_cases.py": "03ddda8488092bcb8cf12b713dd1bddceb8e0ca9e4bc563e283665165fc8319a",
-    "tools/check_instruction_responses.py": "5ddaba8eab98cbc45cd851f21c22d9d8caa715593142d86b421cc8b825066871",
-    "tools/check_kit.py": "c4b371ad8ae9e778844998c27e3baffa758feaece06c81667169658e6ef6522e",
+    "tools/check_instruction_responses.py": "dca934edef2e27115eb82dd7ba677dcb0b8abcacf37715e7b719b0ef50f151be",
+    "tools/check_kit.py": "2d1704223416a3bf2e4203f3330d8d729d3453bd681826a6c2cdbea33edacefc",
     "tools/compatibility_profile.py": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
     "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
     "tools/init_workspace.py": "378000e2c1e001ae5a51a90fceb6299a1b8b951dfeb113b412be1033aa757875",
     "tools/progress_snapshot.py": "efa6da1aca39bfa4bf0aaa4109b04c2458e99ce0c7f730117b6c71f4d5e3c515",
-    "tools/rea/package-lock.json": "2aa8deaa749593ad20096d088c583079e7e0dbe4298d883836e57029692ba2da",
-    "tools/rea/package.json": "c4334ce5b2d83b33541633a987ef5406d6f44036e745dc236a311f00b4a67b94",
     "tools/render_migration.py": "56628a2887763a5fe23aa525a0e6dca45df5b71b30ece98fb9f8e49363340673",
     "tools/replay_record.py": "93221dd4ec7f74cec2bc66496a619027296689f8f18732e305bd52c5a0291399",
     "tools/rule_cases.py": "b9a2a18ffc61022f1b6369939a9ff45cac1e15372ab8490668e857082ed9a2ef",
@@ -703,5 +701,133 @@
       "Native Excel verification",
       "Rendered tracking UI visual and interaction QA"
     ]
+  },
+  "goals_and_temporary_research_v7_1": {
+    "specification_version": "7.1",
+    "parent_commit": "60d021e672394850061dceab6710fe77a0f8ed46",
+    "delivery": "Remove temporary REA distribution; retain source-backed design brief; require Ponytail; refresh Python navigation; document and configure bounded native goals and monitoring without a new engine.",
+    "rea": {
+      "current_state": "removed",
+      "removed_branch_paths": [
+        "tools/rea/package.json",
+        "tools/rea/package-lock.json",
+        "docs/licenses/rea/LICENSE",
+        "docs/licenses/rea/PROVENANCE.md",
+        "docs/licenses/rea/THIRD_PARTY_NOTICES.md",
+        "docs/licenses/rea/npm-audit-2026-10-16.json"
+      ],
+      "removed_local_runtime_paths": [
+        "tools/rea/node_modules",
+        ".implementation/rea-runtime",
+        ".implementation/rea-source",
+        ".implementation/rea-browsers",
+        ".implementation/rea-tmp"
+      ],
+      "retained_deliverable": "docs/PUBLIC_SITE_DESIGN.md",
+      "source_register_design_mapping_and_agent_handoff": "preserved byte-for-byte from prior brief",
+      "historical_capture": "failed; separate public CSS and cloud-browser reference retained",
+      "old_git_history": "preserved; no destructive rewrite"
+    },
+    "ponytail": {
+      "mode": "required retained pinned instruction adaptation",
+      "phases": [
+        "design",
+        "implementation",
+        "repair"
+      ],
+      "license_and_instruction_bytes": "unchanged and verified",
+      "new_upstream_runtime_or_hooks": false,
+      "actual_application": [
+        "Removed temporary tooling instead of carrying it as a runtime dependency",
+        "Reused existing Graphify parser and canonical navigation manifest; no new indexing service",
+        "Used native goal/loop capabilities and existing handoff; no new scheduler or state engine",
+        "Kept existing rubric formatting and added one focused scenario"
+      ]
+    },
+    "caveman": {
+      "mode": "optional existing concise-reporting guidance",
+      "evidence_compression": false
+    },
+    "rtk": {
+      "reviewed_repository": "rtk-ai/rtk",
+      "reviewed_commit": "f16becacd2f40616839333b3e0e281e40a0bc823",
+      "installed": false,
+      "reason": "Targeted existing navigation is sufficient now; required Rust1.91 unavailable; no global hooks/proxy or alternate-model routing introduced"
+    },
+    "navigation": {
+      "receipt": "docs/GRAPHIFY_INDEX_EVIDENCE.json",
+      "files": 11,
+      "symbols": 148,
+      "calls": 224,
+      "actual_pinned_parser_executed": true,
+      "source_hashes_verified": true,
+      "canonical_local_manifest": "knowledge/local-index.json (ignored)",
+      "instruction_fingerprint": "047a9cf63fe5f2c03a762a960f29e39070f1612edd5882bf39dcebbfcccbe7a7",
+      "unsupported": [
+        "COBOL/JCL",
+        "SQL semantics",
+        "React/JavaScript",
+        "complete dynamic/cross-file dependency proof"
+      ]
+    },
+    "goals": {
+      "guide": "docs/CLAUDE_CODE_WORKFLOW.md",
+      "prompts": "prompts/GOAL_WORKFLOW.md",
+      "default_monitor": ".claude/loop.md",
+      "required_auxiliary_model": "claude-opus-4-7",
+      "goal_automatic_checkins_and_retries": "disabled; setting0",
+      "scheduling_tools": "foreground only; CronCreate/CronList/CronDelete/ScheduleWakeup",
+      "cumulative_budget": "existing handoff; never reset on native resume",
+      "goal_and_monitor_host_execution": "not performed",
+      "model_routing": "declared pins checked; actual host receipt still required"
+    },
+    "unit_regression": {
+      "command": "python -m unittest discover -s tests -v",
+      "tests": 193,
+      "status": "passed",
+      "integrity_tests": 33,
+      "instruction_tests": 25
+    },
+    "instruction_regression": {
+      "public_scenarios": 11,
+      "structured_checks": 54,
+      "synthetic_fixture_result": "passed",
+      "model_response_check": "not_performed",
+      "model_execution": "not performed",
+      "scope": "Evaluator and supplied workflow rubric only; not model behavioral quality"
+    },
+    "skill_metadata": {
+      "checked": [
+        "modernize-process",
+        "ponytail"
+      ],
+      "result": "passed"
+    },
+    "unchanged_execution_evidence": "Prior UI22 tests/build and UI/Graphify dependency advisory receipts refer to unchanged runtime/code locks. No new UI browser QA or real program validation performed.",
+    "remaining_limits": [
+      "No actual Claude Code/Opus/native scheduler host verification",
+      "No mainframe/Db2/real application conversion or Sparkflows execution",
+      "Prior rendered UI visual QA remains blocked"
+    ],
+    "independent_review": {
+      "result": "no material findings in reviewed scope",
+      "evidence": "docs/SECURITY_EVIDENCE.json",
+      "receipt_sha256": "917d8bc2fda8efd6ebf1f011a2a6da57b358ce9c55060516e418480137fd37b3",
+      "material_findings": 0
+    },
+    "source_archive": {
+      "status": "passed",
+      "tested_tree": "2b47da45543b60f111a64831388b06a02ed8bd99",
+      "checker": {
+        "kit_integrity": "passed",
+        "errors": [],
+        "preservation_basis": "pinned_baseline_only",
+        "runtime_validation": "not performed",
+        "mainframe_validation": "not performed"
+      },
+      "rea_distribution_absent": true,
+      "notes": "Source archive contains design brief, goal/loop instructions and no REA runtime package.",
+      "post_test_change": "Only this evidence receipt was appended after the tested tree; executable code and instructions are unchanged."
+    }
   }
 }

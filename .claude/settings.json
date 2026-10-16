@@ -75,14 +75,19 @@
       "Agent(pts-analytics)",
       "Agent(pts-audit)",
       "Agent(pts-gap-analysis)",
-      "Skill(consult-modernization)"
+      "Skill(consult-modernization)",
+      "Skill(ponytail)",
+      "Skill(loop)",
+      "Skill(loop *)"
     ]
   },
   "model": "claude-opus-4-7",
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-7",
     "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1",
-    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "2"
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "2",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-opus-4-7",
+    "CLAUDE_CODE_GOAL_CHECKIN_MINUTES": "0"
   },
   "agent": "pts-orchestrator",
   "effortLevel": "xhigh",

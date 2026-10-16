@@ -10,7 +10,7 @@ detail rather than a grid of decorative cards.
 The supplied public-page capture was inspected on 16 October 2026. Visible
 observations include a red masthead, thin gold divider, warm pale navigation and
 content surfaces, dark body text, and clear active-navigation indicators.
-Public CSS research is documented in [REA design research](REA_DESIGN_RESEARCH.md).
+Public CSS research is documented in [the public-site design reference](PUBLIC_SITE_DESIGN.md).
 This is an interpretation of observed public design, not an official Wells Fargo
 design standard or affiliated product.
 

@@ -13,6 +13,9 @@ Start with [START_HERE.md](START_HERE.md). The full contract is
 [docs/TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md). The editable SME and
 evidence workbook is [examples/PTS_Modernization_Review_Template.xlsx](examples/PTS_Modernization_Review_Template.xlsx).
 Recorded kit checks and execution limits are in [docs/evidence.json](docs/evidence.json).
+Use [the Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and
+[goal/loop prompts](prompts/GOAL_WORKFLOW.md) for bounded autonomous work and
+read-only monitoring. Ponytail is required for minimal complete design and code.
 
 This clean branch retains the existing 15 optional instruction packages and their
 licenses from `modernization-factory`. It does not install their upstream runtimes.
@@ -49,5 +52,5 @@ It imports sanitized snapshots and includes an explicitly fictional demo.
 [SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md) separates remediation, QA and
 independent adversarial audit. [TOKEN_EFFICIENCY.md](docs/TOKEN_EFFICIENCY.md)
 documents the installed optional Graphify parser, pinned dependency lock and
-measured navigation-output reduction. [REA_DESIGN_RESEARCH.md](docs/REA_DESIGN_RESEARCH.md)
-records the public visual references and actual REA execution limits.
+measured navigation-output reduction. [PUBLIC_SITE_DESIGN.md](docs/PUBLIC_SITE_DESIGN.md)
+retains the sourced visual reference; the temporary REA research tool has been removed.

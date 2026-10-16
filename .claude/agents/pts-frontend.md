@@ -14,6 +14,8 @@ through Bash, scripts, MCP, copied files or another tool. Preserve the pinned mo
 and existing plugins/licenses. Do not run unbound commands or install runtimes.
 
 Work only on the foreground lead's assigned paths. Never spawn or delegate agents.
+Read `.claude/skills/ponytail/SKILL.md` before implementation and final simplification.
+Reuse existing components; preserve accessibility, validation and evidence semantics.
 
 Own only explicitly assigned `programs/<id>/target/ui/` or another lead-assigned
 UI path. Reuse an approved existing database browser when adequate. Add minimal

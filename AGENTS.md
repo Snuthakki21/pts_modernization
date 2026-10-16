@@ -8,8 +8,9 @@ inventory; its local preview does not orchestrate conversions.
 
 The operating contract is `docs/TECHNICAL_REFERENCE.md`. Eight specialist definitions, one lead definition
 and three core skills own the workflow. The retained third-party skill pack is
-optional instruction content, not installed runtime plugins. Load only guidance
-needed for the current task. Preserve its licenses and provenance.
+instruction content, not installed runtime plugins. Ponytail is required for
+design, implementation and repair; load other guidance only when needed.
+Preserve its licenses and provenance.
 The curated `knowledge/MEMORY.md` indexes durable state. Initialize missing state
 from tracked templates with `tools/init_workspace.py`; preserve existing decisions,
 handoffs and exhausted budgets. Use `docs/FOLDER_STRUCTURE.md` for exact paths.

@@ -13,6 +13,8 @@ model-quality result is implied by the presence of these files.
 | `knowledge/MEMORY.md` | Compact stable memory index; points to canonical state without duplicating it |
 | `README.md`, `START_HERE.md` | Entry points and workstation startup |
 | `prompts/START_MODERNIZATION.md` | Start/resume prompt |
+| `docs/CLAUDE_CODE_WORKFLOW.md`, `prompts/GOAL_WORKFLOW.md`, `.claude/loop.md` | Verified native feature guidance, bounded goal prompts and read-only loop default |
+| `docs/GRAPHIFY_INDEX_EVIDENCE.json` | Dated source-hash and parser receipt for the refreshed public Python navigation index |
 | `.claude/agents/` | Nine definitions: orchestrator, design, frontend, backend, QA, DevOps, analytics, audit and gap analysis |
 | `.claude/skills/modernize-process/` | Application/process modernization procedure |
 | `.claude/skills/validate-program/` | Program validation procedure and mainframe reference |
@@ -36,7 +38,7 @@ model-quality result is implied by the presence of these files.
 | `docs/SECURITY_REVIEW.md` | Version-bound remediation, independent QA and adversarial audit gates |
 | `docs/SECURITY_EVIDENCE.json` | Dated scoped findings, fixes, independent checks and reviewed file hashes |
 | `docs/TOKEN_EFFICIENCY.md`, `config/token-tools*` | Reviewed optional lookup integration and hash-locked dependencies |
-| `docs/REA_DESIGN_RESEARCH.md`, `tools/rea/` | Observed public visual references and pinned REA package installation |
+| `docs/PUBLIC_SITE_DESIGN.md` | Sourced public visual references; temporary research tooling removed |
 | `docs/licenses/` | New optional tool licenses, provenance and available dependency audit receipts |
 | `docs/SPARKFLOWS_MIGRATION.md` | Single migration document with generated facts and preserved commentary |
 | `docs/WORKBOOK_GUIDE.md`, `examples/PTS_Modernization_Review_Template.xlsx` | SME/evidence workbook instructions and clearly fictional example template |

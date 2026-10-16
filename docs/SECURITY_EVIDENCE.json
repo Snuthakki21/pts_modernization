@@ -284,7 +284,11 @@
     "browser_visual_qa": "blocked; see ui/design-qa.md"
   },
   "diagnostic_receipts": "Nested receipt filenames refer to local synthetic review diagnostics excluded from Git. This document preserves their scoped conclusions; checked-in regression tests reproduce the material contracts.",
-  "rea_advisory_receipt": "docs/licenses/rea/npm-audit-2026-10-16.json",
+  "rea_advisory_receipt": {
+    "historical_commit": "60d021e672394850061dceab6710fe77a0f8ed46",
+    "historical_path": "docs/licenses/rea/npm-audit-2026-10-16.json",
+    "current_state": "REA runtime and redistribution removed at user request; historical scan does not describe a current dependency"
+  },
   "limitations": [
     "Known-advisory scans cannot detect every vulnerability.",
     "No private source, customer record, mainframe or actual converted application was used.",
@@ -317,6 +321,163 @@
         "Output-byte reduction covers one synthetic lookup, not provider-token or whole-project savings.",
         "No known published dependency vulnerability is not a complete security guarantee.",
         "WSL/workstation activation remains unverified; native Windows optional adapter blocked."
+      ]
+    }
+  },
+  "goal_index_review_v7_1": {
+    "receipt_sha256": "917d8bc2fda8efd6ebf1f011a2a6da57b358ce9c55060516e418480137fd37b3",
+    "review": {
+      "schema_version": 1,
+      "reviewed_at_utc": "2026-10-16T09:52:57.950480+00:00",
+      "reviewer": "independent goal_index_review agent; not an implementation author",
+      "scope": "Uncommitted goal/loop guidance and settings, required Ponytail, optional token guidance, REA removal, Graphify navigation refresh and related deterministic checks",
+      "result": "no material findings in reviewed scope",
+      "findings": [],
+      "reviewed_sha256": {
+        "AGENTS.md": "9d51d61f7367eff1b2b7f3a344798068dbd8f82e4811ce76089242fa42781734",
+        "CLAUDE.md": "298808652d83accb2218e67d1235234528548337849cd57c0741739e07d3bcb7",
+        ".claude/settings.json": "fdbdae218e07a579065dcae4471de86be12807c27376d851ee2ab9b3d2d026aa",
+        ".claude/loop.md": "4c99a4171f9119aa44727e4e93d7072e115e870aef51a4e97a260cce88136c4a",
+        ".claude/agents/pts-orchestrator.md": "73213116230d410c402bf5d207194b8a9794c84fda55ff3b2df96bedb94cf30d",
+        ".claude/agents/pts-design.md": "9f0b362e16391ed66aa6d0d94f4af2088c8971cd439f4ec44f68c5486c7bd184",
+        ".claude/agents/pts-backend.md": "7a09e75e1bacd928c354cff7d6030809df5781512ba9f75ad8e593dd8245e01f",
+        ".claude/agents/pts-frontend.md": "a416423dd9c5ffdc55e5ace8ffa418f28a454da29211c6f9b9acdecc09b09191",
+        ".claude/skills/modernize-process/SKILL.md": "07b7e89c4b81f789151e9c6c4b7f3df8d1cadb31382e0d7cb74e01fe0c0e06ba",
+        ".claude/skills/ponytail/SKILL.md": "a899d98b468831b42f8b16215130645ba42e028f24a9672741cefc63d479a476",
+        ".claude/skills/ponytail/LICENSE.md": "fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab",
+        ".claude/skills/caveman/SKILL.md": "46ffcf915252fd12f7a442386dfb390e72724018a3a1d0f0a4a184d4ae1c6819",
+        ".claude/skills/caveman/LICENSE.md": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        ".claude/skill-pack.json": "01d84ec85058b9c3c4d394ecb224d826aa49131361b87ca75e4b4fbb57bd2e46",
+        "docs/CLAUDE_CODE_WORKFLOW.md": "e137010a0fef51425bf904b46632ac70ad93cbdfce0a2e589c132eac0662e761",
+        "prompts/GOAL_WORKFLOW.md": "c9242c75ed34fe97141275525b6396123354d7fcc36320178dc23b8c0922e48e",
+        "docs/TOKEN_EFFICIENCY.md": "1d7b620c8e204679ec3b17b2b7ac9696e09b238f13ad18cc307426dc6a770521",
+        "docs/PUBLIC_SITE_DESIGN.md": "a60e5a61223859221668754a515a77f6f0b025cb03a870c359068bac2be25076",
+        "docs/GRAPHIFY_INDEX_EVIDENCE.json": "78516d7ea3636be18b2af743f16f821ce8242004d0a59c26f98ef0242e124a52",
+        "config/token-tools.json": "1229ebcb236cef798c0291ff5ca221bb1bbfd6c761b706cc03cfc55bac510661",
+        "config/token-tools.requirements.txt": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+        "tools/check_kit.py": "2d1704223416a3bf2e4203f3330d8d729d3453bd681826a6c2cdbea33edacefc",
+        "tools/check_instruction_responses.py": "dca934edef2e27115eb82dd7ba677dcb0b8abcacf37715e7b719b0ef50f151be",
+        "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+        "tests/test_kit_integrity.py": "e992a0c641e38076732427ef4003309e340d59bd9433f2e708dd67e5aa5ec27c",
+        "tests/test_instruction_responses.py": "d3d0b7ff9e6cd7bb21ec3f4946aa4d9bbf25502e9dfcac490ac125f61c373dbf",
+        "tests/instruction_cases.json": "c8a9048eb9ece9444038fd4e4afd4b4150f043ae74acb75d7135d3056450e7d4",
+        "knowledge/local-index.json": "3581af96a0220b937d4bac5fa4d554ed7aaf857c77df9ff7732257280710054b",
+        ".implementation/navigation/graphify-20261016T094815Z.json": "af3cd3d2f8a83d2855e4ff8d2121f30a5d8e90f353993455d196cbac58e703d9"
+      },
+      "checks": [
+        {
+          "name": "native goal/evaluator/scheduler contracts",
+          "kind": "independent primary-document review",
+          "result": "matched documented evaluator model setting, retry-off behavior, resume counter reset, supported native tool names and schedule cancellation boundaries"
+        },
+        {
+          "name": "model and capability boundary",
+          "kind": "code/instruction review",
+          "result": "auxiliary route explicitly pinned; effective host receipt required; specialists cannot schedule; no new external runtime or model proxy"
+        },
+        {
+          "name": "goal/loop adversarial rubric probes",
+          "kind": "synthetic deterministic checks only",
+          "result": "passed",
+          "wrong_decisions_rejected": 6,
+          "unsafe_action_sets_rejected": 2,
+          "baseline_fixture": "passed",
+          "cases": [
+            "unverified auxiliary route",
+            "reset budget on resume",
+            "retry unknown external outcome",
+            "reuse stale graph",
+            "remove trace for brevity",
+            "count terminal loop as completed conversion",
+            "reset/resubmit external job",
+            "add goal engine"
+          ]
+        },
+        {
+          "name": "changed-source Graphify parser probe",
+          "kind": "actual pinned local parser against synthetic temporary source",
+          "result": "passed",
+          "old_sha256": "4288c531df5ccfdad40b1ad33198d5ecd9d2b1d102ebdb9e784d343a15f8bbb4",
+          "new_sha256": "3dc2a93a5e7b70e0068f232813f06892e52b12b18217505ccaab6bbc8a1de6c2",
+          "old_symbol_current_matches": 0,
+          "new_symbol_current_matches": 1
+        },
+        {
+          "name": "current index integrity",
+          "kind": "independent byte/hash and manifest comparison",
+          "result": "passed",
+          "source_files": 11,
+          "symbols": 148,
+          "calls": 224,
+          "source_sha256": {
+            "examples/rule_validation/demo_oracle.py": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
+            "examples/rule_validation/demo_target.py": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+            "tools/check_instruction_responses.py": "dca934edef2e27115eb82dd7ba677dcb0b8abcacf37715e7b719b0ef50f151be",
+            "tools/check_kit.py": "2d1704223416a3bf2e4203f3330d8d729d3453bd681826a6c2cdbea33edacefc",
+            "tools/compatibility_profile.py": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
+            "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+            "tools/init_workspace.py": "378000e2c1e001ae5a51a90fceb6299a1b8b951dfeb113b412be1033aa757875",
+            "tools/progress_snapshot.py": "efa6da1aca39bfa4bf0aaa4109b04c2458e99ce0c7f730117b6c71f4d5e3c515",
+            "tools/render_migration.py": "56628a2887763a5fe23aa525a0e6dca45df5b71b30ece98fb9f8e49363340673",
+            "tools/replay_record.py": "93221dd4ec7f74cec2bc66496a619027296689f8f18732e305bd52c5a0291399",
+            "tools/rule_cases.py": "b9a2a18ffc61022f1b6369939a9ff45cac1e15372ab8490668e857082ed9a2ef"
+          },
+          "artifact_sha256": "af3cd3d2f8a83d2855e4ff8d2121f30a5d8e90f353993455d196cbac58e703d9",
+          "removed_rea_entries": 0
+        },
+        {
+          "name": "REA distribution removal",
+          "kind": "filesystem inspection",
+          "result": "passed",
+          "absent": [
+            "tools/rea",
+            "docs/licenses/rea",
+            ".implementation/rea-runtime",
+            ".implementation/rea-source",
+            ".implementation/rea-browsers",
+            ".implementation/rea-tmp"
+          ],
+          "design_brief_retained": true
+        },
+        {
+          "name": "Ponytail/Caveman license and instruction provenance",
+          "kind": "manifest hash comparison",
+          "result": "passed; both skill and license bytes match retained manifest; Ponytail required in design/build/repair instructions"
+        }
+      ],
+      "primary_sources": [
+        "https://code.claude.com/docs/en/goal",
+        "https://code.claude.com/docs/en/tools-reference",
+        "https://code.claude.com/docs/en/scheduled-tasks"
+      ],
+      "limits": [
+        "No native Claude executable, actual Opus inference, host scheduler or effective provider binding was exercised.",
+        "Instruction probes test the public structured rubric, not model behavior or semantic compliance.",
+        "Index is Python per-file navigation only; no COBOL/JCL/SQL/React or complete dependency/application coverage is claimed.",
+        "Freshness remains a checked source-hash workflow; no automatic background index service is introduced.",
+        "Reviewed settings do not guarantee managed-policy enforcement or security.",
+        "Full regression and historical/current evidence integration are owned by the root reviewer; not repeated here."
+      ],
+      "supplements": [
+        {
+          "reviewed_at_utc": "2026-10-16T09:52:57.950480+00:00",
+          "scope": "Final Ponytail-required AGENTS clarification and refreshed instruction fingerprint navigation metadata",
+          "changes": {
+            "AGENTS.md": {
+              "previous": "1abfacf9ceb831ebe16e299557291db9e6fb589f73ca526b74cb82e2753af5d7",
+              "current": "9d51d61f7367eff1b2b7f3a344798068dbd8f82e4811ce76089242fa42781734"
+            },
+            "knowledge/local-index.json": {
+              "previous": "e07e38f46f200df98adabb8e05eb8983c4e838fade4318810ebf2ff999a061bf",
+              "current": "3581af96a0220b937d4bac5fa4d554ed7aaf857c77df9ff7732257280710054b"
+            }
+          },
+          "result": "no material findings; matches already reviewed required Ponytail guidance; instruction fingerprint and AGENTS hash match current content; Graphify sources/artifact unchanged",
+          "instruction_fingerprint": "047a9cf63fe5f2c03a762a960f29e39070f1612edd5882bf39dcebbfcccbe7a7",
+          "instruction_fingerprint_artifact": ".implementation/instruction-goals-final-20261016T095228Z/instruction-fingerprint.json",
+          "instruction_fingerprint_artifact_sha256": "f55ab3fc742a66a16087dcb0e2b40d15ec17a9ba23cd8e682b1286adba0e56a9",
+          "new_tests": "none; supplemental metadata/hash verification only"
+        }
       ]
     }
   }

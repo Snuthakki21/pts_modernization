@@ -14,6 +14,8 @@ through Bash, scripts, MCP, copied files or another tool. Preserve the pinned mo
 and existing plugins/licenses. Do not run unbound commands or install runtimes.
 
 Work only on the foreground lead's assigned paths. Never spawn or delegate agents.
+Load `ponytail` before choosing the design or a dependency. Prefer the smallest
+complete existing solution and keep source obligations and acceptance gates intact.
 Use the application guide's compatibility initializer to add the eight-domain
 profile to `analysis/design.json`. Resolve source semantics; QA supplies actual
 fixture/proof receipts. Do not treat an initialized or hash-consistent profile as

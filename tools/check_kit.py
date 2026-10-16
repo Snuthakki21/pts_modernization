@@ -18,26 +18,26 @@ REQUIRED_FILES = (
     "AGENTS.md", "CLAUDE.md", "README.md", "START_HERE.md", "PRODUCT.md", "DESIGN.md", ".env.example",
     ".impeccable/design.json",
     ".gitignore", ".gitattributes", ".vscode/extensions.json",
-    ".github/copilot-instructions.md", ".claude/settings.json", ".claude/skill-pack.json",
+    ".github/copilot-instructions.md", ".claude/settings.json", ".claude/skill-pack.json", ".claude/loop.md",
     "config/project.json", "config/source-reference.json", "config/preservation-baseline.json",
     "config/token-tools.json", "config/token-tools.requirements.in", "config/token-tools.requirements.txt",
     "docs/TECHNICAL_REFERENCE.md", "docs/APP_MODERNIZATION_GUIDE.md",
     "docs/SPARKFLOWS_MIGRATION.md", "docs/IMPLEMENTATION_PLAN.md", "docs/WORKBOOK_GUIDE.md",
     "docs/FOLDER_STRUCTURE.md", "docs/OPUS_QUALITY.md", "docs/RULE_REMOVAL.md", "docs/evidence.json",
-    "docs/PROGRESS_UI.md", "docs/PROGRESS_DESIGN.md", "docs/REA_DESIGN_RESEARCH.md",
+    "docs/CLAUDE_CODE_WORKFLOW.md", "docs/GRAPHIFY_INDEX_EVIDENCE.json",
+    "docs/PROGRESS_UI.md", "docs/PROGRESS_DESIGN.md", "docs/PUBLIC_SITE_DESIGN.md",
     "docs/SECURITY_REVIEW.md", "docs/SECURITY_EVIDENCE.json", "docs/TOKEN_EFFICIENCY.md", "docs/TOKEN_TOOLS_EVIDENCE.json",
     "docs/design/wells-fargo-reference-20261016.jpg",
     "docs/licenses/graphify/LICENSE", "docs/licenses/graphify/LICENSE-MIT", "docs/licenses/graphify/NOTICE",
-    "docs/licenses/rea/LICENSE", "docs/licenses/rea/PROVENANCE.md",
-    "docs/licenses/rea/THIRD_PARTY_NOTICES.md", "docs/licenses/rea/npm-audit-2026-10-16.json",
     "knowledge/MEMORY.md", "knowledge/mainframe-catalog.json", "prompts/START_MODERNIZATION.md",
+    "prompts/GOAL_WORKFLOW.md",
     "examples/PTS_Modernization_Review_Template.xlsx", "examples/rule_validation/README.md",
     "examples/rule_validation/catalog.json", "examples/rule_validation/demo_oracle.py",
     "examples/rule_validation/demo_target.py", "examples/rule_validation/synthetic_rules.cob",
     "examples/progress-demo.json",
     "tools/check_kit.py", "tools/check_instruction_responses.py", "tools/compatibility_profile.py",
     "tools/init_workspace.py", "tools/render_migration.py", "tools/replay_record.py", "tools/rule_cases.py",
-    "tools/progress_snapshot.py", "tools/graphify_lookup.py", "tools/rea/package.json", "tools/rea/package-lock.json",
+    "tools/progress_snapshot.py", "tools/graphify_lookup.py",
     "tests/instruction_cases.json", "tests/test_kit_integrity.py", "tests/test_init_workspace.py",
     "tests/test_compatibility_profile.py", "tests/test_instruction_responses.py",
     "tests/test_render_migration.py", "tests/test_replay_record.py", "tests/test_rule_cases.py",
@@ -52,6 +52,10 @@ REQUIRED_FILES = (
     "ui/src/styles.css", "ui/src/snapshot.mjs", "ui/src/demo-progress.json",
     "ui/scripts/prepare-sites-build.mjs", "ui/worker/index.js",
     "ui/tests/sites-worker.test.mjs", "ui/tests/snapshot.test.mjs", "ui/.openai/hosting.json",
+)
+TEMPORARY_RESEARCH_PATHS = (
+    "tools/rea", "docs/licenses/rea", ".implementation/rea-runtime",
+    ".implementation/rea-source", ".implementation/rea-browsers", ".implementation/rea-tmp",
 )
 
 
@@ -71,6 +75,12 @@ def audit(root=ROOT):
 
     for name in REQUIRED_FILES:
         require((root / name).is_file(), f"Missing required kit file: {name}")
+    # REA was authorized only for temporary design research. Keep the sourced
+    # brief and historical receipts, not an installation or redistributed code.
+    for name in TEMPORARY_RESEARCH_PATHS:
+        path = root / name
+        require(not (path.exists() or path.is_symlink()),
+                f"Temporary REA research distribution remains: {name}")
     try:
         config = read_json("config/project.json", root)
         settings = read_json(".claude/settings.json", root)
@@ -101,6 +111,10 @@ def audit(root=ROOT):
             "Explicit environment effort differs from the approved xhigh binding")
     require(environment.get("ANTHROPIC_MODEL", model) == model,
             "Explicit environment model differs from project binding")
+    require(environment.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == model,
+            "Auxiliary small-fast model must match the approved Opus 4.7 project binding")
+    require(environment.get("CLAUDE_CODE_GOAL_CHECKIN_MINUTES") == "0",
+            "Automatic goal check-ins must remain disabled")
     require(not settings.get("fallbackModel"), "Explicit fallback models must remain disabled")
     require(settings.get("ultracode", False) is False,
             "Ultracode must remain disabled to preserve the worker limit")
@@ -167,9 +181,14 @@ def audit(root=ROOT):
             require(allowed == agent_names - {"pts-orchestrator"},
                     "Lead must delegate only to the eight specialists")
             require(re.search(r"\bSkill\b", tools_text), "Lead needs the Skill tool")
+            require(all(re.search(rf"\b{name}\b", tools_text) for name in
+                        ("CronCreate", "CronList", "CronDelete", "ScheduleWakeup")),
+                    "Lead needs the documented native monitoring tools")
         else:
             require(not re.search(r"\b(?:Agent|Task)\b", tools_text),
                     f"Specialist must not delegate: {path.name}")
+            require(not re.search(r"\b(?:CronCreate|CronList|CronDelete|ScheduleWakeup)\b", tools_text),
+                    f"Specialist must not schedule work: {path.name}")
             if path.stem in {"pts-qa", "pts-design", "pts-gap-analysis"}:
                 require(re.search(r"\bSkill\b", tools_text),
                         f"Skill-calling specialist needs the Skill tool: {path.name}")
@@ -262,10 +281,7 @@ def audit(root=ROOT):
         require(re.search(r"(?m)^@AGENTS\.md\s*$", content), "Root CLAUDE.md requires the AGENTS import")
         require(re.search(r"(?m)^@knowledge/MEMORY\.md\s*$", content),
                 "Root CLAUDE.md requires the shared memory import")
-    # This verbatim upstream notice resolves its links in the published package,
-    # not in this kit. It remains required; authored provenance/docs stay checked.
-    document_paths = [root / name for name in REQUIRED_FILES if name.endswith(".md")
-                      and name != "docs/licenses/rea/THIRD_PARTY_NOTICES.md"]
+    document_paths = [root / name for name in REQUIRED_FILES if name.endswith(".md")]
     document_paths += agent_files
     document_paths += [root / ".claude/skills" / name / "SKILL.md" for name in core]
     document_paths += [root / item["path"] for package in pack["packages"]

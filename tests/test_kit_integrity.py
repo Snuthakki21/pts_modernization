@@ -87,7 +87,7 @@ class KitIntegrityTests(unittest.TestCase):
 
     def test_missing_new_ui_lock_or_security_artifact_is_reported_explicitly(self):
         for relative in (
-            "ui/src/App.jsx", "ui/package-lock.json", "tools/rea/package-lock.json",
+            "ui/src/App.jsx", "ui/package-lock.json", "docs/PUBLIC_SITE_DESIGN.md",
             "docs/SECURITY_REVIEW.md", "config/token-tools.requirements.txt",
         ):
             with self.subTest(path=relative):
@@ -104,15 +104,28 @@ class KitIntegrityTests(unittest.TestCase):
         path.write_text("A substituted license\n")
         self.assertTrue(any("Graphify license hash" in error for error in self.report()["errors"]))
 
-    def test_upstream_notice_links_are_not_treated_as_authored_kit_links(self):
-        notice = self.root / "docs/licenses/rea/THIRD_PARTY_NOTICES.md"
-        notice.write_text(notice.read_text() + "\n[Upstream source](src/upstream-only.c)\n")
-        authored = self.root / "docs/licenses/rea/PROVENANCE.md"
-        authored.write_text(authored.read_text() + "\n[Missing kit contract](missing-contract.md)\n")
-        errors = self.report()["errors"]
-        self.assertFalse(any("Broken link in docs/licenses/rea/THIRD_PARTY_NOTICES.md" in error
-                             for error in errors), errors)
-        self.assertIn("Broken link in docs/licenses/rea/PROVENANCE.md: missing-contract.md", errors)
+    def test_design_reference_is_required_without_rea_distribution(self):
+        self.assertTrue((self.root / "docs/PUBLIC_SITE_DESIGN.md").is_file())
+        for relative in kit.TEMPORARY_RESEARCH_PATHS:
+            self.assertFalse((self.root / relative).exists())
+        self.assertEqual([], self.report()["errors"])
+
+    def test_temporary_rea_installation_cannot_be_reintroduced(self):
+        for relative in kit.TEMPORARY_RESEARCH_PATHS:
+            with self.subTest(path=relative):
+                path = self.root / relative
+                path.mkdir(parents=True)
+                try:
+                    self.assertIn(f"Temporary REA research distribution remains: {relative}",
+                                  self.report()["errors"])
+                finally:
+                    path.rmdir()
+
+    def test_authored_design_reference_links_are_checked(self):
+        document = self.root / "docs/PUBLIC_SITE_DESIGN.md"
+        document.write_text(document.read_text() + "\n[Missing contract](missing-contract.md)\n")
+        self.assertIn("Broken link in docs/PUBLIC_SITE_DESIGN.md: missing-contract.md",
+                      self.report()["errors"])
 
     def test_program_source_protection_added_after_historical_baseline_is_preserved(self):
         self.edit_json(".claude/settings.json",
@@ -147,6 +160,16 @@ class KitIntegrityTests(unittest.TestCase):
                        lambda value: value["env"].update(CLAUDE_CODE_SUBAGENT_MODEL="opus"))
         self.assertTrue(any("Worker model" in error for error in self.report()["errors"]))
 
+    def test_lead_requires_monitoring_cancellation_tools(self):
+        path = self.root / ".claude/agents/pts-orchestrator.md"
+        path.write_text(path.read_text().replace(", CronDelete", ""))
+        self.assertTrue(any("monitoring tools" in error for error in self.report()["errors"]))
+
+    def test_specialists_cannot_create_independent_schedules(self):
+        path = self.root / ".claude/agents/pts-backend.md"
+        path.write_text(path.read_text().replace("tools: Read,", "tools: CronCreate, Read,"))
+        self.assertTrue(any("must not schedule" in error for error in self.report()["errors"]))
+
     def test_changing_every_model_binding_to_another_model_still_fails(self):
         self.edit_json("config/project.json", lambda value: value["model"].update(id="claude-sonnet-4-6"))
         self.edit_json(".claude/settings.json", lambda value: value.update(model="claude-sonnet-4-6"))
@@ -163,7 +186,7 @@ class KitIntegrityTests(unittest.TestCase):
             deployment_mapping_reference="approved deployment receipt DEPLOY-47"))
         self.edit_json(".claude/settings.json", lambda value: value.update(model=identity))
         self.edit_json(".claude/settings.json", lambda value: value["env"].update(
-            CLAUDE_CODE_SUBAGENT_MODEL=identity))
+            CLAUDE_CODE_SUBAGENT_MODEL=identity, ANTHROPIC_DEFAULT_HAIKU_MODEL=identity))
         for path in (self.root / ".claude/agents").glob("*.md"):
             path.write_text(path.read_text().replace("model: claude-opus-4-7", f"model: {identity}"))
         self.assertEqual([], self.report()["errors"])
@@ -183,6 +206,27 @@ class KitIntegrityTests(unittest.TestCase):
         self.edit_json(".claude/settings.json", lambda value: value["env"].update(
             ANTHROPIC_MODEL="claude-sonnet-4-6"))
         self.assertTrue(any("environment model" in error.lower() for error in self.report()["errors"]))
+
+    def test_auxiliary_small_fast_model_cannot_use_another_model(self):
+        self.edit_json(".claude/settings.json", lambda value: value["env"].update(
+            ANTHROPIC_DEFAULT_HAIKU_MODEL="claude-haiku-4-5"))
+        self.assertTrue(any("small-fast model" in error for error in self.report()["errors"]))
+
+    def test_auxiliary_small_fast_model_requires_explicit_pin(self):
+        self.edit_json(".claude/settings.json", lambda value: value["env"].pop(
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL", None))
+        self.assertTrue(any("small-fast model" in error for error in self.report()["errors"]))
+
+    def test_automatic_goal_check_ins_cannot_be_enabled_or_left_unset(self):
+        for value in ("5", 0, None):
+            with self.subTest(value=value):
+                def change(settings):
+                    if value is None:
+                        settings["env"].pop("CLAUDE_CODE_GOAL_CHECKIN_MINUTES", None)
+                    else:
+                        settings["env"]["CLAUDE_CODE_GOAL_CHECKIN_MINUTES"] = value
+                self.edit_json(".claude/settings.json", change)
+                self.assertTrue(any("goal check-ins" in error for error in self.report()["errors"]))
 
     def test_explicit_fallback_models_are_rejected(self):
         self.edit_json(".claude/settings.json", lambda value: value.update(

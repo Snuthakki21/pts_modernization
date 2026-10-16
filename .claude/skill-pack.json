@@ -5,7 +5,7 @@
   "mode": "curated_markdown_instructions",
   "runtime_installed": false,
   "permission_grants": [],
-  "load_policy": "Use modernize-process, validate-program and consult-modernization as the three core workflows under the foreground Coordinator agent. Load the 15 preserved optional instruction skills only on demand. AGENTS.md, the technical contract and human instructions control; no optional skill grants permissions or activates an upstream runtime.",
+  "load_policy": "Use modernize-process, validate-program and consult-modernization as the three core workflows. Load the retained Ponytail guidance for design, implementation and remediation; load other retained instruction skills only when relevant. Governing instructions and permission denies remain authoritative; no upstream runtime or hook is activated.",
   "official_skill_contract": "https://code.claude.com/docs/en/skills",
   "retained_skills": [
     "modernize-process",
@@ -681,5 +681,5 @@
     "i-have-adhd",
     "oh-my-claudecode"
   ],
-  "migration_note": "Adapted local integration guidance for the agent workflow; pinned upstream source and license provenance remain unchanged. previous_sha256 records preserved files before migration. This retained instruction pack is distinct from the separately pinned optional Graphify parser in config/token-tools.json and REA installation in tools/rea."
+  "migration_note": "The retained package inventory describes instruction-only adaptations. The separately reviewed optional Graphify parser is described in config/token-tools.json. REA was temporary design research tooling and is removed from the current branch tree."
 }

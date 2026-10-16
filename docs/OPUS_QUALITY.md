@@ -12,6 +12,8 @@ and the user's VS Code session are unavailable here.
 |---|---|---|
 | Foreground model | `.claude/settings.json`: explicit `claude-opus-4-7` | Check actual host/provider model, not just this file |
 | Worker models | All nine definitions pin the same model; subagent model plus force environment settings | Observe an active worker in `/tasks`; retain a sanitized routing receipt |
+| Auxiliary/evaluator model | `ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-opus-4-7` | Verify actual small-fast route before `/goal`; foreground/subagent pins alone do not cover it |
+| Goal continuation | `CLAUDE_CODE_GOAL_CHECKIN_MINUTES: 0` | No automatic idle check-ins/retries; direct turn continuation remains, bounded by persisted original limits |
 | Reasoning effort | Project `effortLevel: xhigh`; each agent `effort: xhigh` | Check effective effort and organization/environment overrides |
 | Concurrency | Project maximum two workers; runtime subagent cap `2`; `ultracode: false` | Lead also counts active/resumed work; avoid alternative spawning routes |
 | Fallback | Project policy prohibits other models | Inspect effective settings, launch configuration and observed routing; policy text is not host enforcement |
@@ -72,6 +74,12 @@ and update settings/worker model pins together. The instruction evaluator reads
 that binding. Its acceptance of the declaration does **not** authenticate the
 mapping; the environment owner must retain the actual mapping evidence. Canonical
 other-model IDs and moving aliases are not valid replacements.
+
+Include the auxiliary `ANTHROPIC_DEFAULT_HAIKU_MODEL` mapping when changing a
+managed deployment ID. It affects goal evaluation and other small-fast work;
+do not test the evaluator by first allowing a call to another model. Read the
+[goal/loop guide](CLAUDE_CODE_WORKFLOW.md) and verify effective provider settings
+before execution. Native evaluator approval does not replace independent audit.
 
 ## Improve measured work, not a model label
 

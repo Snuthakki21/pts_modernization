@@ -59,6 +59,12 @@ packages from `modernization-factory`; it does not start the old Python workbenc
 
 ## Start, review and resume
 
+For the recommended VS Code/terminal setup, goal boundaries and monitoring loops,
+read [Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and use the
+[paste-ready prompts](prompts/GOAL_WORKFLOW.md). The separate `/goal` evaluator
+must also use verified Opus 4.7 routing. Ponytail is required during design,
+implementation and repair; no upstream Ponytail runtime is installed.
+
 In Claude Code, invoke:
 
 ```text
@@ -127,18 +133,19 @@ converted work, rule counts, gates, blockers and Sparkflows dependencies. Its
 demonstration is explicitly fictional. Use [SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md)
 for separate remediation, QA and independent adversarial review before promotion.
 
-Optional tool installation is pinned in [TOKEN_EFFICIENCY.md](docs/TOKEN_EFFICIENCY.md)
-and [REA_DESIGN_RESEARCH.md](docs/REA_DESIGN_RESEARCH.md). Graphify's scoped parser
-and REA were installed and exercised in the build workspace. Activate only their
-reviewed paths through the workstation's existing permission process; no global
-hooks, extra model routing or credentials are installed by the kit. The optional
-Graphify adapter requires a verified POSIX/WSL binding on Windows.
+Optional Graphify installation is pinned in [TOKEN_EFFICIENCY.md](docs/TOKEN_EFFICIENCY.md).
+Its scoped parser was installed and exercised in the build workspace; activate
+only its reviewed path through the workstation's existing permission process.
+The optional adapter requires a verified POSIX/WSL binding on Windows. No global
+hooks, extra model routing or credentials are installed by the kit.
+[PUBLIC_SITE_DESIGN.md](docs/PUBLIC_SITE_DESIGN.md) preserves the design research;
+the temporary REA tool has been removed and requires no workstation activation.
 
 - Included: lead plus eight specialist definitions, three core skills, fifteen
   retained optional instruction packages/licenses, single-model settings,
   source-reference transcription, workbook and compact operating specification.
   Five standard-library evidence utilities and their synthetic regression tests
   are executable locally. Run `python -m unittest discover -s tests -v`.
-- Not established here: plugin activation in your VS Code host, REA browser capture,
+- Not established here: plugin activation in your VS Code host, rendered UI verification,
   live mainframe/Db2/Sparkflows connectivity, real source conversion, Claude-host
   execution, provider-token savings or model equivalence. Record each after observation.

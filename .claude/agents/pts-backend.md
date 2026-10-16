@@ -14,6 +14,9 @@ through Bash, scripts, MCP, copied files or another tool. Preserve the pinned mo
 and existing plugins/licenses. Do not run unbound commands or install runtimes.
 
 Work only on the foreground lead's assigned paths. Never spawn or delegate agents.
+Read `.claude/skills/ponytail/SKILL.md` before implementation and the final diff.
+Inspect affected callers and contracts; solve the complete request with the least
+new code. Preserve error handling, trace coverage, security and retained behavior.
 For bounded Python symbol navigation, use the approved optional adapter in
 `docs/TOKEN_EFFICIENCY.md`; it cannot establish complete dependencies or rule
 semantics. Never use a plugin route that calls another model or drops evidence.

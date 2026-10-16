@@ -11,6 +11,15 @@ the retained Headroom instructions are not the Headroom compression runtime.
 Installing more packages does not itself save tokens. Use one applicable tool
 at a time and measure complete tasks, including retries and review.
 
+**Ponytail is required for design, implementation and repairs.** The lead loads
+the retained local skill, and design/backend/frontend apply it to the affected
+callers, tests and final diff. This is the licensed, pinned instruction adaptation,
+not the upstream runtime, band/board UI, hook system or another agent engine.
+It does not remove required validation or change the rule denominator. Caveman's
+retained guidance is useful for concise status/handoffs; full operator instructions,
+code, evidence and error meaning stay intact. Its explicit skill invocation remains
+optional. No new package is needed for either behavior.
+
 ## Selection and actual evidence
 
 Research used GitHub repository/file/commit lookup, Context7 and primary vendor
@@ -20,6 +29,8 @@ documentation on 2026-10-16. Exact revisions and licenses are in
 | Candidate | Decision | Reason and boundary |
 |---|---|---|
 | Graphify local Python parser | Installed locally; scoped adapter shipped | Parse approved converted Python without a model call; return a small source-linked symbol/call lookup. This adapter uses only per-file static extraction. |
+| Ponytail retained skill | Required on design/build/repair | Smallest complete change, existing code first, caller-impact check and meaningful validation; no upstream runtime activation. |
+| Caveman retained skill | Optional concise reporting | Remove repeated prose, never raw evidence, conditions, errors or professional documentation detail. |
 | Claude native MCP tool search | Use existing host capability when supported | Defers tool definitions. Check the actual provider/enterprise setting; a proxy or managed deployment may disable support. No plugin installation is needed. |
 | RTK OSS command filters | Pinned candidate; not installed | Can shorten shell output. Rust is absent here. The current default edition includes an additional engine; its optional proxy can route to cheaper models. That routing is incompatible with the Opus-only requirement. |
 | Headroom runtime | Not activated | Its broader proxy/compression/model and effort-changing surface is unnecessary for the first integration. Its retained local guidance remains usable. |
@@ -103,6 +114,53 @@ network and child-process operations during the parser call as defense in depth.
 It is **not an OS sandbox** against malicious native dependencies. Run only the
 pinned, reviewed environment and retain normal host isolation/access controls.
 
+## Refresh navigation after changes
+
+The adapter has no persistent graph cache: each invocation captures and parses
+the current file. The lead maintains `knowledge/local-index.json` as a rebuildable
+navigation manifest, with exact file hashes and references to current extraction
+artifacts. Do not create another index service. The dated
+[refresh receipt](GRAPHIFY_INDEX_EVIDENCE.json) identifies the public Python files
+actually parsed for this branch. Markdown instructions have a separate fingerprint
+from `tools/check_instruction_responses.py`; Python Graphify does not index the
+React UI, COBOL, JCL, SQL semantics or dynamic/cross-file dependencies.
+
+After a patch, rename, deletion, branch switch, dependency/parser change or resume:
+
+1. Compare the assigned paths and hashes with the manifest. Remove deleted/renamed
+   navigation entries and mark changed entries stale before reading cached results.
+2. Re-run the existing adapter on each changed approved Python file and relevant
+   symbol, for example:
+
+   ```bash
+   .implementation/token-tools/venv/bin/python tools/graphify_lookup.py --file tools/check_kit.py --symbol audit
+   ```
+
+3. Verify each returned hash against the current approved source. Store the result
+   and its parser/adapter version in a new ignored extraction artifact; update only
+   that entry in the existing index. Preserve unrelated indexed paths and memory.
+   Read targeted source when a result is truncated, missing or unsupported.
+4. Refresh the instruction fingerprint after guidance edits. Never reuse a prior
+   instruction-evaluation receipt under the new fingerprint. Recheck changed
+   callers/contracts independently; a current index is not complete dependency proof.
+
+No stale-result fallback is permitted when a refresh is unavailable. Use an approved
+targeted source read instead and keep the index gap visible. Do not turn unavailable
+private source into a wider filesystem crawl merely to populate this manifest.
+
+## RTK decision for this kit
+
+GitHub review reconfirmed pinned RTK 0.49.0: `--no-default-features` selects the
+Apache-2.0 CLI without its optional engine. The build requires Rust 1.91, which is
+unavailable here. RTK is not installed or activated; targeted reads and compact
+structured test summaries already cover this kit's immediate navigation need.
+The optional provider proxy and cross-model routing are excluded. Do not run
+`rtk init -g`, introduce global hooks or wrap Claude with `rtk claude` for this kit.
+If a future approved host trial is worthwhile, constrain it to non-authoritative
+navigation output, preserve complete raw command/evidence results separately,
+and measure the same frozen task before adopting it. A filter's savings estimate
+is not an observed reduction in provider billing.
+
 ## Native context controls
 
 Claude's current first-party default defers MCP definitions. Do not blindly set
@@ -144,6 +202,9 @@ available for audit.
 - [Graphify pinned source and install documentation](https://github.com/Graphify-Labs/graphify/tree/10130e79ed9caf8f60d998073e097531eaa1a395)
 - [Graphify direct local parser](https://github.com/Graphify-Labs/graphify/blob/10130e79ed9caf8f60d998073e097531eaa1a395/graphify/extract.py)
 - [RTK pinned source](https://github.com/rtk-ai/rtk/tree/f16becacd2f40616839333b3e0e281e40a0bc823)
+- [RTK build features](https://github.com/rtk-ai/rtk/blob/f16becacd2f40616839333b3e0e281e40a0bc823/Cargo.toml)
+- [Ponytail retained source](https://github.com/DietrichGebert/ponytail/blob/9cc65d03aa2da1db7121b912d03596409ee340b8/skills/ponytail/SKILL.md)
+- [Caveman retained source](https://github.com/JuliusBrussee/caveman/blob/2e08b9177c07bb7249a8a2d1a6758e5db281d002/skills/caveman/SKILL.md)
 - [Headroom reviewed source](https://github.com/headroomlabs-ai/headroom/tree/df11f2749862a0090db11f7fca3e7dc42a75b612)
 - [Context Mode reviewed source](https://github.com/mksglu/context-mode/tree/40813fe886798bad07c69a43d2ae00a52b4b934d)
 - [Claude MCP tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search)

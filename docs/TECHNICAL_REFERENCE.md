@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 7.0 · 16 October 2026 (UTC) · Workspace, safe removal, progress UI and independent quality review
+Version 7.1 · 16 October 2026 (UTC) · Bounded goals, source navigation and temporary research cleanup
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -605,7 +605,7 @@ docstring and `--help` define its executable interface.
 | `tools/rule_cases.py` | QA; source-linked catalog, reviewed independent generator, pinned target | Freezes deterministic cases, de-duplicates declared meaningful inputs, observes actual mapped synchronous Python functions, checks outputs/events and reports each rule's separate passing counts/coverage. Declared source coverage is not independent COBOL completeness. |
 | `tools/replay_record.py` | QA/DevOps; captured failure bundle and record occurrence | Validates hashes and materializes a portable dependency closure; explicit execution replays a trusted local adapter. Expected comparison and failure reproduction are separate; neither sets program acceptance. |
 | `tools/render_migration.py` | Lead; canonical inventory and all source maps | Replaces only the migration document's generated facts. Verifies supplied artifact hashes and exposes missing/stale artifacts and cyclic dependencies. Stages are reported, never certified. |
-| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores ten public scenarios with 47 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
+| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores eleven public scenarios with 54 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
 
 The separate initializer in Section 6 creates missing files only. The kit checker
 requires the tools, tests, workbook, templates and memory files, verifies preserved
@@ -768,6 +768,13 @@ See the [workbook operating guide](WORKBOOK_GUIDE.md) for the refresh contract.
 
 ## 10. Model, autonomy, tokens and durable knowledge
 
+Use [Claude Code workflow](CLAUDE_CODE_WORKFLOW.md) and the
+[goal/loop prompts](../prompts/GOAL_WORKFLOW.md). Native `/goal` requires the
+separate evaluator route to be verified as Opus 4.7; all three model routes are
+pinned. Goals have cumulative limits in the existing handoff, and timer loops
+only observe existing work. Require Ponytail's smallest complete change pass.
+Refresh navigation hashes after edits; the graph is not acceptance evidence.
+
 Pin the approved model; no fallback to other models, aliases that drift, or plugin
 services using another model. Project settings select `claude-opus-4-7` and request
 the same model for every subagent. The force setting requires compatible Claude Code
@@ -877,9 +884,10 @@ configuration, data access, evidence handling and UI boundaries. Preserve failur
 evidence and the existing repair budget. No tool or reviewer can certify that
 code is 100% secure; record assessed versions, checks, findings and limitations.
 
-The UI's design observations and REA execution limits are documented in
-[REA_DESIGN_RESEARCH.md](REA_DESIGN_RESEARCH.md). Use the observed public visual
-language without asserting an official corporate design-system certification.
+The UI's sourced design observations are documented in
+[PUBLIC_SITE_DESIGN.md](PUBLIC_SITE_DESIGN.md). Temporary REA research tooling has
+been removed; it is not a runtime or workstation prerequisite. Use the observed
+public visual language without asserting an official corporate design-system certification.
 Token-saving additions and measured limits belong in
 [TOKEN_EFFICIENCY.md](TOKEN_EFFICIENCY.md); do not enable tools that change models,
 bypass permissions, or drop required source and record evidence.

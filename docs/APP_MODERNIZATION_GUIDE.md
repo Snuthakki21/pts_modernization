@@ -426,7 +426,7 @@ still serving other callers. Unknown external outcomes must be reconciled first.
 
 ## 9. Check instruction changes in an actual Opus session
 
-Use the public ten-scenario [instruction rubric](../tests/instruction_cases.json)
+Use the public eleven-scenario [instruction rubric](../tests/instruction_cases.json)
 and [offline evaluator](../tools/check_instruction_responses.py) after instruction
 edits are complete. This tests supplied decisions about the workflow; it does not
 modernize or validate an application. The fingerprint includes tracked memory and

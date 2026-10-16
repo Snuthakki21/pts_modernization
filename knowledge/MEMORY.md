@@ -6,6 +6,10 @@ process, decision or unresolved task. Per-agent copies are unnecessary.
 
 ## Governing references
 
+- [Claude Code workflow](../docs/CLAUDE_CODE_WORKFLOW.md) defines goals and read-only
+  loops. Preserve original cumulative limits in the existing handoff after resume;
+  native counters and evaluator verdicts are not budgets or acceptance authority.
+
 - [CLAUDE.md](../CLAUDE.md), [AGENTS.md](../AGENTS.md) and
   [project configuration](../config/project.json) define the approved model,
   ownership, permission boundaries, concurrency and repair limits.

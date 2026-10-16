@@ -50,7 +50,9 @@
       "known_vulnerabilities": 0,
       "date": "2026-10-16",
       "guarantees_security": false
-    }
+    },
+    "index_receipt": "docs/GRAPHIFY_INDEX_EVIDENCE.json",
+    "freshness": "No persistent parser cache; each lookup captures current bytes. Existing local-index manifest records source fingerprints; invalidate changed/renamed/deleted entries."
   },
   "native": {
     "mcp_tool_search": "verify existing provider-supported default; no forced override added",
@@ -89,5 +91,22 @@
     "project_cost_reduction": null,
     "synthetic_output_byte_reduction_percent": 65.82,
     "synthetic_receipt": "docs/TOKEN_TOOLS_EVIDENCE.json"
+  },
+  "required_guidance": {
+    "ponytail": {
+      "mode": "retained_pinned_instruction_adaptation",
+      "phases": [
+        "design",
+        "implementation",
+        "repair"
+      ],
+      "required": true,
+      "runtime_hooks_activated": false
+    },
+    "caveman": {
+      "mode": "retained_pinned_instruction_adaptation",
+      "use": "optional concise status and handoffs; preserve complete evidence",
+      "required": false
+    }
   }
 }

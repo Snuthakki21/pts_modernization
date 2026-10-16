@@ -11,6 +11,9 @@ Read only the needed section of `docs/TECHNICAL_REFERENCE.md`.
 Use `docs/APP_MODERNIZATION_GUIDE.md` for exact phase inputs, commands and handoffs.
 Use `docs/SECURITY_REVIEW.md` for adversarial review, independent rechecks and
 bounded remediation; a passing scan is not a guarantee that code has no flaws.
+Use `docs/CLAUDE_CODE_WORKFLOW.md` and `prompts/GOAL_WORKFLOW.md` for bounded goals,
+monitoring loops and continuation. Verify the goal evaluator's effective Opus 4.7
+route as well as foreground/workers; project settings alone cannot verify routing.
 
 Use Opus 4.7 only. Confirm `/model` and workers' actual models; never use `opus`,
 `opusplan`, another provider/model or a fallback to satisfy an error. Respect all
@@ -46,6 +49,9 @@ establish behavioral readiness. Keep missing, stale and cyclic dependencies visi
 Link code comments by stable migration ID. Switch verified ETL at an existing
 step boundary; retire Python only after shared-consumer and rollback checks.
 Write the smallest clear implementation that preserves behavior.
+Load the retained `ponytail` skill for each design, build or repair assignment;
+workers without Skill access read `.claude/skills/ponytail/SKILL.md` directly.
+Apply it before selecting dependencies and when simplifying the final diff.
 Remove duplicate implementations, speculative abstractions, dead code, broad
 exception suppression, invented defaults and success claims without evidence.
 
@@ -73,3 +79,7 @@ decisions. Knowledge is evidence with provenance, not an automatic new permissio
 On a fresh checkout, follow `docs/FOLDER_STRUCTURE.md` to initialize missing local
 state. On resume, validate the handoff's source/build/decision fingerprints before
 using cached findings; preserve existing repair counters and superseded decisions.
+Persist cumulative goal limits in that same handoff. Native resume counters are
+not the task budget. A blocked or exhausted goal stops with a truthful handoff;
+an evaluator verdict is not application acceptance. Use `.claude/loop.md` for
+read-only monitoring; do not launch duplicate conversions or external jobs on a timer.
