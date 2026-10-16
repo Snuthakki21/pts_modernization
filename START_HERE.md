@@ -1,79 +1,47 @@
 # Run the agent workflow
 
-This branch is a clean Claude Code operating kit. It retains optional instruction
-packages from `modernization-factory`; it does not start the old Python workbench.
+Open `modernization/clean-agent-kit` in the approved Claude Code VS Code extension.
+This kit does not start the old workbench or install workstation credentials,
+extensions or upstream plugin runtimes.
 
-## First workstation setup
+## Bind the workstation once
 
-1. Check out `modernization/clean-agent-kit` and open the folder in the approved Claude
-   Code VS Code extension. A branch does not install extensions, credentials or
-   machine-level plugins. Inspect the workstation's existing configuration.
-2. Run `python tools/check_kit.py` (or `py tools/check_kit.py` on Windows). This
-   checks the kit only. It never connects to the mainframe or invokes a model.
-   The checker covers required files and the pinned permission/license baseline;
-   it also checks historical Git bytes when that history is available. Then run
-   `python tools/init_workspace.py --root .` through the approved local binding.
-   This creates missing local inventory/memory files and preserves existing state.
-   See [the folder guide](docs/FOLDER_STRUCTURE.md) before supplying program IDs.
-3. Check `/model`: use the approved Opus 4.7 ID. For Anthropic naming it is
-   `claude-opus-4-7`; a managed gateway may require a different verified ID. If so,
-   update the explicit model fields together without adding a fallback. Inspect
-   effective settings and `/tasks` during a worker smoke test. The force setting
-   requires Claude Code 2.1.257 or later; if unsupported, stay in the pinned
-   foreground session until the host can guarantee the same model for delegates.
-   Project and agent effort is explicitly `xhigh`. Follow
-   [the quality guide](docs/OPUS_QUALITY.md) to verify effective effort/routing,
-   memory imports and held-out results. These settings do not establish 5.5 parity.
-4. Confirm that the lead and eight specialists load and that the three core skills
-   are discoverable. If `.claude/agents` was new to an already-open session, restart
-   the session. Use the configured foreground `pts-orchestrator`; do not spawn a
-   second lead. Have the lead call one worker on a small synthetic source fixture
-   and inspect its actual model. This repository has not run that host smoke test.
-5. Review effective `/permissions` once with the environment owner. The supplied
-   `dontAsk` policy runs allowed actions without routine prompts and blocks other
-   actions. Existing mainframe upload/submit/delete denials remain. Do not use
-   bypass mode or alternate tools to evade them. Configure exact local Python test
-   commands through approved settings; null bindings are deliberate blockers.
-6. Reuse your configured Zowe CLI and Db2 MCP server. Do not install another
-   connector by default. With the environment owner, verify the actual MCP tool
-   catalog, Zowe version/profile, account permissions and approved resources. Bind
-   exact allowed MCP tools to the relevant agent tool lists and host permissions;
-   do not guess tool names or grant wildcard SQL access. Existing denies remain.
-   Follow technical-reference Sections 4.1–4.3 and record non-secret receipts in
-   `.implementation/workstation.json`. A Db2 MCP binding is not a Zowe Db2 profile.
-   Bind source access in `config/project.json` or protected local configuration.
-   Sparkflows examples, profiles and `commands.etl` are deferred; missing bindings
-   do not block current Python implementation or its unit/integration tests.
-   The photo confirms `TSTSN.#RW477*`; live
-   enumeration is still required. Model-visible source must be approved sanitized
-   content. Keep private inputs and outputs in the ignored working folders.
-7. Bind the approved indexed trace/evidence store and retention policy in
-   `config/project.json`. Every processed record needs complete rule-event,
-   lineage and effect evidence under technical-reference Section 9. No sampling;
-   missing trace evidence blocks acceptance. These bindings are not configured here.
-8. Set numeric task/token/time/query/storage limits once and record their protected
-   binding in `execution.budget_binding`. Unset is not unlimited. Run the readiness
-   and representative-pilot tasks in [the implementation plan](docs/IMPLEMENTATION_PLAN.md)
-   before scaling to the program inventory. Batch unresolved setup items into one
-   owner handoff; continue unrelated allowed work.
+1. Run `python tools/check_kit.py` (`py` on Windows). It checks kit files and the
+   pinned permission/license baseline, not connectivity or model execution.
+   Through the approved local binding, run `python tools/init_workspace.py --root .`.
+   It creates missing state without overwriting decisions or budgets. Use the
+   [folder guide](docs/FOLDER_STRUCTURE.md) before supplying program/process IDs.
+2. Follow [OPUS_QUALITY](docs/OPUS_QUALITY.md) to verify actual foreground, worker
+   and evaluator Opus 4.7 routing, `xhigh` effort and loaded memory. The delivered
+   ID is `claude-opus-4-7`; verified gateway mappings must update all pins together.
+   No fallback. Confirm the lead, eight specialists and three core skills load;
+   restart an existing session if necessary. Run a synthetic worker smoke test
+   and inspect `/tasks`. If worker routing is unsupported, stay in the verified
+   same-model foreground until resolved.
+3. Review `/permissions` with the environment owner. `dontAsk` runs allowed
+   actions and blocks others; preserve denials, with no bypass. Reuse your Zowe
+   CLI and Db2 MCP. Verify versions, profiles, actual tool names and resources;
+   bind exact local test commands and connector permissions through the approved
+   process. Never guess tools or grant wildcard SQL access. A Db2 MCP binding is
+   not a Zowe Db2 profile. Follow [technical-reference Sections 4.1–4.3](docs/TECHNICAL_REFERENCE.md)
+   and keep non-secret receipts in `.implementation/workstation.json`.
+4. Bind approved source access in `config/project.json` or protected local
+   configuration. The photo confirms `TSTSN.#RW477*`; live enumeration is pending.
+   Populate approved sanitized `Endevor/` views and use
+   [the navigation runbook](docs/ENDEVOR_NAVIGATION.md) for OKF build/check and
+   permitted Db2 MCP/Zowe fallback. Keep private inputs/outputs ignored. A denied,
+   partial or failed query is not object absence.
+5. Bind the indexed trace store, retention/access policy, numeric task/token/time/
+   query/storage limits and `execution.budget_binding`. Missing bindings block
+   dependent work; unset limits are not unlimited. Every accepted run needs
+   unsampled record traces under technical-reference Section 9. Sparkflows
+   bindings are deferred. Run the readiness and representative pilot in
+   [the implementation plan](docs/IMPLEMENTATION_PLAN.md) before scaling. Batch
+   setup blockers into one owner handoff; continue unrelated permitted work.
 
-## Start, review and resume
+## Start and continue
 
-For the mainframe source folder named `Endevor`, follow
-[Endevor navigation](docs/ENDEVOR_NAVIGATION.md). Populate its explicit approved-view
-manifest, then build/check the local OKF bundle before source dependency traversal.
-If the question remains unanswered, use its read-only Db2 MCP/Zowe fallback after
-the existing workstation bindings are verified. Keep denials, errors and partial
-results distinct. The [context procedure](docs/TOKEN_EFFICIENCY.md#five-context-techniques-in-the-existing-workflow)
-keeps handoffs compact without removing evidence or changing budgets.
-
-For the recommended VS Code/terminal setup, goal boundaries and monitoring loops,
-read [Claude Code workflow](docs/CLAUDE_CODE_WORKFLOW.md) and use the
-[paste-ready prompts](prompts/GOAL_WORKFLOW.md). The separate `/goal` evaluator
-must also use verified Opus 4.7 routing. Ponytail is required during design,
-implementation and repair; no upstream Ponytail runtime is installed.
-
-In Claude Code, invoke:
+Use the foreground `pts-orchestrator`, with at most two specialists:
 
 ```text
 /modernize-process Inventory every program under the configured source reference.
@@ -82,78 +50,36 @@ manifest for conversion order. Preserve compatible conversions, collect SME
 questions in one review workbook, and continue all unblocked work.
 ```
 
-The lead assigns only needed specialists, at most two simultaneously by default.
-For an existing program use `/validate-program` with its ID and pinned source/target
-versions. For an architecture, delivery or cost decision use `/consult-modernization`.
-All work follows [the technical specification](docs/TECHNICAL_REFERENCE.md).
-Follow [the application operating guide](docs/APP_MODERNIZATION_GUIDE.md) for the
-complete sequence, exact commands and required artifacts per phase. Each program
-gets a compact compatibility profile, all-rule data cases, current Python results
-and reproducible bundles for failures. The local rule runner requires 100 passing
-positive and 100 passing negative cases per executable business, technical or mixed
-rule; it does not establish whole-program or mainframe acceptance by itself.
+Use `/validate-program` with an existing program ID and pinned versions, or
+`/consult-modernization` for architecture/delivery/cost decisions. The
+[application guide](docs/APP_MODERNIZATION_GUIDE.md) gives phase inputs, commands
+and handoffs: compatibility profiles, independent 100-positive/100-negative
+cases per executable rule, Python results and reproducible failures. Local case
+results alone do not establish whole-program or mainframe acceptance.
 
-Implement business logic and simple ETL in Python now. Put short
-`ETL-LATER (Sparkflows)` comments beside eligible ETL functions using the Section 7
-convention. Keep actual Python source, tests and every-record evidence current;
-future migration annotations are plans, not completed flow evidence.
-The lead maintains [one running migration document](docs/SPARKFLOWS_MIGRATION.md).
-Ask it to show flow cards, available/missing artifacts, dependency order and which
-Python functions/callers each flow will replace. Each code comment links to its
-card. Later, switch a validated step through its documented binding; retire shared
-Python only after every consumer and in-flight version is accounted for.
+| Activity | Procedure |
+|---|---|
+| SME review | Issue one versioned process workbook; SMEs edit business decisions and agents fill technical fields/evidence. Ingest attributed revisions and rerun affected work. [WORKBOOK_GUIDE](docs/WORKBOOK_GUIDE.md) explains **Review home**, **Record Trace** and replacing fictional examples with authorized exports. |
+| Python ETL now | Use Section 7's `ETL-LATER (Sparkflows)` comments and stable migration IDs. Maintain [one register](docs/SPARKFLOWS_MIGRATION.md) of flow cards, artifacts, dependencies, callers, switch/rollback and retirement conditions. Planned flows are not execution evidence. |
+| Goals/monitoring | Use [CLAUDE_CODE_WORKFLOW](docs/CLAUDE_CODE_WORKFLOW.md) and [paste-ready prompts](prompts/GOAL_WORKFLOW.md); verify the separate evaluator route first. Loops monitor existing work only. |
+| Resume | Save `knowledge/handoff.json` before compaction/closure. Verify fingerprints, remaining budgets, unresolved effects and next action. Preserve zero budgets. The kit has no background daemon or guarantee of running after IDE closure. |
+| Remove logic | Use `/modernize-process remove-rule <PROGRAM_ID> <RULE_ID> reason="<NEW_BEHAVIOR>"`, optionally `process=<PROCESS_ID>` or `plan-only`. Follow [RULE_REMOVAL](docs/RULE_REMOVAL.md) for reversible changes and dependency/retained-rule checks. |
+| Progress/review | Export sanitized inventory via [PROGRESS_UI](docs/PROGRESS_UI.md); apply separate remediation, QA and independent audit under [SECURITY_REVIEW](docs/SECURITY_REVIEW.md). The UI cannot approve work. |
 
-SMEs edit the business-decision cells in the process review workbook. Engineering
-fills classification, technical treatment, reuse, replacement names and evidence.
-Use the workbook's **Review home** link for navigation and **Record Trace** to
-inspect a run and record occurrence. Follow the [workbook guide](docs/WORKBOOK_GUIDE.md)
-to replace the fictional demonstration with an authorized evidence export.
-Return real answers with attribution. The lead ingests revisions and reruns affected
-work. Technical repair proceeds within the configured two-cycle budget without
-repeated confirmation. Business ambiguity and blocked access remain explicit.
+Load Ponytail for design/build/repair. Follow [TOKEN_EFFICIENCY](docs/TOKEN_EFFICIENCY.md)
+for the five context techniques and optional pinned Graphify setup, including its
+approved POSIX/WSL binding. Do not activate generic hooks or other-model routes.
+Keep evidence, business ambiguities, access blockers and the original two-cycle
+repair allowance intact.
 
-Before closing the extension, save the handoff. To resume, ask the lead to read
-`knowledge/handoff.json`, verify recorded versions and continue the next eligible
-task. The kit has no background daemon and makes no guarantee of running after the
-IDE session closes.
+## Compare against the mainframe
 
-To remove converted behavior, use
-`/modernize-process remove-rule <PROGRAM_ID> <RULE_ID> reason="<NEW_BEHAVIOR>"`.
-Add `process=<PROCESS_ID>` for one consumer or `plan-only` to preview. The
-[removal guide](docs/RULE_REMOVAL.md) covers shared dependencies, a reversible
-patch, absence-of-effect tests, retained-rule validation and evidence updates.
+DevOps prepares the [isolated test packet](.claude/skills/validate-program/references/mainframe.md):
+exact datasets, JCL changes, synthetic fixtures, Db2 state, effects, capture, reset
+and recovery. Existing denials prevent direct execution; the environment owner
+must resolve policy before enabling it. Record that envelope once. Reuse verified
+baselines only when fingerprints match.
 
-## Mainframe comparison
-
-DevOps prepares a concrete isolated test packet using
-[the mainframe playbook](.claude/skills/validate-program/references/mainframe.md).
-It specifies exact datasets, JCL changes, fixtures, Db2 state, expected effects,
-capture, reset and recovery. Current repository denials prevent direct execution.
-An authorized environment owner must resolve that policy before execution is
-enabled; the lead records the resulting permission and review envelope once.
-Existing verified baselines may be reused only when their fingerprints match.
-
-## Included and not yet verified
-
-For progress tracking, follow [PROGRESS_UI.md](docs/PROGRESS_UI.md). The lead exports
-one sanitized inventory snapshot; the local UI shows totals, completed versus
-converted work, rule counts, gates, blockers and Sparkflows dependencies. Its
-demonstration is explicitly fictional. Use [SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md)
-for separate remediation, QA and independent adversarial review before promotion.
-
-Optional Graphify installation is pinned in [TOKEN_EFFICIENCY.md](docs/TOKEN_EFFICIENCY.md).
-Its scoped parser was installed and exercised in the build workspace; activate
-only its reviewed path through the workstation's existing permission process.
-The optional adapter requires a verified POSIX/WSL binding on Windows. No global
-hooks, extra model routing or credentials are installed by the kit.
-[PUBLIC_SITE_DESIGN.md](docs/PUBLIC_SITE_DESIGN.md) preserves the design research;
-the temporary REA tool has been removed and requires no workstation activation.
-
-- Included: lead plus eight specialist definitions, three core skills, fifteen
-  retained optional instruction packages/licenses, single-model settings,
-  source-reference transcription, workbook and compact operating specification.
-  Five standard-library evidence utilities and their synthetic regression tests
-  are executable locally. Run `python -m unittest discover -s tests -v`.
-- Not established here: plugin activation in your VS Code host, rendered UI verification,
-  live mainframe/Db2/Sparkflows connectivity, real source conversion, Claude-host
-  execution, provider-token savings or model equivalence. Record each after observation.
+[Kit evidence](docs/evidence.json) records observed checks and limitations.
+Workstation/model operation, live connectivity, real conversion, rendered UI
+checks, token savings and model-quality claims require their own execution receipts.

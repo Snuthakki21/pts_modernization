@@ -36,7 +36,6 @@ REQUIRED_FILES = (
     "examples/PTS_Modernization_Review_Template.xlsx", "examples/rule_validation/README.md",
     "examples/rule_validation/catalog.json", "examples/rule_validation/demo_oracle.py",
     "examples/rule_validation/demo_target.py", "examples/rule_validation/synthetic_rules.cob",
-    "examples/progress-demo.json",
     "tools/check_kit.py", "tools/check_instruction_responses.py", "tools/compatibility_profile.py",
     "tools/init_workspace.py", "tools/render_migration.py", "tools/replay_record.py", "tools/rule_cases.py",
     "tools/progress_snapshot.py", "tools/graphify_lookup.py",

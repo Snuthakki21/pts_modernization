@@ -4,8 +4,8 @@ Local read-only inventory viewer. From this directory:
 
 ```sh
 npm ci --ignore-scripts
-npm test
 npm run build
+npm test
 npm run dev
 ```
 

@@ -12,7 +12,7 @@ Open the local address printed by Vite and use the file picker to load a snapsho
 The preview serves the UI directory, not the repository or private evidence.
 Use the
 separate demonstration action only to explore the layout. The fixture in
-`examples/progress-demo.json` is conspicuously fictional: seven example programs,
+`ui/src/demo-progress.json` is the single fictional fixture: seven example programs,
 one recorded completion, one retirement, and mixed incomplete states. Its counts
 are not project results. No mainframe, model, conversion or security work was
 performed to create the fixture.

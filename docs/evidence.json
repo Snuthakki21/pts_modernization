@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T10:54:43.635300+00:00",
+  "recorded_at_utc": "2026-10-16T11:04:51.727055+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -116,34 +116,34 @@
     ".gitignore": "38f8ce291b0fd35a3c80fd46fe08befc47e294200614dbb5772848c6d7c81974",
     ".impeccable/design.json": "64bdee95053dff6618657958232d90552e5e3c3024bd3e694b46322ec3cbb882",
     ".vscode/extensions.json": "45715e9a8e7657cc14abaa5a9d1884e632b9caae761c3fdaa359c09a5892a1c6",
-    "AGENTS.md": "2cc5b5847a260f5756fc0367558c88f9dd1f2f6de01dc9d4dd7ed59915fe654e",
-    "CLAUDE.md": "0a0bdc996c2e47934b32b5b688baa26642ca07260baf2d6bf3d08d1d55318f5b",
+    "AGENTS.md": "776a37f2a889a5838317e4cee7932597807eba5e2302f91e47efe1b1671a3ca8",
+    "CLAUDE.md": "6456c7a66b23457e561921feb9eea7a74c109424c69512c59d546a6091c4926d",
     "DESIGN.md": "33852b2a7f8b55bf2e2a4b8d38d4813e7eda73bbeec93a1e36100774d7cb3fcd",
     "Endevor/README.md": "a4f8afd4a51d46ad68f6801023ff59f465c4183f14498f31743f9cc43c7a3295",
     "PRODUCT.md": "c8135f282dac412dbc93c8210cf28395b5ea7418cdede8225176c0744918b2e3",
-    "README.md": "7fec38d403baf1143bc3092aa7a09c513bcb910544daa88ac9d6ab8b76015ec7",
-    "START_HERE.md": "af82b661fa597101f91198d956921740bf4e84e2397bb794f71dd6e157359a9b",
+    "README.md": "69cefc73b76b8a6762bc9a76143e521b5d58a3391bc482218b2aabb3b2ee8122",
+    "START_HERE.md": "4ca6f7cfea9f98f9c580d76b625560cbca1f15efc00c08703548ba172d71311e",
     "config/preservation-baseline.json": "be76b12acc7fe058622f6047dfd784e49e7d81eb5fe489023f3ee7354282c0c9",
     "config/project.json": "1d96ab51f2955816d41a7906a27b1ac3cd5321070e7a337a995b1bccca7a13e3",
     "config/source-reference.json": "e5a5113fc6451f2c25ea4a302b0c2cbd4ebf2c6682d277c4cfefeebe904a1258",
     "config/token-tools.json": "1229ebcb236cef798c0291ff5ca221bb1bbfd6c761b706cc03cfc55bac510661",
     "config/token-tools.requirements.in": "f05bafb178a6c7293d04693cfd33b2bad6b3b1c23c68455f2b3edb543c3591d0",
     "config/token-tools.requirements.txt": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
-    "docs/APP_MODERNIZATION_GUIDE.md": "10fd23cc6ef400573fb35a023d4250bb80871dda5191d1c31c84253e28d1b000",
+    "docs/APP_MODERNIZATION_GUIDE.md": "da6701e4d9367cf9c9825adbd80f22a4ca2ba1f9f5a0d2a3180d988b58647125",
     "docs/CLAUDE_CODE_WORKFLOW.md": "e137010a0fef51425bf904b46632ac70ad93cbdfce0a2e589c132eac0662e761",
     "docs/ENDEVOR_NAVIGATION.md": "3086078c4f5e34f4cd51c381ce12981a8e65fc7a8a31598918a969a2998691fe",
     "docs/FOLDER_STRUCTURE.md": "9a760cd482b7b8e49005efcb08916fadc9f76545ec2fb4d8efa1c39b82ace8ea",
-    "docs/GRAPHIFY_INDEX_EVIDENCE.json": "49c2217ca2cef54ff0820a1d7b6a67035bf8cec2512b97e7b06410aee7bac8d5",
+    "docs/GRAPHIFY_INDEX_EVIDENCE.json": "ab12c49a3cd6a688cdc71117b5c5cdd51ba6d1f5a07a9371e941e53f609611e4",
     "docs/IMPLEMENTATION_PLAN.md": "f96c8ceeb1d754c4b5cb7dbbc5bbfc3c5f608b5a1f2f83dc5f641fdbe585ce93",
     "docs/OPUS_QUALITY.md": "c2af963dc87882e5ef4ed547e8d07ad6b8cf26c8339d6f27d642551d0104ea79",
     "docs/PROGRESS_DESIGN.md": "1da7b7d6eb014596d6180b68f2c682efafe9608233281260f3f1a8094276a3dc",
-    "docs/PROGRESS_UI.md": "5f7fe6d5c8b862f8a1baa08dc9a46991b2fdcab9591f5761dc7cb11de8de02df",
+    "docs/PROGRESS_UI.md": "4b0eb1d2a3c37dc90b87a3a78e04a19679966a0f8d1a37122bf71267c5e8caab",
     "docs/PUBLIC_SITE_DESIGN.md": "a60e5a61223859221668754a515a77f6f0b025cb03a870c359068bac2be25076",
     "docs/RULE_REMOVAL.md": "b74ba46b3b019b4afcad91ab43c9d176eea3347dd779cf81e1e9055cfa4207d9",
-    "docs/SECURITY_EVIDENCE.json": "d54cabf35057983ddaeb1ca5f30c442fbc0c7deb1a347be8c0b68fca9d7edb61",
+    "docs/SECURITY_EVIDENCE.json": "68ff66efbc35a96c6661bfe5d2e8a2d094ecc7a6d1f8eae8de72a100981bd2e9",
     "docs/SECURITY_REVIEW.md": "f381e618aab6737bb810400e6505dfef0506782f9dd3fd7ea484f1c42bf8a59d",
     "docs/SPARKFLOWS_MIGRATION.md": "4f9e84cad9d7d390e0c8a408c23d7ab240f42b8f171f0ebd4f05a3d72606fb32",
-    "docs/TECHNICAL_REFERENCE.md": "879124d5a70e51d69803a31d0dee185272ae971d799ffec281ffca395f66c7b9",
+    "docs/TECHNICAL_REFERENCE.md": "3f30b0e7d6ee90d3b87b2b1a18ffdbb5ecc59f88588133f01b28b3fa01ce7c23",
     "docs/TOKEN_EFFICIENCY.md": "48bd3e22315084f1373f18d177f7404a54ec686ad75651bf81de1c5c2d73d017",
     "docs/TOKEN_TOOLS_EVIDENCE.json": "dea664bf02acda6641d9dfd8295683e39f0d6efd546c096d5f39abeeac0d8ced",
     "docs/WORKBOOK_GUIDE.md": "d96adbfc61962fc661719868002f0342baac1ac3617ef532fe57bf09c20430ee",
@@ -152,7 +152,6 @@
     "docs/licenses/graphify/LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
     "docs/licenses/graphify/NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621",
     "examples/PTS_Modernization_Review_Template.xlsx": "e846a8a9ac743e6b39019f285f92ed689dc80373f73e9992cdf679f159f95f12",
-    "examples/progress-demo.json": "29b77bee5d0c2c8e14e50cbe08b63b6e5416c743421046ed0a40673840efe70e",
     "examples/rule_validation/README.md": "92e081e4b98567dbb671557f8dc3761a2182ef903c83e2bc7291a226793900d3",
     "examples/rule_validation/catalog.json": "589ea976c7d46c4e30f03ac3820babb2b6f26ee4d67c7d43b8aef1da46d51a5b",
     "examples/rule_validation/demo_oracle.py": "e21c963bba304435856ccbf1d742fde0b6bc634f57fd9e9396106d72e97e6f38",
@@ -185,7 +184,7 @@
     "tests/test_replay_record.py": "04ffe9ec56dfe188c0d29cb421c510e0917b03075b1e9629c49909911459dff4",
     "tests/test_rule_cases.py": "03ddda8488092bcb8cf12b713dd1bddceb8e0ca9e4bc563e283665165fc8319a",
     "tools/check_instruction_responses.py": "a9e22d3f7c5f3518118ba18be1248e8bb2c3dc2987fb4f5bde75232e923815e6",
-    "tools/check_kit.py": "16581614e76086ca0ba6b2df769eb965defed9192b43907ee4b8b7af12541b1c",
+    "tools/check_kit.py": "0fcef5693e41a2e2a5e56334cbeee8b59a2dab539fa43a1475d2e2dfd78adbfe",
     "tools/compatibility_profile.py": "64065877b79493ff87f81f1110469043d2f611fc071e3ab013eee981e1b043f1",
     "tools/endevor_nav.py": "a46ef81b4b162307d68aed57710d675cab1801c7ac955acab63603ca5e6c56fd",
     "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
@@ -197,7 +196,7 @@
     "ui/.gitignore": "3c78b7aaae145dcefa0d5e52c20ab3fca98b38e318f3bc2825c8091361bcc3aa",
     "ui/.openai/hosting.json": "d532abb65cf9ae20634b464d954cb4a08a0de9f3cd3cdf7f9c3ec8948826d947",
     "ui/AGENTS.md": "4e20d00d0612fe53f04c26b11175879780ae6ba4a4d2245af9599f50e448e505",
-    "ui/README.md": "e8c5ee07aaf897f13609bfbb3661393339ebf25c2046e0d457bedc4b752d5054",
+    "ui/README.md": "a30fa41116dd59429573d8e8a73e9e343a46f0b60bea8cd4d99bc99cdc6439b4",
     "ui/design-qa.md": "d9c566b95c2cffacaadba9aed4627015c8ac4ee10f57f2eacf9ffc370bf06a39",
     "ui/index.html": "c9c5d456ade6f63361c12eef5f5dff5b325c225923089e81c0830cedc9f59c35",
     "ui/package-lock.json": "f05740e20b2e2f943a3fd54b51e91cc836cb37184d2ca06e35a1b1a2cebddb89",
@@ -1040,6 +1039,139 @@
       "generated_bundle_absent": true,
       "public_endevor_guide_present": true,
       "post_test_change": "Only this evidence receipt appended after the tested tree; code and instructions unchanged"
+    }
+  },
+  "repository_cleanup_v7_4": {
+    "observed_at_utc": "2026-10-16T11:04:51.727055+00:00",
+    "baseline_commit": "2b5f5825cd605394729725c7195c6154966cc66e",
+    "audit": {
+      "tracked_paths_reviewed": 149,
+      "remaining_tracked_paths": 148,
+      "unclassified_paths": [],
+      "tracked_junk_patterns": [],
+      "tracked_symlinks": 0,
+      "receipt": ".implementation/cleanup-file-audit.json",
+      "sha256": "1ff9a75e3fe0b14ac53e9c40d30a4d7103949dd53368743a05bde4e09722afe7",
+      "category_counts_before_cleanup": {
+        "agent_definition": 9,
+        "agent_configuration": 3,
+        "license": 17,
+        "retained_optional_skill": 15,
+        "core_skill": 3,
+        "skill_reference": 1,
+        "host_metadata": 6,
+        "operating_document": 7,
+        "configuration": 6,
+        "technical_document_or_evidence": 19,
+        "design_reference": 1,
+        "requested_workbook": 1,
+        "redundant_fixture": 1,
+        "validation_example": 5,
+        "knowledge_reference": 2,
+        "operator_prompt": 2,
+        "state_template": 11,
+        "regression_test": 11,
+        "utility": 10,
+        "ui": 19
+      }
+    },
+    "changes": [
+      "Removed duplicate examples/progress-demo.json; ui/src/demo-progress.json is the sole byte-identical UI fixture.",
+      "Condensed AGENTS, CLAUDE, README and START_HERE into common controls and linked task-specific guides.",
+      "Replaced stale scenario count with canonical suite reference.",
+      "Corrected UI onboarding to build before packaging tests."
+    ],
+    "entrypoint_condensation": {
+      "before_bytes": 26649,
+      "after_bytes": 16118,
+      "reduction_percent": 39.5,
+      "measurement": "UTF-8 file bytes, not provider token usage",
+      "receipt": ".implementation/entrypoint-condensation-review.json",
+      "sha256": "63a21e7e5b421f7638b7603b238ad535120115a204fdef6e4c71f221bb992d4a"
+    },
+    "preserved": [
+      "Nine roles, three core skills and fifteen retained instruction packages",
+      "Permission/model bindings, licenses and original acceptance requirements",
+      "Full technical guides, historical evidence, workbook and source reference",
+      "UI behavior, Sites packaging, tests and lockfiles"
+    ],
+    "validation": {
+      "python_tests": {
+        "passed": 239,
+        "failed": 0,
+        "log": ".implementation/cleanup-python-tests.txt",
+        "sha256": "e129d8ec27ffa76adde431dcf86a8e3958dc406e1d84f9c753391677703b7781"
+      },
+      "ui_tests": {
+        "passed": 22,
+        "failed": 0,
+        "log": ".implementation/cleanup-ui-tests-final.txt",
+        "sha256": "45beec10867fecb5c73cc35e122bb1d9ce9095200d4d4f521f7c57b160ef3eb2"
+      },
+      "ui_build": {
+        "status": "passed",
+        "log": ".implementation/cleanup-ui-build.txt",
+        "sha256": "a6a6ba5a936a7d06d34905c960c90b041db5567a351d2adea07f4f23d00dc715"
+      },
+      "instruction_rubric": {
+        "receipt": ".implementation/instruction-cleanup-20261016T110359Z/receipt.json",
+        "sha256": "6817307975b013f613651a137f1691d00b7e20772de82846da349b6a2ab6262b",
+        "score": {
+          "matched_checks": 73,
+          "total_checks": 73,
+          "fraction": 1.0,
+          "scope": "exact decision enums plus one exact action-set check per case"
+        },
+        "fingerprint": "6a4d9960e9472da5b44bf06e360b7e773439a7cb3e11cc46987783b6530fd8a3",
+        "synthetic_fixture_check": "passed",
+        "model_response_check": "not_performed"
+      },
+      "static_checks": {
+        "recorded_at_utc": "2026-10-16T11:03:59.416411+00:00",
+        "present_tracked_paths": 148,
+        "format_checks": {
+          "json": 30,
+          "python": 22,
+          "xlsx_zip_integrity": 1
+        },
+        "missing_local_markdown_targets": [],
+        "no_new_tracked_files": true
+      },
+      "kit_integrity": {
+        "kit_integrity": "passed",
+        "errors": [],
+        "preservation_basis": "git_history_and_pinned_baseline",
+        "runtime_validation": "not performed",
+        "mainframe_validation": "not performed"
+      },
+      "git_diff_check": "passed"
+    },
+    "graphify_refresh": {
+      "receipt": "docs/GRAPHIFY_INDEX_EVIDENCE.json",
+      "file_count": 12,
+      "symbol_count": 179,
+      "call_count": 271,
+      "source_hashes_verified": true
+    },
+    "independent_review": "docs/SECURITY_EVIDENCE.json#repository_cleanup_v7_4",
+    "limits": [
+      "No live host/mainframe/Db2/Opus or browser execution added.",
+      "No security perfection, real conversion acceptance or measured token-saving claim.",
+      "Ignored private working data and historical Git evidence were preserved."
+    ],
+    "source_archive": {
+      "status": "passed",
+      "tested_tree": "f7bdbac27d42397b933610bd735a64cc5bf07940",
+      "checker": {
+        "kit_integrity": "passed",
+        "errors": [],
+        "preservation_basis": "pinned_baseline_only",
+        "runtime_validation": "not performed",
+        "mainframe_validation": "not performed"
+      },
+      "canonical_demo_only": true,
+      "private_source_and_generated_navigation_absent": true,
+      "post_test_change": "Only this evidence receipt appended; code and instructions unchanged"
     }
   }
 }

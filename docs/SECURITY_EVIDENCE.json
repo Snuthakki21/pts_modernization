@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "dated_scoped_security_evidence",
-  "recorded_at_utc": "2026-10-16T10:54:43.635300+00:00",
+  "recorded_at_utc": "2026-10-16T11:04:51.727055+00:00",
   "guarantees_complete_security": false,
   "receipt_scope": "Kit UI and optional Graphify adapter only; no real converted application reviewed.",
   "reviews": [
@@ -713,5 +713,72 @@
       ],
       "open_findings": []
     }
+  },
+  "repository_cleanup_v7_4": {
+    "kind": "repository_hygiene_not_application_security_scan",
+    "audit_receipt": ".implementation/cleanup-file-audit.json",
+    "audit_sha256": "1ff9a75e3fe0b14ac53e9c40d30a4d7103949dd53368743a05bde4e09722afe7",
+    "independent_root_cleanup_review": {
+      "recorded_at_utc": "2026-10-16T11:01:41.228284+00:00",
+      "result": "no_blocking_findings",
+      "scope": "Root cleanup changes, consumer path safety and original fixture byte preservation; entry-document compaction reviewed separately",
+      "reviewed_sha256": {
+        "tools/check_kit.py": "0fcef5693e41a2e2a5e56334cbeee8b59a2dab539fa43a1475d2e2dfd78adbfe",
+        "docs/PROGRESS_UI.md": "4b0eb1d2a3c37dc90b87a3a78e04a19679966a0f8d1a37122bf71267c5e8caab",
+        "docs/APP_MODERNIZATION_GUIDE.md": "da6701e4d9367cf9c9825adbd80f22a4ca2ba1f9f5a0d2a3180d988b58647125",
+        "docs/TECHNICAL_REFERENCE.md": "3f30b0e7d6ee90d3b87b2b1a18ffdbb5ecc59f88588133f01b28b3fa01ce7c23",
+        "ui/README.md": "a30fa41116dd59429573d8e8a73e9e343a46f0b60bea8cd4d99bc99cdc6439b4",
+        "ui/src/demo-progress.json": "29b77bee5d0c2c8e14e50cbe08b63b6e5416c743421046ed0a40673840efe70e",
+        "ui/src/App.jsx": "b9aecf74990ec8aaf11676a734b45d5c0f4047291f6ba8cd24600c1d656a405c",
+        "ui/tests/snapshot.test.mjs": "4d1b688a4fd1ba9ed5cc98c4be699be7047009da227bf34efd2f4b13f3730070",
+        "ui/vite.config.mjs": "6d7ed640cba5ac70d7770420ad8977802f28956df615f203f45ada8d2487b5af",
+        "ui/AGENTS.md": "4e20d00d0612fe53f04c26b11175879780ae6ba4a4d2245af9599f50e448e505",
+        "ui/.openai/hosting.json": "d532abb65cf9ae20634b464d954cb4a08a0de9f3cd3cdf7f9c3ec8948826d947",
+        "ui/scripts/prepare-sites-build.mjs": "b6a6adaa4fab3234676116dd1c9cb6611275ab9d92dd26f5bf402393e3744bf6",
+        "ui/package.json": "89fa2a857eda2e7c2cd03f85d880bc042c4c8ea7fa42699e3035f5b62f0eb31f",
+        "ui/tests/sites-worker.test.mjs": "96af7b48906c6460c793356d7b6952f7d5026dbf5a502bec0d9297ff04201c26"
+      },
+      "removed_path": "examples/progress-demo.json",
+      "removed_sha256": "29b77bee5d0c2c8e14e50cbe08b63b6e5416c743421046ed0a40673840efe70e",
+      "independent_checks": [
+        "All 149 baseline paths categorized with purposes and consumers",
+        "Duplicate is byte-identical to retained UI fixture",
+        "No Vite path-scope expansion or runtime/import changes",
+        "Sites files remain intact and required by UI contract",
+        "Only obsolete duplicate removed from checker required-file list",
+        "Stale scenario count replaced by canonical-suite link",
+        "Fresh-clone build/test order corrected",
+        "python tools/check_kit.py passed with git_history_and_pinned_baseline"
+      ],
+      "not_performed": [
+        "New live Claude/Opus/Db2/Zowe checks",
+        "New browser visual acceptance",
+        "Full regression run delegated to root"
+      ],
+      "source_hashes_bound": true
+    },
+    "independent_entrypoint_review": {
+      "reviewer": "root; not author of four entrypoint rewrites",
+      "recorded_at_utc": "2026-10-16T11:04:51.727055+00:00",
+      "status": "passed",
+      "reviewed_sha256": {
+        "AGENTS.md": "776a37f2a889a5838317e4cee7932597807eba5e2302f91e47efe1b1671a3ca8",
+        "CLAUDE.md": "6456c7a66b23457e561921feb9eea7a74c109424c69512c59d546a6091c4926d",
+        "README.md": "69cefc73b76b8a6762bc9a76143e521b5d58a3391bc482218b2aabb3b2ee8122",
+        "START_HERE.md": "4ca6f7cfea9f98f9c580d76b625560cbca1f15efc00c08703548ba172d71311e"
+      },
+      "requirements_reviewed": 19,
+      "observations": [
+        "Shared controls reside in AGENTS; CLAUDE retains both imports and canonical guide routing.",
+        "Opus-only routing, permission denials, authentic SME decisions, 100/100 all-rule cases and every-record trace remain required.",
+        "Conditional OKF/Db2/Zowe discovery, original budgets, dependency-safe removal and independent audit remain required.",
+        "Restored unresolved qualifier for critical/high findings and explicit repair-cycle wording before finalization."
+      ],
+      "open_findings": []
+    },
+    "limits": [
+      "No new live Claude, Db2, Zowe or browser acceptance.",
+      "File hygiene is not a complete security guarantee."
+    ]
   }
 }

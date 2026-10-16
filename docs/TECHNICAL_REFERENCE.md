@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 7.3 · 16 October 2026 (UTC) · Permitted discovery fallback and evidence-preserving context techniques
+Version 7.4 · 16 October 2026 (UTC) · Condensed entry instructions and repository cleanup
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
