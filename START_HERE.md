@@ -54,6 +54,9 @@ All work follows [the technical specification](docs/TECHNICAL_REFERENCE.md).
 
 SMEs edit the business-decision cells in the process review workbook. Engineering
 fills classification, technical treatment, reuse, replacement names and evidence.
+Use the workbook's **Review home** link for navigation and **Record Trace** to
+inspect a run and record occurrence. Follow the [workbook guide](docs/WORKBOOK_GUIDE.md)
+to replace the fictional demonstration with an authorized evidence export.
 Return real answers with attribution. The lead ingests revisions and reruns affected
 work. Technical repair proceeds within the configured two-cycle budget without
 repeated confirmation. Business ambiguity and blocked access remain explicit.

@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T00:08:54.941627+00:00",
+  "recorded_at_utc": "2026-10-16T00:37:06.273090+00:00",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -44,7 +44,7 @@
     ],
     "separatePositiveNegativeChecked": true,
     "blankRestored": true,
-    "sheets": 9
+    "sheets": 14
   },
   "independent_review": {
     "status": "findings addressed",
@@ -67,8 +67,8 @@
     "CLAUDE.md": "b7f7793bd9f2720dad72c2d3595ef8b952cef1de87f4ff558108a50f2f0951ec",
     "config/project.json": "c737330119e1af3552bcbe63db75e47490814cf9b5cf1ed5d9962c255ce67bc8",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "c54c2a0201656502a7426505d94d9fc96bcf99e84c55df58f90a073750741369",
-    "examples/PTS_Modernization_Review_Template.xlsx": "b500fdef2ee66d5da5e172bbcdba706fd4dc91c56b4a0f1569c9897088954d2b",
+    "docs/TECHNICAL_REFERENCE.md": "2671afe761ca231f929ce0fddebe38317a7c62f1670d1ffe3371ba9474dbe2f1",
+    "examples/PTS_Modernization_Review_Template.xlsx": "49a141b0f92d0b4dab7b9fdf9ba6d1e8d3f178243690774cfb7146d7c975188e",
     ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
     ".claude/agents/pts-audit.md": "6703445d8707c03cfda5734d76af2e295df322c263b5e10a617b91616f9af369",
     ".claude/agents/pts-backend.md": "0bc64f0269852bc9fbeb98e0d5f77949bdfb318ccd650a15da11790304cb3a6d",
@@ -81,8 +81,9 @@
     ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
     ".claude/skills/validate-program/SKILL.md": "00a844eafdb9ea78d6fc5e39908f108107fb0623780976b28c82f74d2c4555e7",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
-    "START_HERE.md": "8c4f6fd850530b0c30f011e41c302b78dbf7b8dbbba8950d1c63f8308f8b3de1",
-    "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d"
+    "START_HERE.md": "8877cf45d82f4127838ab90123ec47c90c03148376a163c4520f549df7edc005",
+    "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d",
+    "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d"
   },
   "gap_comparison_checks": {
     "sheets": 9,
@@ -119,7 +120,8 @@
       "Non-executable source"
     ],
     "exported_existing_formulas_and_feature_counts_preserved": true,
-    "visual_review": "new comparison, fictional example and affected existing views checked"
+    "visual_review": "new comparison, fictional example and affected existing views checked",
+    "verification_context": "Prior nine-sheet comparison; existing review values and formulas preserved in the revised 14-sheet workbook."
   },
   "record_trace_contract_review": {
     "status": "passed",
@@ -133,5 +135,84 @@
       "Protected operands and retention bindings",
       "Mainframe internal trace separated from output parity"
     ]
+  },
+  "workbook_redesign": {
+    "functional": {
+      "sheets": 14,
+      "preservedCells": 12474,
+      "existingReviewDataAndFormulasPreserved": true,
+      "formulaChecks": [
+        "all evaluations and retry attempts shown without other records",
+        "rejected record retained",
+        "zero evaluations distinct from missing evidence",
+        "incomplete import flagged",
+        "unknown record flagged",
+        "run identity prevents cross-run mixing",
+        "duplicate record index key is ambiguous",
+        "missing expected count never becomes zero",
+        "matching counts do not override incomplete capture",
+        "stale event snapshot flagged",
+        "missing capture receipt remains visible",
+        "table extension included; missing selection formula detected",
+        "blank selection guidance"
+      ],
+      "visuals": [
+        "home",
+        "trace",
+        "runs",
+        "index",
+        "events",
+        "sme",
+        "gap",
+        "gap-example",
+        "rules",
+        "inventory",
+        "intake",
+        "workflow",
+        "example",
+        "cases",
+        "agents"
+      ],
+      "runtimeTraceCapture": "Not implemented or executed; fictional import examples only",
+      "nativeExcel": "Not available for verification",
+      "formulaEngine": "artifact-tool",
+      "tableNames": [
+        "TraceRuns",
+        "TraceRecords",
+        "TraceEvents"
+      ]
+    },
+    "export": {
+      "sheets": 14,
+      "allOriginalFormulasPreserved": true,
+      "cachedCellErrors": [],
+      "dynamicArray": "A23:U25",
+      "authoringTestRowsRemoved": true,
+      "zeroExpectedMembershipsPreserved": true,
+      "tables": [
+        "SMEDecisions",
+        "ProcessMetadata",
+        "ProcessSteps",
+        "ConvertedInventory",
+        "RuleEvidence",
+        "WorkflowSteps",
+        "FolderOwnership",
+        "AcceptanceGates",
+        "DecisionMeanings",
+        "WorkbookHandoff",
+        "IllustrativeDecisions",
+        "UnitDataCases",
+        "AgentSkillMap",
+        "MainframePythonGap",
+        "TraceRuns",
+        "TraceRecords",
+        "TraceEvents"
+      ],
+      "nativeExcelExecution": "not performed"
+    },
+    "visual_review": "All 14 sheets inspected; corrected title duplication, trace link wrapping and stale authoring-only spill cache.",
+    "independent_review": "Passed; fixed bounded selectors and documented formula-helper extension and evidence limits.",
+    "native_excel": "Not performed; verify recalculation and hyperlink behavior in supported Excel before acceptance.",
+    "runtime_capture": "Not implemented or executed. Demonstration data is fictional; real evidence import remains an environment task."
   }
 }

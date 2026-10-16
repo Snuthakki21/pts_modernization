@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 4.2 · 15 October 2026 · Agent-first branch
+Version 4.3 · 16 October 2026 · Agent-first branch
 
 This contract replaces the legacy engine workflow on `modernization/agents-only`.
 The existing branches and their historical evidence remain in Git. The deliverable
@@ -400,6 +400,15 @@ avoid per-record model calls. Measure throughput, storage and trace overhead on
 representative full-volume runs. Optimize capture without sampling records or
 dropping required events. Store detailed traces in the database/evidence store;
 the SME workbook links to selected record traces instead of holding the event log.
+
+The supplied workbook includes a `Record Trace` review projection backed by
+`Run Manifest`, `Record Index` and `Trace Events` import tables. Enter run and
+opaque occurrence IDs to inspect imported evaluations and their source/target,
+effect and evidence references. Capture attestation, run capture and workbook
+export coverage remain separate. Counts can identify mismatches but cannot prove
+membership-set equality or capture completeness. The template contains fictional
+demonstrations only; it does not implement runtime capture or automated imports.
+See the [workbook operating guide](WORKBOOK_GUIDE.md) for the refresh contract.
 
 ## 10. Model, autonomy, tokens and durable knowledge
 
