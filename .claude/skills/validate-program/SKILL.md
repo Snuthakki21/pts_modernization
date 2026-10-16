@@ -143,3 +143,10 @@ with input/output hashes, checks/results, remaining gaps, repair count and next
 step. The foreground alone promotes inventory status. Report unit validation,
 legacy comparison, technical checks and process acceptance separately. Approval,
 model confidence, test counts or a zero job return code alone are not completion.
+
+Apply `docs/SECURITY_REVIEW.md` to the exact target and dependency versions:
+backend repairs, QA reproduces and regression-tests, then a fresh independent
+audit verifies closure. Open critical/high findings or stale review evidence
+block completion. Never infer complete security from a passing scan. Export only
+the sanitized status contract in `docs/PROGRESS_UI.md`; the UI cannot approve or
+authenticate evidence.

@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "kind": "dated_scoped_security_evidence",
+  "recorded_at_utc": "2026-10-16T04:51:04.514507+00:00",
+  "guarantees_complete_security": false,
+  "receipt_scope": "Kit UI and optional Graphify adapter only; no real converted application reviewed.",
+  "reviews": [
+    {
+      "original_receipt_sha256": "5059fcecfd13048088ad68785cd930b7ac89fa76d53228aada4c9dc055489f42",
+      "review": {
+        "schema_version": 1,
+        "kind": "independent_scoped_review",
+        "reviewer": "security_workflow",
+        "observed_at_utc": "2026-10-16T04:47:19.357988+00:00",
+        "scope": [
+          "ui/src/App.jsx",
+          "ui/src/ProgramDetail.jsx",
+          "ui/src/snapshot.mjs",
+          "ui/src/styles.css",
+          "ui/index.html",
+          "ui/vite.config.mjs",
+          "ui/worker/index.js",
+          "ui/package.json",
+          "ui/package-lock.json",
+          "ui/tests/snapshot.test.mjs",
+          "ui/tests/sites-worker.test.mjs",
+          "ui/scripts/prepare-sites-build.mjs",
+          "ui/src/main.jsx"
+        ],
+        "initial_input_hashes": {
+          "ui/src/App.jsx": "b9aecf74990ec8aaf11676a734b45d5c0f4047291f6ba8cd24600c1d656a405c",
+          "ui/src/ProgramDetail.jsx": "b4df8401499073eacc0500e71ebd9ea4a33ab682f5fd001273c90d82a1babd04",
+          "ui/src/snapshot.mjs": "eaa07b3676feff89cd0dfd10d742980123800f1d02072b9d801ea7deb3b57d01",
+          "ui/src/styles.css": "a0ad3494454ab47969190b5a42ee5d36c54c5d681ef1cbcedb0ba618cc8e3716",
+          "ui/index.html": "c9c5d456ade6f63361c12eef5f5dff5b325c225923089e81c0830cedc9f59c35",
+          "ui/vite.config.mjs": "6d7ed640cba5ac70d7770420ad8977802f28956df615f203f45ada8d2487b5af",
+          "ui/worker/index.js": "2dd0615a445143933d88d4271f54f5d63ee951421fcd08c5a7617bb09c564389",
+          "ui/package.json": "89fa2a857eda2e7c2cd03f85d880bc042c4c8ea7fa42699e3035f5b62f0eb31f",
+          "ui/package-lock.json": "f05740e20b2e2f943a3fd54b51e91cc836cb37184d2ca06e35a1b1a2cebddb89"
+        },
+        "reviewed_hashes": {
+          "ui/src/App.jsx": "b9aecf74990ec8aaf11676a734b45d5c0f4047291f6ba8cd24600c1d656a405c",
+          "ui/src/ProgramDetail.jsx": "b4df8401499073eacc0500e71ebd9ea4a33ab682f5fd001273c90d82a1babd04",
+          "ui/src/snapshot.mjs": "d6d1630e6830b0f8f408721d0462810a1908955ccc37a9cfd0c09a7e1e0980be",
+          "ui/src/styles.css": "a0ad3494454ab47969190b5a42ee5d36c54c5d681ef1cbcedb0ba618cc8e3716",
+          "ui/index.html": "c9c5d456ade6f63361c12eef5f5dff5b325c225923089e81c0830cedc9f59c35",
+          "ui/vite.config.mjs": "6d7ed640cba5ac70d7770420ad8977802f28956df615f203f45ada8d2487b5af",
+          "ui/worker/index.js": "2dd0615a445143933d88d4271f54f5d63ee951421fcd08c5a7617bb09c564389",
+          "ui/package.json": "89fa2a857eda2e7c2cd03f85d880bc042c4c8ea7fa42699e3035f5b62f0eb31f",
+          "ui/package-lock.json": "f05740e20b2e2f943a3fd54b51e91cc836cb37184d2ca06e35a1b1a2cebddb89",
+          "ui/tests/snapshot.test.mjs": "4d1b688a4fd1ba9ed5cc98c4be699be7047009da227bf34efd2f4b13f3730070",
+          "ui/tests/sites-worker.test.mjs": "96af7b48906c6460c793356d7b6952f7d5026dbf5a502bec0d9297ff04201c26",
+          "ui/scripts/prepare-sites-build.mjs": "b6a6adaa4fab3234676116dd1c9cb6611275ab9d92dd26f5bf402393e3744bf6",
+          "ui/src/main.jsx": "832f752c6b6a454a26dbc4f2654f5bd633f2b103516c8c0abac648308c133a7e"
+        },
+        "checks": [
+          {
+            "name": "unit_and_worker_tests",
+            "command": "npm test",
+            "result": "passed",
+            "cases": 22
+          },
+          {
+            "name": "production_build",
+            "command": "npm run build",
+            "result": "passed",
+            "note": "Independent build passed before final one-line receipt invariant; final build rerun owned by UI author/root."
+          },
+          {
+            "name": "published_dependency_advisories",
+            "command": "npm audit --json",
+            "result": "no_known_vulnerabilities_found",
+            "dependency_entries": 114,
+            "lock_sha256": "f05740e20b2e2f943a3fd54b51e91cc836cb37184d2ca06e35a1b1a2cebddb89",
+            "receipt": "ui-npm-audit.json"
+          },
+          {
+            "name": "snapshot_invariants",
+            "result": "passed",
+            "receipt": "ui-fixed-probes.json"
+          },
+          {
+            "name": "missing_integration_version",
+            "result": "rejected",
+            "receipt": "ui-null-process-version.json"
+          },
+          {
+            "name": "unsafe_reference_and_prototype_payloads",
+            "result": "rejected",
+            "receipt": "ui-adversarial-imports.json"
+          },
+          {
+            "name": "development_static_boundary",
+            "result": "synthetic_outside_ui_contents_not_exposed",
+            "receipt": "ui-dev-boundary.json",
+            "notes": "Direct and raw filesystem reads returned403; import and traversal fallbacks returned200 without the synthetic sentinel. Test server terminated."
+          }
+        ],
+        "findings": [
+          {
+            "finding_id": "SEC-UI-001",
+            "severity": "medium",
+            "category": "progress_integrity",
+            "state": "closed_verified",
+            "description": "Contradictory open or pending security findings could be marked resolved and leave a program completed.",
+            "initial_evidence": "ui-initial-probes.json",
+            "fix": "Importer enforces finding-state/status/evidence coherence and blocks open/pending resolutions.",
+            "independent_verification": "ui-fixed-probes.json",
+            "fix_file": "ui/src/snapshot.mjs",
+            "fix_sha256": "d6d1630e6830b0f8f408721d0462810a1908955ccc37a9cfd0c09a7e1e0980be"
+          },
+          {
+            "finding_id": "SEC-UI-002",
+            "severity": "medium",
+            "category": "dependency_and_completion_integrity",
+            "state": "closed_verified",
+            "description": "Importer accepted omitted referenced processes and completed process states with failed integration or stale bindings.",
+            "initial_evidence": "ui-initial-probes.json",
+            "fix": "Importer validates process-reference closure, consumer membership/current versions, aggregate bindings and completion prerequisites; current receipt requires a nonnull version.",
+            "independent_verification": [
+              "ui-fixed-probes.json",
+              "ui-null-process-version.json"
+            ],
+            "fix_file": "ui/src/snapshot.mjs",
+            "fix_sha256": "d6d1630e6830b0f8f408721d0462810a1908955ccc37a9cfd0c09a7e1e0980be"
+          }
+        ],
+        "observed_controls": [
+          "React text rendering; no imported HTML execution or arbitrary artifact URLs.",
+          "Whitelisted metadata with8MiB input limit and bounded arrays/identifiers.",
+          "No source/record upload or browser persistence API in reviewed UI code.",
+          "CSP present in delivered HTML; loopback dev binding and strict UI-only filesystem allowlist.",
+          "Static worker delegates to ASSETS and has no mutation or database route."
+        ],
+        "limitations": [
+          "This UI displays recorded snapshot evidence, not authenticated evidence or live acceptance.",
+          "Source and targeted boundary review, not a guarantee of100% security or exhaustive browser/network testing.",
+          "Advisory scan covers known published vulnerabilities; dependency source was not exhaustively audited.",
+          "Actual private sources/customer records were not used.",
+          "Deployment transport/access controls and workstation activation are outside this scoped receipt."
+        ],
+        "recommendation": "scoped_review_passed"
+      },
+      "subsequent_artifact_changes": []
+    },
+    {
+      "original_receipt_sha256": "548fb3ceb0368ebd6c6e0b728a5be9dc6aab1410b282c37b8f41ec1937135271",
+      "review": {
+        "schema_version": 1,
+        "kind": "independent_scoped_review",
+        "reviewer": "security_workflow",
+        "observed_at_utc": "2026-10-16T04:35:41.733969+00:00",
+        "scope": [
+          "tools/graphify_lookup.py",
+          "tests/test_graphify_lookup.py",
+          "config/token-tools.json",
+          "config/token-tools.requirements.txt",
+          "docs/TOKEN_EFFICIENCY.md"
+        ],
+        "initial_input_hashes": {
+          "tools/graphify_lookup.py": "d982cf1deeb8eea37e0ed2313a1997fb2be8689c90707e550c1dda2f84b39ef0",
+          "tests/test_graphify_lookup.py": "167fefd4a36f10102d667406adde0144d13436627ec2b98dad8822912935a2be",
+          "config/token-tools.requirements.in": "f05bafb178a6c7293d04693cfd33b2bad6b3b1c23c68455f2b3edb543c3591d0",
+          "config/token-tools.requirements.txt": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+          "docs/TOKEN_TOOLS_EVIDENCE.json": "6d45760e325541c46ca3f81d1096e5700c87bd32acc9cc18e0e29903fe84afa4"
+        },
+        "checks": [
+          {
+            "name": "boundary_unit_tests",
+            "result": "passed",
+            "cases": 13,
+            "command": "python -m unittest discover -s tests -p test_graphify_lookup.py -v"
+          },
+          {
+            "name": "installed_package_integrity",
+            "result": "passed",
+            "receipt": "graphify-independent-integrity.json"
+          },
+          {
+            "name": "dependency_advisories",
+            "result": "no_known_vulnerabilities_found",
+            "tool": "pip-audit",
+            "version": "2.10.1",
+            "service": "PyPI",
+            "locked_packages": 30,
+            "receipt": "token-dependencies.audit.json",
+            "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+            "command": ".implementation/security-review/audit-venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r config/token-tools.requirements.txt --format json --progress-spinner off --timeout 10 --cache-dir .implementation/security-review/audit-cache --output .implementation/security-review/token-dependencies.audit.json"
+          },
+          {
+            "name": "original_edit_and_restore",
+            "result": "passed",
+            "receipt": "graphify-fix-verification.json"
+          },
+          {
+            "name": "ancestor_symlink_swap_after_validation",
+            "result": "rejected",
+            "receipt": "graphify-no-follow-race.json"
+          }
+        ],
+        "findings": [
+          {
+            "finding_id": "SEC-GRAPHIFY-001",
+            "severity": "medium",
+            "category": "source_provenance_consistency",
+            "state": "closed_verified",
+            "affected_file": "tools/graphify_lookup.py",
+            "subject_sha256": "d982cf1deeb8eea37e0ed2313a1997fb2be8689c90707e550c1dda2f84b39ef0",
+            "description": "Graphify rereads a mutable source path; edit-and-restore during extraction produces graph nodes for different bytes while advertising the original SHA-256 and success.",
+            "reproducer": "graphify-mutable-source-reproducer.json",
+            "required_fix": "Parse a single validated immutable snapshot and bind returned hash to those exact parsed bytes.",
+            "fix_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+            "independent_verification": [
+              "graphify-fix-verification.json",
+              "graphify-no-follow-race.json"
+            ],
+            "resolution": "Validated bytes are captured through descriptor-relative no-follow opens and parsed from a private temporary snapshot; independent edit-and-restore and ancestor-swap reproducers pass."
+          }
+        ],
+        "limitations": [
+          "Scoped review, not a complete audit of every vendored dependency.",
+          "Python audit hook is defense in depth, not OS isolation against native code.",
+          "Advisory lookup covers known published vulnerabilities only.",
+          "No protected customer/source data used.",
+          "No live Claude host, mainframe, or converted application acceptance established.",
+          "No claim of 100% security.",
+          "No-follow capture requires POSIX features; native Windows optional adapter invocation is blocked. Use a verified WSL/Linux/macOS binding; core navigation remains available without Graphify."
+        ],
+        "recommendation": "scoped_review_passed",
+        "completed_at_utc": "2026-10-16T04:37:04.205808+00:00",
+        "reviewed_hashes": {
+          "tools/graphify_lookup.py": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+          "tests/test_graphify_lookup.py": "2207ef19d68df7afb87c0d69edb2112b816f8e37f3c0dfafb2030571a184bce4",
+          "config/token-tools.json": "fbc27664dd09f0f683361668bc01863a5f15bfcd258dd408b362287f31f6c177",
+          "config/token-tools.requirements.txt": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+          "docs/TOKEN_EFFICIENCY.md": "8367e20ca3179eb4a7397a96dfae5ef0fa8f4a4894d46fab108df6ba9dafb295",
+          "config/token-tools.requirements.in": "f05bafb178a6c7293d04693cfd33b2bad6b3b1c23c68455f2b3edb543c3591d0",
+          "docs/TOKEN_TOOLS_EVIDENCE.json": "fa6fb082b4108888fbe57b2c18104b644cd2560b4da6dc5abe2c3cc01c5c073e"
+        }
+      },
+      "subsequent_artifact_changes": [
+        {
+          "path": "docs/TOKEN_EFFICIENCY.md",
+          "reviewed_sha256": "8367e20ca3179eb4a7397a96dfae5ef0fa8f4a4894d46fab108df6ba9dafb295",
+          "current_sha256": "0a653b58385bdeaa4335a17a0e285d1fa33e4e91e5a1ae91aff984bb13f89f01"
+        },
+        {
+          "path": "docs/TOKEN_TOOLS_EVIDENCE.json",
+          "reviewed_sha256": "fa6fb082b4108888fbe57b2c18104b644cd2560b4da6dc5abe2c3cc01c5c073e",
+          "current_sha256": "dea664bf02acda6641d9dfd8295683e39f0d6efd546c096d5f39abeeac0d8ced"
+        }
+      ]
+    }
+  ],
+  "ui_dependency_advisory_receipt": {
+    "auditReportVersion": 2,
+    "vulnerabilities": {},
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencies": {
+        "prod": 63,
+        "dev": 0,
+        "optional": 52,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 114
+      }
+    }
+  },
+  "ui_final_author_and_root_validation": {
+    "importer_sha256": "d6d1630e6830b0f8f408721d0462810a1908955ccc37a9cfd0c09a7e1e0980be",
+    "tests": 22,
+    "test_command": "npm test",
+    "test_result": "passed",
+    "build_command": "npm run build",
+    "build_result": "passed",
+    "browser_visual_qa": "blocked; see ui/design-qa.md"
+  },
+  "diagnostic_receipts": "Nested receipt filenames refer to local synthetic review diagnostics excluded from Git. This document preserves their scoped conclusions; checked-in regression tests reproduce the material contracts.",
+  "rea_advisory_receipt": "docs/licenses/rea/npm-audit-2026-10-16.json",
+  "limitations": [
+    "Known-advisory scans cannot detect every vulnerability.",
+    "No private source, customer record, mainframe or actual converted application was used.",
+    "Host plugin activation and access-controlled deployment were not validated."
+  ],
+  "supplemental_document_review": {
+    "receipt_sha256": "13b9742379e7ee3ed5192d140b6de3ab1bba2144bddd26709cee3cf4f06ef9d2",
+    "review": {
+      "schema_version": 1,
+      "kind": "independent_document_only_review_supplement",
+      "reviewer": "security_workflow",
+      "observed_at_utc": "2026-10-16T04:51:30.295864+00:00",
+      "reviewed_hashes": {
+        "docs/TOKEN_EFFICIENCY.md": "0a653b58385bdeaa4335a17a0e285d1fa33e4e91e5a1ae91aff984bb13f89f01",
+        "docs/TOKEN_TOOLS_EVIDENCE.json": "dea664bf02acda6641d9dfd8295683e39f0d6efd546c096d5f39abeeac0d8ced"
+      },
+      "checks": {
+        "adapter_matches_reviewed_fix": true,
+        "dependency_report_hash_matches": true,
+        "review_receipt_hash_matches": true,
+        "byte_reduction_arithmetic_matches": true,
+        "no_provider_token_savings_claim": true,
+        "no_full_security_claim": true,
+        "host_activation_and_app_acceptance_unverified": true
+      },
+      "result": "passed",
+      "findings": [],
+      "scope_note": "Reviewed current documentation against prior observed Graphify review and audit receipts; no implementation change or new runtime test claimed.",
+      "limitations": [
+        "Output-byte reduction covers one synthetic lookup, not provider-token or whole-project savings.",
+        "No known published dependency vulnerability is not a complete security guarantee.",
+        "WSL/workstation activation remains unverified; native Windows optional adapter blocked."
+      ]
+    }
+  }
+}

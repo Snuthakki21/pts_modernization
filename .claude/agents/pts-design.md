@@ -3,6 +3,7 @@ name: pts-design
 description: Define source-linked architecture, reuse decisions, data and ETL contracts with clear consulting trade-offs and minimal implementation.
 tools: Skill, Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
+effort: xhigh
 maxTurns: 24
 ---
 

@@ -81,7 +81,10 @@
   "model": "claude-opus-4-7",
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-7",
-    "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"
+    "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "2"
   },
-  "agent": "pts-orchestrator"
+  "agent": "pts-orchestrator",
+  "effortLevel": "xhigh",
+  "ultracode": false
 }

@@ -3,6 +3,7 @@ name: pts-analytics
 description: Reconcile actual files and database effects, quantify coverage and efficiency, and explain record traces from captured evidence.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
+effort: xhigh
 maxTurns: 24
 ---
 

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "not_started",
+  "current_task": null,
+  "versions": {},
+  "owned_paths": [],
+  "completed_checks": [],
+  "blockers": [],
+  "open_questions": [],
+  "pending_tasks": [],
+  "repair_budget": {
+    "configured_cycles_per_program": null,
+    "remaining_by_program": {}
+  },
+  "execution_limits": null,
+  "next_action": "Establish workstation bindings and an approved source manifest before application work.",
+  "updated_at": null
+}

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "kind": "reviewed_optional_token_tool_inventory_not_runtime_enforcement",
+  "researched_at_utc": "2026-10-16",
+  "model_policy": "No additional LLMs; Opus 4.7 only for agents",
+  "source_searches": [
+    "GitHub repositories: claude code token reduction, rtk-ai/rtk, headroom claude, graphify claude, mksglu/context-mode",
+    "Context7: /websites/code_claude MCP deferral and skill loading"
+  ],
+  "selected": {
+    "name": "graphifyy",
+    "version": "0.9.91",
+    "repository": "https://github.com/Graphify-Labs/graphify",
+    "commit": "10130e79ed9caf8f60d998073e097531eaa1a395",
+    "license": "Apache-2.0 with retained MIT notice",
+    "lock": "config/token-tools.requirements.txt",
+    "adapter": "tools/graphify_lookup.py",
+    "mode": "local_python_parser_only",
+    "runtime_installed_in_build_workspace": true,
+    "workstation_activation_verified": false,
+    "claude_plugin_hooks_registered": false,
+    "provider_calls": false,
+    "semantic_models": false,
+    "auto_updates": false,
+    "upstream_cli_invoked": false,
+    "source_files_compared_to_pin": true,
+    "allowed_input_roots": [
+      "examples/",
+      "tools/",
+      "programs/<id>/target/"
+    ],
+    "license_files": {
+      "docs/licenses/graphify/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "docs/licenses/graphify/LICENSE-MIT": "36ecff6bbb97aca1be64e95f42538cf796adde5864edac583e620643c096931a",
+      "docs/licenses/graphify/NOTICE": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621"
+    },
+    "evidence": "docs/TOKEN_TOOLS_EVIDENCE.json",
+    "adapter_platforms": [
+      "Linux",
+      "WSL",
+      "macOS (not exercised here)"
+    ],
+    "native_windows_adapter_supported": false,
+    "snapshot_mode": "bounded no-follow source capture and private read-only parser snapshot",
+    "source_python_files_compared": 95,
+    "dependency_audit": {
+      "scanner": "pip-audit",
+      "version": "2.10.1",
+      "dependencies": 30,
+      "known_vulnerabilities": 0,
+      "date": "2026-10-16",
+      "guarantees_security": false
+    }
+  },
+  "native": {
+    "mcp_tool_search": "verify existing provider-supported default; no forced override added",
+    "optional_skills": "on demand only",
+    "worker_limit": 2,
+    "repair_cycles": 2
+  },
+  "reviewed_not_installed": [
+    {
+      "name": "rtk-oss",
+      "version": "0.49.0",
+      "repository": "https://github.com/rtk-ai/rtk",
+      "commit": "f16becacd2f40616839333b3e0e281e40a0bc823",
+      "license": "Apache-2.0 for --no-default-features; default engine is BUSL-1.1",
+      "reason": "Rust1.91 unavailable; output filtering needs evidence-preservation evaluation; proxy/model routing excluded"
+    },
+    {
+      "name": "headroom-ai",
+      "version": "0.41.0",
+      "repository": "https://github.com/headroomlabs-ai/headroom",
+      "commit": "df11f2749862a0090db11f7fca3e7dc42a75b612",
+      "license": "Apache-2.0",
+      "reason": "Broader proxy/compression/effort behavior and extra model surface not selected; prior instruction adapter retained"
+    },
+    {
+      "name": "context-mode",
+      "version": "1.0.169",
+      "repository": "https://github.com/mksglu/context-mode",
+      "commit": "40813fe886798bad07c69a43d2ae00a52b4b934d",
+      "license": "Elastic-2.0",
+      "reason": "Broad hook/tool execution and duplicate session memory not selected"
+    }
+  ],
+  "measurements": {
+    "provider_token_savings": null,
+    "project_cost_reduction": null,
+    "synthetic_output_byte_reduction_percent": 65.82,
+    "synthetic_receipt": "docs/TOKEN_TOOLS_EVIDENCE.json"
+  }
+}

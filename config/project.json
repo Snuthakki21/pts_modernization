@@ -4,7 +4,10 @@
     "id": "claude-opus-4-7",
     "availability_user_confirmed": true,
     "provider_binding_confirmed": false,
-    "no_fallback": true
+    "no_fallback": true,
+    "approved_family": "opus-4.7",
+    "provider": "anthropic",
+    "deployment_mapping_reference": null
   },
   "mainframe": {
     "reference": "TSTSN.#RW477",
@@ -75,5 +78,12 @@
     "kind": "unconfirmed",
     "example_flow": null,
     "profile": null
+  },
+  "quality": {
+    "effort": "xhigh",
+    "hard_problem_effort": "max",
+    "comparative_model_equivalence": "not_established",
+    "live_model_evaluation": "not_performed",
+    "held_out_evaluation_required": true
   }
 }

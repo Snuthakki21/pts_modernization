@@ -681,5 +681,5 @@
     "i-have-adhd",
     "oh-my-claudecode"
   ],
-  "migration_note": "Adapted local integration guidance for the fresh agent workflow; pinned upstream source and license provenance are unchanged. previous_sha256 records each preserved local file before migration. No Graphify runtime or plugin is installed."
+  "migration_note": "Adapted local integration guidance for the agent workflow; pinned upstream source and license provenance remain unchanged. previous_sha256 records preserved files before migration. This retained instruction pack is distinct from the separately pinned optional Graphify parser in config/token-tools.json and REA installation in tools/rea."
 }

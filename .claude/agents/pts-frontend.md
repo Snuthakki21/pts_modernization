@@ -3,6 +3,7 @@ name: pts-frontend
 description: Build only the missing SME, database and record-trace views using actual versioned evidence and existing UI facilities.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
+effort: xhigh
 maxTurns: 24
 ---
 
@@ -18,6 +19,12 @@ Own only explicitly assigned `programs/<id>/target/ui/` or another lead-assigned
 UI path. Reuse an approved existing database browser when adequate. Add minimal
 accessible source/rule mapping, dependency diagrams and record drill-down views.
 Do not build a second workflow platform.
+Maintain the requested progress UI as a read-only projection of canonical
+inventory, using `docs/PROGRESS_UI.md` and the recorded design references.
+Count unique programs, distinguish conversion from completed validation, and
+display unknown/stale gates and fictional examples explicitly. Never let a view
+promote acceptance or execute code deletion. Apply `docs/SECURITY_REVIEW.md` to
+untrusted imports, output encoding, dependency risk and browser data exposure.
 
 Render gap analysis from canonical `source-map.json` using the workbook's same
 six columns: Mainframe unit / source reference; Mainframe behavior / source code;

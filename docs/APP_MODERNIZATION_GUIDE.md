@@ -21,6 +21,13 @@ model for the foreground and every worker, with no fallback. A configured model
 name or user attestation is not a verified provider-routing receipt. Stop affected
 model work if the approved routing cannot be established.
 
+For a fresh checkout, use the approved local Python binding to run
+`python tools/init_workspace.py --root .`. Follow the
+[folder guide](FOLDER_STRUCTURE.md) to initialize selected programs/processes.
+On resume, retain the existing decisions, versions and remaining repair allowance.
+`CLAUDE.md` imports the shared operating contract and tracked memory index; verify
+their loading and effective model/effort through [OPUS_QUALITY.md](OPUS_QUALITY.md).
+
 Use the three core skills with supplied identities and artifact paths. The values
 in angle brackets below are **placeholders**, not supplied programs or files:
 
@@ -419,10 +426,12 @@ still serving other callers. Unknown external outcomes must be reconciled first.
 
 ## 9. Check instruction changes in an actual Opus session
 
-Use the public eight-scenario [instruction rubric](../tests/instruction_cases.json)
+Use the public ten-scenario [instruction rubric](../tests/instruction_cases.json)
 and [offline evaluator](../tools/check_instruction_responses.py) after instruction
 edits are complete. This tests supplied decisions about the workflow; it does not
-modernize or validate an application. Create a new run directory:
+modernize or validate an application. The fingerprint includes tracked memory and
+templates, so changes to startup state also invalidate old responses. Create a new
+run directory:
 
 ```bash
 pts_instruction_run='.implementation/instruction-<NEW_RUN_ID>'
@@ -467,3 +476,16 @@ python -m unittest discover -s tests -v
 
 Report these as local kit checks. Keep actual model evaluation, application tests,
 mainframe parity and environment acceptance tied to their own observed receipts.
+
+Use [OPUS_QUALITY.md](OPUS_QUALITY.md) for a separate held-out evaluation against
+the prior Opus 4.7 instruction set. Do not treat the public rubric as a capability
+benchmark or claim equivalence to another model without a comparable actual run.
+
+## 10. Remove an unwanted converted rule
+
+Use `/modernize-process remove-rule <PROGRAM_ID> <RULE_ID> reason="<INTENT>"`.
+Add `process=<PROCESS_ID>` to preserve other consumers' behavior, or `plan-only`
+to inspect the impact before editing. The [rule-removal playbook](RULE_REMOVAL.md)
+assigns the existing agents, shared dependency checks, narrow reversible patch,
+independent tests, evidence updates and rollback. The agent determines exact code
+locations; you can identify the unwanted behavior or workbook row instead.

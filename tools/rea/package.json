@@ -1,0 +1,7 @@
+{
+  "name": "pts-rea-tools",
+  "private": true,
+  "dependencies": {
+    "rea-agents": "6.5.0"
+  }
+}

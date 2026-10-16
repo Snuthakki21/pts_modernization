@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-16",
+  "kind": "synthetic_local_navigation_smoke",
+  "upstream_commit": "10130e79ed9caf8f60d998073e097531eaa1a395",
+  "runtime_version": "0.9.91",
+  "python": "3.12.14",
+  "installed_distributions": 30,
+  "graphify_source_comparison": "installed Python package files match pinned checkout",
+  "original_file_bytes": 1188,
+  "bounded_lookup_output_bytes": 406,
+  "byte_reduction_percent": 65.82,
+  "provider_token_savings_measured": false,
+  "claude_runtime_activation_verified": false,
+  "application_acceptance": false,
+  "result": {
+    "match_count": 1,
+    "call_count": 1,
+    "truncated": false,
+    "symbols": [
+      {
+        "name": "eligibility()",
+        "line": "L4"
+      }
+    ],
+    "calls": [
+      {
+        "from": "evaluate()",
+        "to": "eligibility()",
+        "line": "L20"
+      }
+    ],
+    "source": "examples/rule_validation/demo_target.py",
+    "sha256": "aaa74aad3e5f587d0d866c777ae793b9c49e729be5bb6599ee5969991913709f",
+    "graphify_version": "0.9.91",
+    "limits": "navigation only; per-file static calls; no completeness or behavior proof"
+  },
+  "lock_sha256": "4390ea5d09ed9c7aa79629ca6bd10ed2cac3741df531109211773cc93e237897",
+  "boundary_tests": 13,
+  "source_python_files_compared": 95,
+  "mutable_source_regression": "Parser receives captured private snapshot; original edits cannot change its input",
+  "dependency_audit": {
+    "scanner": "pip-audit",
+    "version": "2.10.1",
+    "dependencies": 30,
+    "known_vulnerabilities": 0,
+    "raw_report_sha256": "b6157715fa1d4d9b75988a1af7f8757db5819a0be2a1ee92a20d441f97546584",
+    "guarantees_security": false
+  },
+  "adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+  "independent_review": {
+    "finding_id": "SEC-GRAPHIFY-001",
+    "status": "closed_verified",
+    "reviewed_adapter_sha256": "f6edf6a78ea00d78de91810e11a0ed3a8e837541833e0732c901f72cb1a181fb",
+    "raw_receipt_sha256": "548fb3ceb0368ebd6c6e0b728a5be9dc6aab1410b282c37b8f41ec1937135271",
+    "checks": [
+      "actual pinned extractor original edit-and-restore regression",
+      "ancestor symlink swap after lexical approval rejected",
+      "13 boundary tests pass"
+    ],
+    "guarantees_security": false
+  }
+}

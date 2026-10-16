@@ -1,6 +1,6 @@
 # PTS modernization: technical specification
 
-Version 6.0 · 16 October 2026 (UTC) · Executable validation and evidence utilities
+Version 7.0 · 16 October 2026 (UTC) · Workspace, safe removal, progress UI and independent quality review
 
 This specification belongs to `modernization/clean-agent-kit`, based on the reviewed
 agent-only kit at `96fa14263276563ea65e392bb92878250cd06e12`. Clean means a minimal
@@ -73,7 +73,7 @@ throughput, token cost and environment capacity.
 | `pts-gap-analysis` | Discover every program; analyze source, dependencies and missing behavior | Artifact inventory, source ledger, classified rules, dependency graph, questions |
 | `pts-design` | Architecture, contracts, naming, reuse decisions and consulting trade-offs | Source-linked design, component/DB/ETL boundaries, acceptance measures |
 | `pts-backend` | Python logic/ETL, database access and repairs; later ETL migration annotations | Versioned Python code, schemas, source mappings, migration comments and emitted trace events |
-| `pts-frontend` | SME/report navigation and requested database/record explorer | Minimal accessible views, diagrams, actual-record trace navigation |
+| `pts-frontend` | Progress UI, SME/report navigation and requested database/record explorer | Read-only inventory projection, accessible views and evidence navigation |
 | `pts-qa` | Independent expected data, cases, local and process tests | Case catalog, synthetic fixtures, actual results, regression findings |
 | `pts-devops` | Runtime/model checks, environment bindings, test isolation, mainframe packets | Capability findings, reproducible run packet, authorized execution receipts |
 | `pts-analytics` | File/DB reconciliation, coverage, performance and token measurements | Mismatch groups, counts with denominators, benchmarks and trace reports |
@@ -373,14 +373,37 @@ case counts and evidence links. Preserve previous issued versions and original S
 replies; incorporate corrections with attribution and invalidate affected results.
 Ask one batch of necessary questions; do not repeatedly ask resolved questions.
 
+### 5.1 Remove converted behavior safely
+
+Use `/modernize-process remove-rule <PROGRAM_ID> <RULE_ID> reason="<INTENT>"`;
+add `process=<PROCESS_ID>` for a consumer-specific change, or `plan-only` for an
+impact plan. Plain-language behavior or a workbook row can identify the rule.
+The existing agents resolve mappings, check shared callers and data effects,
+apply a narrow reversible patch, and prove both the removed effect's absence and
+retained behavior. No extra service, deletion engine or agent is required.
+
+The [rule-removal playbook](RULE_REMOVAL.md) defines the hash-bound plan,
+decision attribution, version preservation, independent expectations, retained
+100+100 quotas, process integration, full record evidence and rollback. Keep
+original COBOL and historical results. An intentional difference is recorded as
+an approved change, never mislabeled exact legacy parity. Unknown consumers block
+shared-code deletion; code rollback alone cannot undo committed data effects.
+
 ## 6. Files, state and inventory
 
-Create directories only when they contain useful artifacts. One canonical program
-folder serves all consuming processes; process folders link to pinned versions.
+One canonical program folder serves all consuming processes; process folders link
+to pinned versions. Use `python tools/init_workspace.py --root .` once to create
+missing local state from the ten tracked templates. Optional `--program <ID>` and
+`--process <ID>` create only the selected functional folder structures. The helper
+preserves existing state and never invents source identities, memberships, accepted
+results, model bindings or budgets. Follow [FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md)
+for the complete tracked/local layout and failure contract.
 
 | Path | Contents and owner |
 |---|---|
 | `config/project.json` | Shared non-secret bindings and limits; DevOps/lead |
+| `CLAUDE.md`, `AGENTS.md`, `knowledge/MEMORY.md` | Main instructions, operating contract and compact memory index; explicit imports load the latter two |
+| `templates/state/`, `templates/program/`, `templates/process/` | Ten empty versioned templates; actual private state is initialized locally |
 | `programs/<id>/source/` | Protected immutable source or snapshot references |
 | `programs/<id>/analysis/` | Approved views, rules, source ledger/maps, graph, questions and design |
 | `programs/<id>/target/` | Python, SQL and versioned ETL definitions |
@@ -391,6 +414,7 @@ folder serves all consuming processes; process folders link to pinned versions.
 | `inventory.json` | Lead-owned current component/version registry and evidence links |
 | `knowledge/decisions.json` | Accepted reusable findings with applicability, provenance and supersession |
 | `knowledge/handoff.json` | Current task, versions, owned paths, blockers, budget and next action |
+| `knowledge/local-index.json` | Source retrieval references and freshness; no duplicated source or model memory transcript |
 | `docs/SPARKFLOWS_MIGRATION.md` | Lead-owned running migration document: flow catalog/cards, provided artifacts, dependencies, consumer cutovers, retirement and dated commentary; approved sanitized view of canonical program/process state |
 
 The initial registry may be compact JSON; migrate to a small SQLite metadata index
@@ -581,7 +605,13 @@ docstring and `--help` define its executable interface.
 | `tools/rule_cases.py` | QA; source-linked catalog, reviewed independent generator, pinned target | Freezes deterministic cases, de-duplicates declared meaningful inputs, observes actual mapped synchronous Python functions, checks outputs/events and reports each rule's separate passing counts/coverage. Declared source coverage is not independent COBOL completeness. |
 | `tools/replay_record.py` | QA/DevOps; captured failure bundle and record occurrence | Validates hashes and materializes a portable dependency closure; explicit execution replays a trusted local adapter. Expected comparison and failure reproduction are separate; neither sets program acceptance. |
 | `tools/render_migration.py` | Lead; canonical inventory and all source maps | Replaces only the migration document's generated facts. Verifies supplied artifact hashes and exposes missing/stale artifacts and cyclic dependencies. Stages are reported, never certified. |
-| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores eight public scenarios with 34 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
+| `tools/check_instruction_responses.py` | Lead/audit; pinned instruction suite and recorded responses | Scores ten public scenarios with 47 structured checks, rejects missing/stale responses, and distinguishes synthetic fixtures from user-attested Opus sessions. Does not invoke or authenticate a model. |
+
+The separate initializer in Section 6 creates missing files only. The kit checker
+requires the tools, tests, workbook, templates and memory files, verifies preserved
+permissions/licenses against a pinned baseline, and additionally checks historical
+Git bytes when available. Archive/shallow-checkout checks state their narrower
+preservation basis; none imply model execution or program acceptance.
 
 Keep `analysis/rule-catalog.json` as a frozen executable projection of `rules.json`
 and `source-map.json`, using their stable IDs. Gap analysis owns source completeness;
@@ -745,6 +775,13 @@ versions; verify actual worker models and provider routing [S1]. Project setting
 alone are not organization-wide model enforcement. If unsupported, run the affected
 phase in the pinned foreground conversation or stop; never silently substitute.
 
+The project and all nine role definitions request `xhigh` effort. The configured
+runtime concurrency cap complements the lead's two-worker limit; verify effective
+settings on the installed host. `CLAUDE.md` explicitly imports `AGENTS.md` and the
+tracked memory index [S9]. The [Opus quality procedure](OPUS_QUALITY.md) defines
+host receipts, managed deployment bindings and held-out evaluation. Public rubric
+answers and local utility passes cannot establish “5.5-level” model performance.
+
 The supplied `dontAsk` policy permits named local actions and denies actions that
 would otherwise prompt. It is not universal auto-approval. All historical deny
 entries are retained and protected paths extended to the new layout. No permission
@@ -811,17 +848,47 @@ program does not accept all consumers. Missing evidence remains visible.
 | Before accepting evidence | Challenge the tests with deliberate faults and interaction/recovery cases | Show that wrong thresholds, dropped records, duplicate effects, missing events and stale lookups fail the relevant gates. Keep the expected-result oracle independent of target code. |
 | Before production | Agree coexistence, cutover, rollback/data repair, retention, access and performance SLOs | Owners approve operating limits and recovery rehearsals; drift and expired evidence invalidate acceptance visibly. Production release is a separate decision, not an automatic consequence of a unit-test pass. |
 
-Avoid adding dashboards, vector databases, agent frameworks or extra plugins until
-a measured unmet need justifies them. Start with the existing workbook, database,
-Python runtime and Claude Code capabilities; reuse Sparkflows when its later phase
-begins. These are engineering recommendations,
+The requested progress UI is a compact read-only inventory projection. Avoid adding
+vector databases, agent frameworks or unrelated plugins without a measured need.
+Use the existing workbook, database, Python runtime and Claude Code capabilities;
+reuse Sparkflows when its later phase begins. These are engineering recommendations,
 not claims about NVIDIA or Google standards. The execution roadmap is in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
+### 11.1 Progress, code quality and security
+
+Use [PROGRESS_UI.md](PROGRESS_UI.md) for snapshot generation and UI operation.
+The denominator is the unique inventoried program set, with retired components
+shown separately. A shared program appears once, with each consuming process
+linked. Distinguish code converted, current recorded completion, blocked, stale
+and unknown states. Inventory completeness is declared separately from those
+counts; an empty or partial inventory cannot imply full-application completion.
+Program details expose per-rule case counts, evidence gates, security findings
+and future Sparkflows dependencies. A status projection neither executes tests
+nor independently verifies the underlying receipts. Real record-event payloads
+remain in their approved evidence store, separate from this progress summary.
+
+[SECURITY_REVIEW.md](SECURITY_REVIEW.md) defines the adversarial quality/security
+review: the implementer remediates, QA runs independent regression checks, and a
+fresh audit verifies the exact changed version and dependency set. Unresolved
+critical/high findings and missing required security evidence block promotion;
+lower findings need an explicit evidenced disposition. Cover code, dependencies,
+configuration, data access, evidence handling and UI boundaries. Preserve failure
+evidence and the existing repair budget. No tool or reviewer can certify that
+code is 100% secure; record assessed versions, checks, findings and limitations.
+
+The UI's design observations and REA execution limits are documented in
+[REA_DESIGN_RESEARCH.md](REA_DESIGN_RESEARCH.md). Use the observed public visual
+language without asserting an official corporate design-system certification.
+Token-saving additions and measured limits belong in
+[TOKEN_EFFICIENCY.md](TOKEN_EFFICIENCY.md); do not enable tools that change models,
+bypass permissions, or drop required source and record evidence.
+
 ## 12. Reference documentation
 
-Primary documentation checked 15 October 2026. Bind capabilities to the installed
-versions, not merely to current public documentation.
+Primary documentation checked 15 October 2026; model configuration, subagents,
+memory and VS Code documentation rechecked 16 October 2026. Bind capabilities to
+the installed versions, not merely to current public documentation.
 
 - S1: [Claude Code subagents](https://code.claude.com/docs/en/sub-agents), [model configuration](https://code.claude.com/docs/en/model-config), [skills](https://code.claude.com/docs/en/skills).
 - S2: [Permissions](https://code.claude.com/docs/en/permissions), [VS Code extension](https://code.claude.com/docs/en/vs-code).
@@ -831,3 +898,4 @@ versions, not merely to current public documentation.
 - S6: [Zowe dataset download](https://docs.zowe.org/stable/web_help/docs/zowe_zos-files_download_data-set), [job submission](https://docs.zowe.org/stable/web_help/docs/zowe_zos-jobs_submit_local-file), [Db2 plugin](https://docs.zowe.org/stable/user-guide/cli-db2plugin/).
 - S7: [Claude Code MCP connections and tool management](https://code.claude.com/docs/en/mcp).
 - S8: [Zowe dataset listing](https://docs.zowe.org/stable/web_help/docs/zowe_zos-files_list_data-set), [member listing](https://docs.zowe.org/stable/web_help/docs/zowe_zos-files_list_all-members), [job status](https://docs.zowe.org/stable/web_help/docs/zowe_zos-jobs_view_job-status-by-jobid), [job-output download](https://docs.zowe.org/stable/web_help/docs/zowe_zos-jobs_download_output.html).
+- S9: [Claude Code memory and imports](https://code.claude.com/docs/en/memory).

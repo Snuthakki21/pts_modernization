@@ -34,3 +34,20 @@ render factual migration tables, and regression-score instruction scenarios.
 They use the standard library and require reviewed program-specific inputs.
 Run `python -m unittest discover -s tests -v` for their synthetic regression suite.
 The [rule-validation example](examples/rule_validation/README.md) is runnable locally.
+
+A fresh checkout includes [the memory index](knowledge/MEMORY.md) and ten tracked
+starter templates. Run `python tools/init_workspace.py --root .` for missing local
+state; it preserves existing decisions and repair budgets. See
+[FOLDER_STRUCTURE.md](docs/FOLDER_STRUCTURE.md) for every delivered and generated path.
+[OPUS_QUALITY.md](docs/OPUS_QUALITY.md) defines effective model/effort checks and
+measured quality gates. [RULE_REMOVAL.md](docs/RULE_REMOVAL.md) gives the one-request
+workflow for safely removing converted logic without damaging other consumers.
+
+The requested [progress UI](docs/PROGRESS_UI.md) shows unique inventory totals,
+converted versus completed programs, current evidence gates and blocked work.
+It imports sanitized snapshots and includes an explicitly fictional demo.
+[SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md) separates remediation, QA and
+independent adversarial audit. [TOKEN_EFFICIENCY.md](docs/TOKEN_EFFICIENCY.md)
+documents the installed optional Graphify parser, pinned dependency lock and
+measured navigation-output reduction. [REA_DESIGN_RESEARCH.md](docs/REA_DESIGN_RESEARCH.md)
+records the public visual references and actual REA execution limits.

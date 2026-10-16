@@ -1,6 +1,6 @@
 ---
 name: modernize-process
-description: Modernize or resume a supplied mainframe process through a foreground team lead and bounded specialists. Use for complete program inventory, analysis, SME clarification, conversion, reuse, integration and evidence publication without an orchestration engine.
+description: Modernize or resume a supplied mainframe process through a foreground team lead and bounded specialists. Use for inventory, analysis, SME clarification, conversion, reuse, validated rule removal, integration and evidence publication without an orchestration engine.
 ---
 
 # Modernize process
@@ -15,6 +15,27 @@ Follow `docs/APP_MODERNIZATION_GUIDE.md` for the complete application sequence,
 exact local utility commands and compact input contracts. Run the instruction
 regression suite after guidance changes; record synthetic checks separately from
 a real approved-model evaluation.
+Apply `docs/SECURITY_REVIEW.md` to converted code and dependencies: backend repairs,
+QA tests, and an independent audit rechecks the pinned version before promotion.
+
+## Remove previously converted logic
+
+For a request to remove converted behavior, load `docs/RULE_REMOVAL.md` and use
+the existing lead, backend, QA and audit roles. The user can write:
+
+```text
+/modernize-process remove-rule <PROGRAM_ID> <RULE_ID> [process=<PROCESS_ID>] reason="<intended change>"
+```
+
+These are natural-language skill arguments, not an installed CLI parser. Resolve
+a plain-language selection to the mapped rule yourself; do not require the SME
+to name Python functions. `plan-only` produces the impact plan without changing
+behavior. A clear authorized request otherwise proceeds through a recorded,
+hash-bound plan, narrow source patch and validation without another confirmation.
+Unresolved meaning or dependencies block only the affected change. Never delete a
+shared function merely because it contains the selected rule. Preserve retained
+rules and other consumers, original sources and historical evidence. Existing
+permission denials and the remaining two-cycle repair budget still apply.
 
 ## Prerequisites and intake
 

@@ -3,6 +3,7 @@ name: pts-gap-analysis
 description: Inventory all programs and analyze approved source, dependencies, business or technical units, source coverage and conversion gaps.
 tools: Skill, Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
+effort: xhigh
 maxTurns: 24
 ---
 

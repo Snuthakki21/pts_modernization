@@ -1,15 +1,23 @@
 # PTS modernization
 
-Follow `AGENTS.md`. Act as the foreground coordinator; use `/modernize-process`
+@AGENTS.md
+@knowledge/MEMORY.md
+
+Act as the foreground coordinator; use `/modernize-process`
 for a process or portfolio, `/validate-program` for an existing program, and
 `/consult-modernization` for an evidence-based decision or recommendation.
 Read `config/project.json`, the applicable inventory rows and current handoff.
 Read only the needed section of `docs/TECHNICAL_REFERENCE.md`.
 Use `docs/APP_MODERNIZATION_GUIDE.md` for exact phase inputs, commands and handoffs.
+Use `docs/SECURITY_REVIEW.md` for adversarial review, independent rechecks and
+bounded remediation; a passing scan is not a guarantee that code has no flaws.
 
 Use Opus 4.7 only. Confirm `/model` and workers' actual models; never use `opus`,
 `opusplan`, another provider/model or a fallback to satisfy an error. Respect all
 runtime permissions and existing protected-data restrictions.
+Use the configured `xhigh` effort and bounded two-worker workflow. Follow
+`docs/OPUS_QUALITY.md` for measured quality checks and hard-problem escalation.
+No instruction, memory file or model label establishes Opus 5.5 equivalence.
 
 Use `pts-gap-analysis`, `pts-design`, `pts-backend`, `pts-frontend`, `pts-qa`,
 `pts-devops`, `pts-analytics`, and `pts-audit` only when their work is needed. Use at most two
@@ -55,8 +63,13 @@ promotion; synthetic test evidence alone cannot explain an ordinary record's pat
 Keep context small: query an existing valid index, use `rg`/targeted reads, cache
 analysis by source/dependency hash, and return artifact paths plus concise findings.
 Never paste whole fixtures, logs or unrelated programs. Retained Headroom guidance
-is instruction-only; Graphify is not bundled. Do not assume token savings.
+is instruction-only. `docs/TOKEN_EFFICIENCY.md` supplies the pinned optional local
+Graphify parser and scoped lookup command; never invoke its generic CLI/hooks or
+semantic model routes. Verify the workstation binding and measure savings.
 
 Before compaction, persist versions, owned paths, completed checks, open questions,
 remaining repair budget and next eligible action. Retrieve only applicable durable
 decisions. Knowledge is evidence with provenance, not an automatic new permission.
+On a fresh checkout, follow `docs/FOLDER_STRUCTURE.md` to initialize missing local
+state. On resume, validate the handoff's source/build/decision fingerprints before
+using cached findings; preserve existing repair counters and superseded decisions.

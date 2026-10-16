@@ -3,6 +3,7 @@ name: pts-devops
 description: Verify existing runtime and allowed bindings, isolate local runs and prepare reviewable read-only discovery or mainframe validation packets.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: claude-opus-4-7
+effort: xhigh
 maxTurns: 24
 ---
 

@@ -24,7 +24,7 @@ node_modules/
 programs/
 processes/
 sources/
-inventory.json
+/inventory.json
 knowledge/decisions.json
 knowledge/handoff.json
 knowledge/local-index.json
@@ -36,3 +36,6 @@ extenders.json
 .npmrc
 pip.conf
 pip.ini
+ui/dist/
+ui/progress*.json
+ui/public/progress*.json

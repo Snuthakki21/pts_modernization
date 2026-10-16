@@ -37,6 +37,7 @@ REQUIRED_INSTRUCTIONS = (
     "docs/WORKBOOK_GUIDE.md", "docs/IMPLEMENTATION_PLAN.md",
     "prompts/START_MODERNIZATION.md", ".github/copilot-instructions.md",
     "config/project.json", "config/source-reference.json",
+    "knowledge/MEMORY.md",
     ".claude/settings.json", ".claude/skill-pack.json",
     ".claude/skills/modernize-process/SKILL.md",
     ".claude/skills/validate-program/SKILL.md",
@@ -44,6 +45,25 @@ REQUIRED_INSTRUCTIONS = (
     ".claude/skills/validate-program/references/mainframe.md",
 )
 APPROVED_MODEL = "claude-opus-4-7"
+
+
+def model_binding(root):
+    """Use the explicit project deployment; declarations do not verify routing."""
+    model = read_json(root / "config/project.json")["model"]
+    identity, provider = model.get("id"), model.get("provider")
+    if (model.get("approved_family") != "opus-4.7" or model.get("no_fallback") is not True
+            or not isinstance(identity, str) or not identity.strip()
+            or not isinstance(provider, str) or not provider.strip()):
+        raise ValueError("Explicit Opus 4.7 model/provider and no-fallback policy required")
+    if identity != APPROVED_MODEL:
+        reference = model.get("deployment_mapping_reference")
+        if (identity in {"opus", "opusplan", "default", "best", "fable", "sonnet", "haiku"}
+                or identity.startswith("claude-")
+                or provider == "anthropic"
+                or model.get("provider_binding_confirmed") is not True
+                or not isinstance(reference, str) or not reference.strip()):
+            raise ValueError("Nonstandard deployment needs an explicit confirmed Opus 4.7 mapping reference")
+    return identity, provider
 
 
 def _unique_object(pairs):
@@ -81,8 +101,8 @@ def load_suite(root=ROOT):
             for key in ("suite_id", "suite_version", "response_contract")):
         raise ValueError("Invalid suite metadata")
     cases = suite.get("cases")
-    if not isinstance(cases, list) or not 6 <= len(cases) <= 8:
-        raise ValueError("Expected 6 to 8 public synthetic scenarios")
+    if not isinstance(cases, list) or not 6 <= len(cases) <= 12:
+        raise ValueError("Expected 6 to 12 public synthetic scenarios")
     case_ids = set()
     for case in cases:
         if not isinstance(case, dict):
@@ -124,7 +144,8 @@ def instruction_snapshot(root=ROOT):
     """
     paths = set(REQUIRED_INSTRUCTIONS)
     for pattern in (".claude/**/*.md", ".github/*instructions*.md",
-                    "docs/**/*.md", "prompts/**/*.md"):
+                    "docs/**/*.md", "prompts/**/*.md", "knowledge/**/*.md",
+                    "templates/**/*.md", "templates/**/*.json"):
         paths.update(path.relative_to(root).as_posix() for path in root.glob(pattern)
                      if path.name != "LICENSE.md" and path.is_file())
     files = {name: _digest((root / name).read_bytes()) for name in sorted(paths)}
@@ -142,6 +163,7 @@ def instruction_snapshot(root=ROOT):
 def response_metadata(root=ROOT, synthetic=False):
     suite = load_suite(root)
     snapshot = instruction_snapshot(root)
+    model, provider = model_binding(root)
     return {
         "suite_id": suite["suite_id"],
         "suite_version": suite["suite_version"],
@@ -151,8 +173,8 @@ def response_metadata(root=ROOT, synthetic=False):
         "response_kind": "synthetic_fixture" if synthetic else "model_response",
         "model_attestation": {
             "status": "not_applicable_synthetic" if synthetic else "user_reported",
-            "provider": "none" if synthetic else "anthropic",
-            "foreground_model": "none" if synthetic else APPROVED_MODEL,
+            "provider": "none" if synthetic else provider,
+            "foreground_model": "none" if synthetic else model,
             "worker_models": [],
             "fallback_used": False,
             "attested_by": "synthetic_fixture_generator" if synthetic else "REQUIRED: human run recorder",
@@ -177,7 +199,8 @@ def make_response(root=ROOT, synthetic=False):
     return {"metadata": response_metadata(root, synthetic), "responses": responses}
 
 
-def _validate_attestation(metadata, errors):
+def _validate_attestation(metadata, errors, root):
+    model, provider = model_binding(root)
     kind = metadata.get("response_kind")
     if kind not in ("model_response", "synthetic_fixture"):
         errors.append("metadata.response_kind must be model_response or synthetic_fixture")
@@ -188,8 +211,8 @@ def _validate_attestation(metadata, errors):
     synthetic = kind == "synthetic_fixture"
     expected = {
         "status": "not_applicable_synthetic" if synthetic else "user_reported",
-        "provider": "none" if synthetic else "anthropic",
-        "foreground_model": "none" if synthetic else APPROVED_MODEL,
+        "provider": "none" if synthetic else provider,
+        "foreground_model": "none" if synthetic else model,
         "fallback_used": False,
     }
     for key, value in expected.items():
@@ -198,7 +221,7 @@ def _validate_attestation(metadata, errors):
             errors.append(f"metadata.model_attestation.{key} must be {value!r}")
     workers = attestation.get("worker_models")
     if (not _string_list(workers)
-            or any(model != APPROVED_MODEL for model in workers)
+            or any(worker != model for worker in workers)
             or (synthetic and workers)):
         errors.append("Worker attestation must list only the approved model; synthetic fixtures have none")
     recorder = attestation.get("attested_by")
@@ -237,7 +260,7 @@ def evaluate(response, root=ROOT):
     for key, expected in required_metadata.items():
         if metadata.get(key) != expected:
             errors.append(f"metadata.{key} is missing or stale; do not relabel old responses with a new fingerprint")
-    _validate_attestation(metadata, errors)
+    _validate_attestation(metadata, errors, root)
 
     supplied = response.get("responses")
     if not isinstance(supplied, list):

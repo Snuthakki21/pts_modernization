@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T04:50:43.673686+00:00",
+  "title": "Design System: Conversion workspace",
+  "extensions": {
+    "colorMeta": {
+      "red": {
+        "role": "primary",
+        "displayName": "Masthead and action red"
+      },
+      "red-dark": {
+        "role": "primary",
+        "displayName": "Primary hover red"
+      },
+      "gold": {
+        "role": "accent",
+        "displayName": "Masthead gold divider"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Primary warm ink"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Supporting warm ink"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Warm divider"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White content surface"
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Warm page canvas"
+      },
+      "warm": {
+        "role": "neutral",
+        "displayName": "Warm navigation surface"
+      },
+      "focus": {
+        "role": "interaction",
+        "displayName": "Focus blue"
+      },
+      "selected-row": {
+        "role": "interaction",
+        "displayName": "Selected row and demo fill"
+      },
+      "status-positive-text": {
+        "role": "status",
+        "displayName": "Positive written status"
+      },
+      "status-blocked-text": {
+        "role": "status",
+        "displayName": "Blocked written status"
+      },
+      "status-pending-text": {
+        "role": "status",
+        "displayName": "Pending written status"
+      },
+      "status-progress-text": {
+        "role": "status",
+        "displayName": "Progress written status"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page display",
+        "purpose": "Georgia accent for the conversion progress heading."
+      },
+      "body": {
+        "displayName": "Body and data",
+        "purpose": "Pinned Arial/Helvetica system fallback; actual rendering not verified."
+      },
+      "label": {
+        "displayName": "Filter label and inherited field text",
+        "purpose": "Compact labels and native search/select text."
+      },
+      "code": {
+        "displayName": "Opaque reference",
+        "purpose": "Monospace identifiers with overflow wrapping."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "detail-reveal",
+        "value": "reveal .18s ease-out",
+        "purpose": "Detail panel clip-path changes from inset(0 0 8px 0) to inset(0)."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; scroll-behavior:auto!important; } }",
+        "purpose": "Existing preference override; browser behavior remains unverified."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "single-column-detail",
+        "value": "1150px"
+      },
+      {
+        "name": "tablet",
+        "value": "800px"
+      },
+      {
+        "name": "narrow",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Import action with the implemented red hover and visible focus treatment.",
+      "html": "<button class=\"ds-primary\">Import snapshot</button>",
+      "css": ".ds-primary { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; min-height:44px; padding:10px 18px; font-weight:600; white-space:nowrap; border:1px solid var(--red); border-radius:4px; background:var(--red); color:var(--surface); cursor:pointer; } .ds-primary:hover { background:var(--red-dark); border-color:var(--red-dark); } .ds-primary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-primary:disabled { cursor:default; opacity:.6; }"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined action used by the demo, filter recovery and pagination.",
+      "html": "<button class=\"ds-secondary\">Load fictional demo</button>",
+      "css": ".ds-secondary { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; min-height:44px; padding:10px 18px; font-weight:600; white-space:nowrap; border:1px solid var(--ink); border-radius:4px; background:var(--surface); color:var(--ink); cursor:pointer; } .ds-secondary:hover { background:var(--warm); } .ds-secondary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-secondary:disabled { cursor:default; opacity:.6; }"
+    },
+    {
+      "name": "Text action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Underlined close or clear action with its existing minimum control height.",
+      "html": "<button class=\"ds-text\">Close</button>",
+      "css": ".ds-text { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; background:none; border:0; border-radius:4px; text-decoration:underline; text-underline-offset:4px; min-height:44px; padding:8px; color:var(--ink); cursor:pointer; } .ds-text:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "filter-field",
+      "description": "Native search inherits the implemented label size and weight.",
+      "html": "<label class=\"ds-field\">Search programs<input type=\"search\" placeholder=\"Program ID or name\" /></label>",
+      "css": ".ds-field { font-family:Arial,Helvetica,sans-serif; font-size:.85rem; line-height:1.5; font-weight:600; display:flex; flex-direction:column; gap:6px; color:var(--ink); } .ds-field input { font:inherit; min-height:44px; border:1px solid #9a8d86; border-radius:4px; padding:10px 12px; color:var(--ink); background:var(--surface); min-width:0; caret-color:var(--red); } .ds-field input::placeholder { color:var(--muted); opacity:1; } .ds-field input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-field input:disabled { cursor:default; opacity:.6; }"
+    },
+    {
+      "name": "Workspace navigation",
+      "kind": "nav",
+      "refersTo": "workspace-navigation",
+      "description": "Warm navigation with a textual current-page marker and red lower border.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace\"><a href=\"#inventory\" aria-current=\"page\">Program inventory</a><a href=\"#snapshot-context\">Snapshot details</a></nav>",
+      "css": ".ds-nav { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; min-height:54px; background:var(--warm); color:var(--ink); display:flex; gap:32px; border-bottom:1px solid var(--line); align-items:stretch; } .ds-nav a { color:inherit; display:flex; align-items:center; text-decoration:none; border-bottom:3px solid transparent; padding:14px 0 11px; text-underline-offset:4px; } .ds-nav a[aria-current] { border-color:var(--red); font-weight:700; } .ds-nav a:hover { text-decoration:underline; } .ds-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Recorded positive status",
+      "kind": "chip",
+      "refersTo": "status-positive",
+      "description": "A non-interactive written status; the label never verifies underlying evidence.",
+      "html": "<span class=\"ds-status\">passed</span>",
+      "css": ".ds-status { font-family:Arial,Helvetica,sans-serif; line-height:1.5; display:inline-block; font-size:.78rem; font-weight:600; text-transform:capitalize; padding:3px 8px; border-radius:3px; color:#215c3c; background:#e7f3eb; white-space:nowrap; }"
+    },
+    {
+      "name": "Inventory summary surface",
+      "kind": "card",
+      "refersTo": "summary",
+      "description": "Flat, square summary container shown in the empty state.",
+      "html": "<section class=\"ds-summary\" aria-label=\"Full inventory totals\"><h2>Inventory at a glance</h2><p>Import a snapshot to see recorded progress.</p></section>",
+      "css": ".ds-summary { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; color:var(--ink); background:var(--surface); padding:24px 28px; border:1px solid var(--line); } .ds-summary h2 { margin:0; font-size:1.25rem; line-height:1.35; } .ds-summary p { margin:0; color:var(--muted); }"
+    },
+    {
+      "name": "Detail-view navigation",
+      "kind": "nav",
+      "description": "Square view buttons; the active underline is not a card border.",
+      "html": "<nav class=\"ds-detail-nav\" aria-label=\"Program detail views\"><button aria-pressed=\"true\">Overview</button><button aria-pressed=\"false\">Rules</button><button aria-pressed=\"false\">Evidence</button><button aria-pressed=\"false\">Dependencies</button></nav>",
+      "css": ".ds-detail-nav { font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; display:flex; border-bottom:1px solid var(--line); padding:0 14px; overflow:auto; } .ds-detail-nav button { font:inherit; border:0; border-bottom:3px solid transparent; background:transparent; border-radius:0; min-height:46px; padding:10px 9px; color:var(--muted); font-size:.85rem; white-space:nowrap; cursor:pointer; } .ds-detail-nav button[aria-pressed=true] { border-bottom-color:var(--red); color:var(--ink); font-weight:700; } .ds-detail-nav button:hover { background:var(--warm); } .ds-detail-nav button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The user-selected direction is a professional, restrained interpretation of the Wells Fargo public-page reference.",
+    "overview": "The user-selected direction is a professional, restrained interpretation of the Wells Fargo public-page reference. A red masthead, thin gold divider, warm neutral surfaces and clear navigation support an independent conversion workspace. No bank affiliation, proprietary font, logo or new brand metaphor is asserted.\n\nThe frontmatter is the normative token record extracted from ui/src/styles.css, ui/src/App.jsx and ui/src/ProgramDetail.jsx on 16 October 2026. It describes implemented declarations, not browser-computed or visually accepted results. Keep the CSS and this record synchronized. The current browser QA result is blocked; see the QA record at ui/design-qa.md.",
+    "keyCharacteristics": [
+      "Warm neutral surfaces with restrained red and gold accents.",
+      "Readable tables, written statuses and adjacent evidence details.",
+      "Native controls and small, direct components.",
+      "Empty and fictional states clearly distinguished from application evidence."
+    ],
+    "rules": [
+      {
+        "name": "The Recorded State Rule",
+        "body": "Every status keeps its text label. Accent color never establishes acceptance, freshness or completeness by itself.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do keep the user-selected red, gold and warm-neutral direction.",
+      "Do keep status labels, denominators and evidence limits visible.",
+      "Do use the existing system-font stacks, native controls and flat working surfaces.",
+      "Do preserve distinct empty, fictional-demo, import-error and selected states.",
+      "Do complete browser comparison and interaction checks before UI acceptance."
+    ],
+    "donts": [
+      "Don't copy bank logos, proprietary fonts, sign-on forms or affiliation claims.",
+      "Don't add a decorative brand metaphor, marketing imagery or a component framework without a product need.",
+      "Don't use color, a build result or a token extraction as proof of acceptance or accessibility.",
+      "Don't describe an uncaptured desktop or mobile implementation as visually verified."
+    ]
+  }
+}

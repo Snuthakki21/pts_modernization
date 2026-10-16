@@ -23,6 +23,10 @@ mainframe parity must be executed in the approved environment.
 Owner: DevOps; independent check: audit. Skill: `consult-modernization`.
 
 - Read `START_HERE.md`, `config/project.json` and technical-reference Section 4.
+- Initialize missing private state using `tools/init_workspace.py` and
+  `docs/FOLDER_STRUCTURE.md`; retain existing decisions and repair counters.
+  Follow `docs/OPUS_QUALITY.md` to verify imported memory, effective model/effort
+  and the configured worker cap before measuring actual model quality.
 - Record the installed Claude extension/runtime, effective model/delegation,
   Zowe version and non-secret profile reference, actual Db2 MCP server/tool names,
   platform and permitted resource patterns. Defer Sparkflows flow/connector checks.

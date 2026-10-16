@@ -2,17 +2,23 @@
 
 This branch implements the user's agent-first rebuild. Read `CLAUDE.md`, then
 `prompts/START_MODERNIZATION.md`. The foreground Claude Code conversation is the
-coordinator. There is no Python Coordinator service, workflow engine, UI server,
-or legacy campaign dependency on this branch.
+coordinator. There is no Python Coordinator service, workflow engine or legacy
+campaign dependency. The requested progress UI is a read-only view of exported
+inventory; its local preview does not orchestrate conversions.
 
 The operating contract is `docs/TECHNICAL_REFERENCE.md`. Eight specialist definitions, one lead definition
 and three core skills own the workflow. The retained third-party skill pack is
 optional instruction content, not installed runtime plugins. Load only guidance
 needed for the current task. Preserve its licenses and provenance.
+The curated `knowledge/MEMORY.md` indexes durable state. Initialize missing state
+from tracked templates with `tools/init_workspace.py`; preserve existing decisions,
+handoffs and exhausted budgets. Use `docs/FOLDER_STRUCTURE.md` for exact paths.
 
 Use only the approved Opus 4.7 configuration. Verify the actual session and worker
 model before work; no fallback or cross-model routing. Stop affected model work
 if the installed host cannot honor this restriction.
+Use the explicit `xhigh` quality profile and observed evaluation procedure in
+`docs/OPUS_QUALITY.md`. Configuration alone cannot establish 5.5-level performance.
 
 Preserve original sources, accepted decisions and historical evidence. Work from
 explicitly approved sanitized source views and synthetic data. Raw customer rows,
@@ -40,6 +46,12 @@ instructions with the pinned scenario suite; synthetic checks are not an Opus ru
 Keep sources, rules, target mappings, cases and observed results linked by IDs,
 versions and hashes. An unavailable result remains unverified. Reuse only compatible
 versions and fresh evidence. The foreground coordinator alone publishes inventory.
+
+Follow `docs/SECURITY_REVIEW.md`: backend remediates, QA challenges the fix, and
+an independent audit rechecks the exact version. Keep quality and security gates
+separate; missing checks and unresolved critical/high findings block promotion.
+Never claim 100% security from scanner results or review. The progress UI reports
+recorded evidence; it cannot grant acceptance or execute a removal.
 
 Use disjoint program paths and at most the configured workers. Repair locally
 within the configured budget; preserve failures and continue other independent
