@@ -19,7 +19,22 @@
   },
   "execution": {
     "max_workers": 2,
-    "repair_cycles": 2
+    "repair_cycles": 2,
+    "budget_binding": null
+  },
+  "tooling": {
+    "zowe_cli": {
+      "user_confirmed_configured": true,
+      "verified_in_this_environment": false,
+      "version_receipt": null
+    },
+    "db2_mcp": {
+      "user_confirmed_configured": true,
+      "verified_in_this_environment": false,
+      "server_name": null,
+      "approved_tool_binding": null,
+      "capability_receipt": null
+    }
   },
   "validation": {
     "positive_cases_per_rule": 100,
@@ -28,7 +43,10 @@
   "capabilities": {
     "mainframe_read": false,
     "mainframe_write": false,
-    "mainframe_execute": false
+    "mainframe_execute": false,
+    "db2_metadata_read": false,
+    "db2_synthetic_read": false,
+    "db2_test_write": false
   },
   "trace": {
     "required": true,

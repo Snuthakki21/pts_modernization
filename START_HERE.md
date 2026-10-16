@@ -5,7 +5,7 @@ packages from `modernization-factory`; it does not start the old Python workbenc
 
 ## First workstation setup
 
-1. Check out `modernization/agents-only` and open the folder in the approved Claude
+1. Check out `modernization/clean-agent-kit` and open the folder in the approved Claude
    Code VS Code extension. A branch does not install extensions, credentials or
    machine-level plugins. Inspect the workstation's existing configuration.
 2. Run `python tools/check_kit.py` (or `py tools/check_kit.py` on Windows). This
@@ -26,15 +26,26 @@ packages from `modernization-factory`; it does not start the old Python workbenc
    actions. Existing mainframe upload/submit/delete denials remain. Do not use
    bypass mode or alternate tools to evade them. Configure exact local test/ETL
    commands through approved settings; null bindings are deliberate blockers.
-6. Bind approved source access, Zowe/Db2 profiles and one working Sparkflows example
-   in `config/project.json` or protected local configuration. Never put credentials
-   in these tracked files. The photo confirms the listing prefix `TSTSN.#RW477*`;
-   live enumeration is still required. Model-visible source must be an approved
-   sanitized view. Keep private inputs and outputs in the ignored working folders.
+6. Reuse your configured Zowe CLI and Db2 MCP server. Do not install another
+   connector by default. With the environment owner, verify the actual MCP tool
+   catalog, Zowe version/profile, account permissions and approved resources. Bind
+   exact allowed MCP tools to the relevant agent tool lists and host permissions;
+   do not guess tool names or grant wildcard SQL access. Existing denies remain.
+   Follow technical-reference Sections 4.1–4.3 and record non-secret receipts in
+   `.implementation/workstation.json`. A Db2 MCP binding is not a Zowe Db2 profile.
+   Bind source access and one working Sparkflows example in `config/project.json`
+   or protected local configuration. The photo confirms `TSTSN.#RW477*`; live
+   enumeration is still required. Model-visible source must be approved sanitized
+   content. Keep private inputs and outputs in the ignored working folders.
 7. Bind the approved indexed trace/evidence store and retention policy in
    `config/project.json`. Every processed record needs complete rule-event,
    lineage and effect evidence under technical-reference Section 9. No sampling;
    missing trace evidence blocks acceptance. These bindings are not configured here.
+8. Set numeric task/token/time/query/storage limits once and record their protected
+   binding in `execution.budget_binding`. Unset is not unlimited. Run the readiness
+   and representative-pilot tasks in [the implementation plan](docs/IMPLEMENTATION_PLAN.md)
+   before scaling to the program inventory. Batch unresolved setup items into one
+   owner handoff; continue unrelated allowed work.
 
 ## Start, review and resume
 

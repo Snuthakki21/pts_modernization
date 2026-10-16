@@ -11,5 +11,11 @@ Recorded kit checks and execution limits are in [docs/evidence.json](docs/eviden
 
 This clean branch retains the existing 15 optional instruction packages and their
 licenses from `modernization-factory`. It does not install their upstream runtimes.
-Current model, source, Sparkflows and mainframe bindings require workstation
-verification. The supplied photo confirms listing prefix `TSTSN.#RW477*`; live discovery is pending.
+The branch is `modernization/clean-agent-kit`; earlier branches and history are
+preserved. Your existing Db2 MCP server and Zowe CLI are the intended access layer,
+not a request to build another connector. They are user-reported configured and
+still require workstation capability verification here. Model, source, Sparkflows,
+evidence-store and permission bindings are explicit readiness gates.
+The supplied photo confirms listing prefix `TSTSN.#RW477*`; live discovery is pending.
+Use [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the staged execution
+roadmap, ownership, parallel work and acceptance checks.

@@ -13,10 +13,15 @@ The user screenshot visually confirms `TSTSN.#RW477*`, including the highlighted
 Do not treat the date suffix as the only valid version, infer program identity
 from a library name, or infer a z/OSMF endpoint from the terminal URL.
 
-Before remote reads, require the environment owner's confirmed read profile,
+Before Zowe dataset reads, require the environment owner's confirmed read profile,
 `capabilities.mainframe_read`, an explicit approved command binding and applicable
 host permission. Current null bindings/false capability and dontAsk policy do not
-permit remote discovery. Report that gap; do not alter settings to escape it.
+permit Zowe dataset discovery. Report that gap; do not alter settings to escape it.
+For Db2 MCP metadata discovery, use the independently verified exact MCP tool,
+approved resource binding and `capabilities.db2_metadata_read`, with role, host
+and database-account permission. The Zowe dataset gate does not apply to that
+MCP-only operation. Follow technical-reference Sections 4.1–4.3 for its readiness
+receipt. Do not infer synthetic row-read or test-write authority from metadata access.
 
 The official Zowe command forms below are **templates, not executed commands**.
 Confirm them against the installed version and replace every placeholder before
@@ -46,8 +51,10 @@ content; record mode preserves record lengths; encoding mode converts text.
 Record RECFM/LRECL/CCSID and raw/decoded hashes. Do not decode mixed packed/binary
 records as plain text, overwrite a historical snapshot, or print protected file
 contents. An approved deterministic local process may prepare a reviewed sanitized
-view with original-span mapping. Db2 metadata/row extraction requires its separate
-approved profile and path; file access does not establish Db2 access.
+view with original-span mapping. Db2 metadata/row extraction requires its separately
+approved tool/resource path and corresponding capability; file access does not
+establish Db2 access. Reuse the existing Db2 MCP server where bound. A Zowe Db2
+profile is needed only for an explicitly selected Zowe Db2 route, not for MCP.
 
 ## Reviewable validation packet
 
@@ -66,13 +73,16 @@ invent a diff or resource to fill a template. Record unresolved fields explicitl
    logical and byte hashes, initial database state and expected outputs/effects.
 5. List exact supplied commands, prerequisites, resources read/written, capture,
    limits, cleanup/recovery and environment-owner review/notification requirements. Bind review
-   to the packet hash; retain source/decision versions and permitted repeat limits.
+   to the finalized pre-run packet hash in a separate approval receipt; keep the
+   packet immutable and retain source/decision versions and permitted repeat limits.
 6. Keep execution blocked while write/submission denies apply. A config flag,
    approval comment or executable script does not override host/account policy.
    Return the specific policy/resource gap for the authorized owner to resolve.
 7. For any subsequently permitted operator run, retain job ID/status and receipts,
    business output files and Db2 effects separately from spool. Reconcile unknown
    submission status before retrying; never infer that a timeout means no job ran.
+   Write post-run receipts separately, linked to the approved packet hash; do not
+   require future job IDs/output evidence as pre-run fields or mutate the packet.
 
 Speed comes from matching baseline reuse, coherent prebuilt fixtures, batched
 compatible cases, isolated test resources and targeted reruns. Never modify the

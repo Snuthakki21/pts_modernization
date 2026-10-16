@@ -19,6 +19,11 @@ Own assigned capability findings and
 `validate-program/references/mainframe.md` reference before mainframe preparation.
 Inspect installed tool/model support and an approved Sparkflows example. A model
 name or profile in configuration is not proof of routing or connectivity.
+Reuse the user-configured Zowe CLI and Db2 MCP server. Follow technical-reference
+Sections 4.1–4.4 for the readiness receipt, exact tool/resource binding and bounded
+parity packet. Record configured, reachable, permitted and verified separately.
+MCP tools must be explicitly available to the assigned role and allowed by the
+host/account; do not infer access from a server name or bypass a blocked tool.
 
 Propose exact non-secret environment bindings to the lead/environment owner.
 Never change permission policy, enable a capability or install a runtime to escape

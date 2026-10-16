@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-16T00:37:06.273090+00:00",
+  "recorded_at_utc": "2026-10-16T01:04:46Z",
   "artifact_kind": "operating-kit-verification",
   "base_commit": "c6834d9b49c3524bf7d987e66d465b964d2805bb",
   "kit_check": {
@@ -65,15 +65,15 @@
   },
   "sha256": {
     "CLAUDE.md": "b7f7793bd9f2720dad72c2d3595ef8b952cef1de87f4ff558108a50f2f0951ec",
-    "config/project.json": "c737330119e1af3552bcbe63db75e47490814cf9b5cf1ed5d9962c255ce67bc8",
+    "config/project.json": "a12822a04f5ff49d2810369d57156508c46720ad5dd54cc32b9e4dff7eef4821",
     ".claude/settings.json": "4ac1e1d15269502d59875fe85e537bc7d051ee0fa5d199b849d80c064b4cbce2",
-    "docs/TECHNICAL_REFERENCE.md": "2671afe761ca231f929ce0fddebe38317a7c62f1670d1ffe3371ba9474dbe2f1",
+    "docs/TECHNICAL_REFERENCE.md": "6d6517107c4980752e80895bcada80a06bedcf0145ad795fc2b4e5283a5185b6",
     "examples/PTS_Modernization_Review_Template.xlsx": "49a141b0f92d0b4dab7b9fdf9ba6d1e8d3f178243690774cfb7146d7c975188e",
     ".claude/agents/pts-analytics.md": "f251d703bc39e27d5d1e39c4e7dc7351aec883ca1f9c64d5ba6d54c7baa086ca",
     ".claude/agents/pts-audit.md": "6703445d8707c03cfda5734d76af2e295df322c263b5e10a617b91616f9af369",
     ".claude/agents/pts-backend.md": "0bc64f0269852bc9fbeb98e0d5f77949bdfb318ccd650a15da11790304cb3a6d",
-    ".claude/agents/pts-design.md": "865df136d9ddc087f33d9b09dd1ab28186f8d6653f276646f7583cc1c73583f9",
-    ".claude/agents/pts-devops.md": "0317e94ae0483bdf5aba630abfa793334cd64f4a87742c7b6d3c72ecbc26c270",
+    ".claude/agents/pts-design.md": "f06ecbf91081d9448390d3cd305b02f974542d4579d861b6fa1849f9545d9202",
+    ".claude/agents/pts-devops.md": "69ceb3d491c676f33d0ccf17a5a9d1bdd0d75ef6c138ee85ecbfb968f40ad53c",
     ".claude/agents/pts-frontend.md": "433bdff0559b7b8f6f29204eeb9514d9a045ca3ecd608d7b8a09d881e69353ac",
     ".claude/agents/pts-gap-analysis.md": "7c48aaa458730633ba85bfaa1e86423402c19cc65e7381695f067f40c9edd103",
     ".claude/agents/pts-orchestrator.md": "5baa1137a04f098f40a765b5df765a1da396dc26b46c28cf49d434f717424e12",
@@ -81,9 +81,50 @@
     ".claude/skills/modernize-process/SKILL.md": "ee1c7bd101deb0be04ea5bf58ff1672afd87488d888b66f7166c6d003bf77e82",
     ".claude/skills/validate-program/SKILL.md": "00a844eafdb9ea78d6fc5e39908f108107fb0623780976b28c82f74d2c4555e7",
     ".claude/skills/consult-modernization/SKILL.md": "2eca977f0942ffeedf6d7b876f874931901a7c2180c3fd272591f62007b4253b",
-    "START_HERE.md": "8877cf45d82f4127838ab90123ec47c90c03148376a163c4520f549df7edc005",
+    "START_HERE.md": "e5d709d429aa269e5342e793d5b4e59357761b96cbd9c675a9ff5cc4b6ce324b",
+    "README.md": "4afd591852b5cbae7033fe43f56f7530a70debc23958d161b3b1e3138a26de8a",
+    "docs/IMPLEMENTATION_PLAN.md": "ddbfe94053ba47877d767c7eee4c330cc11f7f98824a9965b97a10c516847f47",
+    ".claude/skills/validate-program/references/mainframe.md": "b84ea9eb978b8fc9b023833644f77b2cda9e35ad16487090bdb4d25605ba8348",
     "tools/check_kit.py": "b3de20ae7a4087c9aa28953fcdf1f27d119ac4f213fa0f9e3f87015b085bc01d",
     "docs/WORKBOOK_GUIDE.md": "59ac51a9ba145d2225fc5f1d89f8d7f470b9a6a839e67f42ec8adfe7a2ade48d"
+  },
+  "clean_branch_specification_v5": {
+    "branch": "modernization/clean-agent-kit",
+    "parent_commit": "96fa14263276563ea65e392bb92878250cd06e12",
+    "delivery": "Agent/skill operating kit, technical specification and future implementation roadmap; no new engine",
+    "zowe_cli": "User reports configured on workstation; unavailable in this authoring environment; no live operation executed",
+    "db2_mcp": "User reports configured on workstation; not exposed in this authoring environment; no live operation executed",
+    "fresh_checks": [
+      "tools/check_kit.py passed",
+      "git diff --check passed",
+      "validate-program metadata quick_validate.py passed",
+      "Independent scoped review passed after four findings corrected"
+    ],
+    "review_corrections": [
+      "Immutable pre-run packet and hash-bound approval separated from post-run receipts",
+      "Db2 MCP metadata gate separated from Zowe dataset/profile gate",
+      "Target database explicitly selected; SQLite optional",
+      "SMEs retain preserve/remove/clarify decisions; engineers own technical treatment"
+    ],
+    "playbook_scenarios": {
+      "method": "Offline independent-agent application of the reference; not a host or model-routing test",
+      "baseline": "Original reference incorrectly left permitted MCP-only metadata readiness blocked by broad profile/mainframe gates",
+      "revised_metadata_only": "Passed: approved MCP metadata route does not require a Zowe Db2 profile or dataset-read capability",
+      "revised_rows_and_jobs": "Passed: unbound row reads and job submission remain blocked; metadata readiness grants neither"
+    },
+    "unchanged": [
+      "Workbook binary",
+      "Historical permission denies",
+      "Nine agent roles and three core skills",
+      "Retained optional packages and licenses"
+    ],
+    "not_performed": [
+      "Actual Claude Code workstation/model-delegation smoke test",
+      "Zowe or Db2 MCP live capability probe",
+      "Program conversion, synthetic business tests or Sparkflows execution",
+      "Runtime trace feasibility, performance or mainframe parity",
+      "Native Excel verification"
+    ]
   },
   "gap_comparison_checks": {
     "sheets": 9,

@@ -22,9 +22,12 @@ compatibility; do not outsource those decisions to SMEs.
 
 Define small explicit contracts for business behavior, record codecs, database
 operations, ETL, transaction boundaries and trace events. Keep maintained business
-data in governed versioned tables. Localize SQLite-specific SQL and types while
-recording what Oracle/BigQuery would require; never promise a connection-string
-switch. Inspect installed Sparkflows capability before assigning transformations.
+data in governed versioned tables. Choose the target database explicitly from
+verified ETL, type, transaction, volume and operating requirements. Reuse existing
+approved infrastructure; SQLite is optional for local metadata/prototypes, not a
+mandatory starting database. Localize backend-specific behavior and never promise
+a connection-string-only migration. Inspect installed Sparkflows capability before
+assigning transformations.
 
 Give each transformation one owner and specify independent acceptance measures.
 Avoid service-per-paragraph designs, new engines, speculative frameworks and
